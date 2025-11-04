@@ -1,8 +1,32 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Users, Wrench, ClipboardList, CheckCircle } from 'lucide-react'
+import { Users, Wrench, ClipboardList, CheckCircle, LogOut } from 'lucide-react'
+import { getUser, logout, isAuthenticated } from '../services/authService'
+import toast from 'react-hot-toast'
 
 function Dashboard() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    // Verificar autenticación
+    if (!isAuthenticated()) {
+      navigate('/')
+      return
+    }
+
+    // Obtener usuario
+    const userData = getUser()
+    setUser(userData)
+  }, [navigate])
+
+  const handleLogout = () => {
+    logout()
+    toast.success('Sesión cerrada correctamente')
+    navigate('/')
+  }
 
   const stats = [
     {
@@ -31,13 +55,36 @@ function Dashboard() {
     }
   ]
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('dashboard.title')}
-          </h1>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {t('dashboard.title')}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Bienvenido, {user.name || user.username || user.email}
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            <LogOut size={20} />
+            {t('auth.logout')}
+          </button>
         </div>
       </header>
 
@@ -67,11 +114,26 @@ function Dashboard() {
 
         <div className="mt-8 card">
           <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            Bienvenido al Sistema de Gestión
+            Información de Usuario
           </h2>
-          <p className="text-gray-600">
-            Este es el dashboard principal. Aquí verás las estadísticas y datos importantes de tu negocio.
-          </p>
+          <div className="space-y-2 text-gray-600">
+            <p><strong>Email:</strong> {user.email}</p>
+            {user.name && <p><strong>Nombre:</strong> {user.name}</p>}
+            {user.username && <p><strong>Usuario:</strong> {user.username}</p>}
+          </div>
+        </div>
+
+        <div className="mt-6 card">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            Próximos Pasos
+          </h2>
+          <ul className="space-y-2 text-gray-600">
+            <li>✅ Sistema de autenticación funcionando</li>
+            <li>⏳ Implementar CRUD de Clientes</li>
+            <li>⏳ Implementar CRUD de Equipos</li>
+            <li>⏳ Implementar CRUD de Órdenes de Trabajo</li>
+            <li>⏳ Agregar calendario de servicios</li>
+          </ul>
         </div>
       </main>
     </div>

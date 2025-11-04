@@ -1,18 +1,31 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
+import { login } from '../services/authService'
 
 function Login() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    // TODO: Implementar lógica de autenticación
-    console.log('Login attempt:', email, password)
-    navigate('/dashboard')
+    setLoading(true)
+
+    try {
+      const response = await login({ email, password })
+      toast.success(response.message || 'Login exitoso')
+      navigate('/dashboard')
+    } catch (error) {
+      console.error('Error en login:', error)
+      const errorMessage = error.response?.data?.error || 'Error al iniciar sesión'
+      toast.error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -33,6 +46,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              disabled={loading}
             />
           </div>
 
@@ -46,16 +60,22 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
+              disabled={loading}
             />
           </div>
 
-          <button type="submit" className="w-full btn-primary">
-            {t('auth.login')}
+          <button 
+            type="submit" 
+            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
+            {loading ? t('common.loading') : t('auth.login')}
           </button>
 
           <button
             type="button"
             className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            disabled={loading}
           >
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
             {t('auth.loginWithGoogle')}
@@ -64,9 +84,9 @@ function Login() {
 
         <p className="text-center text-sm text-gray-600 mt-4">
           {t('auth.dontHaveAccount')}{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <Link to="/register" className="text-blue-600 hover:underline">
             {t('auth.register')}
-          </a>
+          </Link>
         </p>
       </div>
     </div>

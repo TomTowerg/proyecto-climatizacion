@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
+import authRoutes from './routes/auth.js'
 
 // Load environment variables
 dotenv.config()
@@ -29,13 +30,14 @@ app.get('/', (req, res) => {
   })
 })
 
-// TODO: Import and use routes
-// import authRoutes from './routes/auth.js'
+// Auth routes
+app.use('/api/auth', authRoutes)
+
+// TODO: Import and use other routes
 // import clienteRoutes from './routes/clientes.js'
 // import equipoRoutes from './routes/equipos.js'
 // import ordenTrabajoRoutes from './routes/ordenesTrabajo.js'
 
-// app.use('/api/auth', authRoutes)
 // app.use('/api/clientes', clienteRoutes)
 // app.use('/api/equipos', equipoRoutes)
 // app.use('/api/ordenes-trabajo', ordenTrabajoRoutes)
