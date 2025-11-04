@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Users, Wrench, ClipboardList, CheckCircle } from 'lucide-react'
 import { getUser, isAuthenticated } from '../services/authService'
 import Navbar from '../components/Navbar'
+import { getEstadisticas } from '../services/ordenTrabajoService'
 
 function Dashboard() {
   const { t } = useTranslation()
@@ -22,32 +23,63 @@ function Dashboard() {
     setUser(userData)
   }, [navigate])
 
-  const stats = [
-    {
-      title: t('dashboard.totalClients'),
-      value: '0',
-      icon: Users,
-      color: 'text-blue-600 bg-blue-100'
-    },
-    {
-      title: t('dashboard.totalEquipment'),
-      value: '0',
-      icon: Wrench,
-      color: 'text-green-600 bg-green-100'
-    },
-    {
-      title: t('dashboard.monthOrders'),
-      value: '0',
-      icon: ClipboardList,
-      color: 'text-purple-600 bg-purple-100'
-    },
-    {
-      title: t('dashboard.completedMaintenance'),
-      value: '0',
-      icon: CheckCircle,
-      color: 'text-orange-600 bg-orange-100'
-    }
-  ]
+const [stats, setStats] = useState({
+  totalClientes: 0,
+  totalEquipos: 0,
+  ordenesMes: 0,
+  mantenimientosCompletados: 0
+})
+
+useEffect(() => {
+  // Verificar autenticación
+  if (!isAuthenticated()) {
+    navigate('/')
+    return
+  }
+
+  // Obtener usuario
+  const userData = getUser()
+  setUser(userData)
+  
+  // Obtener estadísticas
+  fetchEstadisticas()
+}, [navigate])
+
+const fetchEstadisticas = async () => {
+  try {
+    const data = await getEstadisticas()
+    setStats(data)
+  } catch (error) {
+    console.error('Error al cargar estadísticas:', error)
+  }
+}
+
+const statsDisplay = [
+  {
+    title: t('dashboard.totalClients'),
+    value: stats.totalClientes,
+    icon: Users,
+    color: 'text-blue-600 bg-blue-100'
+  },
+  {
+    title: t('dashboard.totalEquipment'),
+    value: stats.totalEquipos,
+    icon: Wrench,
+    color: 'text-green-600 bg-green-100'
+  },
+  {
+    title: t('dashboard.monthOrders'),
+    value: stats.ordenesMes,
+    icon: ClipboardList,
+    color: 'text-purple-600 bg-purple-100'
+  },
+  {
+    title: t('dashboard.completedMaintenance'),
+    value: stats.mantenimientosCompletados,
+    icon: CheckCircle,
+    color: 'text-orange-600 bg-orange-100'
+  }
+]
 
   if (!user) {
     return (
@@ -75,7 +107,8 @@ function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
+          {statsDisplay.map((stat, index) => {
+
             const Icon = stat.icon
             return (
               <div key={index} className="card">

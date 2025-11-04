@@ -7,6 +7,7 @@ import session from 'express-session'
 import passport from './config/passport.js'
 import authRoutes from './routes/auth.js'
 
+
 // Load environment variables
 dotenv.config()
 
@@ -51,7 +52,14 @@ app.use('/api/auth', authRoutes)
 import clienteRoutes from './routes/clientes.js'
 app.use('/api/clientes', clienteRoutes)
 
-// TODO: Import and use other routes
+// Equipos routes
+import equipoRoutes from './routes/equipos.js'
+app.use('/api/equipos', equipoRoutes)
+
+// Órdenes de trabajo routes
+import ordenTrabajoRoutes from './routes/ordenesTrabajo.js'
+app.use('/api/ordenes-trabajo', ordenTrabajoRoutes)
+
 
 // TODO: Import and use other routes
 // import clienteRoutes from './routes/clientes.js'

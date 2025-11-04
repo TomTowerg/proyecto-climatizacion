@@ -5,6 +5,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import AuthCallback from './pages/AuthCallback'
 import Clientes from './pages/Clientes'
+import Equipos from './pages/Equipos'
+import OrdenesTrabajo from './pages/OrdenesTrabajo'
 import './App.css'
 
 function App() {
@@ -41,6 +43,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/clientes" element={<Clientes />} />
+          <Route path="/equipos" element={<Equipos />} />
+          <Route path="/ordenes-trabajo" element={<OrdenesTrabajo />} />
           {/* Más rutas se agregarán aquí */}
         </Routes>
       </div>
