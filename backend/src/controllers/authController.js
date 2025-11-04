@@ -122,6 +122,35 @@ export const login = async (req, res) => {
   }
 }
 
+// Callback de Google OAuth
+export const googleCallback = async (req, res) => {
+  try {
+    // req.user viene de passport
+    const user = req.user
+
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL}/?error=google_auth_failed`)
+    }
+
+    // Generar token JWT
+    const token = generateToken({ 
+      userId: user.id, 
+      email: user.email 
+    })
+
+    // Redirigir al frontend con el token
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      name: user.name
+    }))}`)
+
+  } catch (error) {
+    console.error('Error en callback de Google:', error)
+    res.redirect(`${process.env.FRONTEND_URL}/?error=server_error`)
+  }
+}
 // Obtener usuario actual (requiere autenticación)
 export const getCurrentUser = async (req, res) => {
   try {

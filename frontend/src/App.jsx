@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
+import AuthCallback from './pages/AuthCallback'
 import './App.css'
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           {/* Más rutas se agregarán aquí */}
         </Routes>
       </div>

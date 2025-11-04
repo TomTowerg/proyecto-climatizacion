@@ -27,7 +27,9 @@ function Login() {
       setLoading(false)
     }
   }
-
+const handleGoogleLogin = () => {
+  window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`
+}
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
       <div className="card max-w-md w-full mx-4">
@@ -73,12 +75,13 @@ function Login() {
           </button>
 
           <button
-            type="button"
-            className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+           type="button"
+            onClick={handleGoogleLogin}
+           className="w-full bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             disabled={loading}
           >
-            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-            {t('auth.loginWithGoogle')}
+           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+           {t('auth.loginWithGoogle')}
           </button>
         </form>
 

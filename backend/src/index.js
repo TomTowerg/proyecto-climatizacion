@@ -3,6 +3,8 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
+import session from 'express-session'
+import passport from './config/passport.js'
 import authRoutes from './routes/auth.js'
 
 // Load environment variables
@@ -20,6 +22,18 @@ app.use(cors({
 app.use(morgan('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+// Session middleware (para Passport)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'tu_session_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // En producción usar true con HTTPS
+}))
+
+// Initialize Passport
+app.use(passport.initialize())
+app.use(passport.session())
 
 // Routes
 app.get('/', (req, res) => {
