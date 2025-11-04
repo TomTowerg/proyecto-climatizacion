@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Users, Wrench, ClipboardList, CheckCircle, LogOut } from 'lucide-react'
-import { getUser, logout, isAuthenticated } from '../services/authService'
-import toast from 'react-hot-toast'
+import { Users, Wrench, ClipboardList, CheckCircle } from 'lucide-react'
+import { getUser, isAuthenticated } from '../services/authService'
+import Navbar from '../components/Navbar'
 
 function Dashboard() {
   const { t } = useTranslation()
@@ -21,12 +21,6 @@ function Dashboard() {
     const userData = getUser()
     setUser(userData)
   }, [navigate])
-
-  const handleLogout = () => {
-    logout()
-    toast.success('Sesión cerrada correctamente')
-    navigate('/')
-  }
 
   const stats = [
     {
@@ -68,27 +62,18 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {t('dashboard.title')}
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Bienvenido, {user.name || user.username || user.email}
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            <LogOut size={20} />
-            {t('auth.logout')}
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t('dashboard.title')}
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Bienvenido, {user.name || user.username || user.email}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, index) => {
             const Icon = stat.icon

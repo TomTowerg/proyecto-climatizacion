@@ -47,6 +47,12 @@ app.get('/', (req, res) => {
 // Auth routes
 app.use('/api/auth', authRoutes)
 
+// Clientes routes
+import clienteRoutes from './routes/clientes.js'
+app.use('/api/clientes', clienteRoutes)
+
+// TODO: Import and use other routes
+
 // TODO: Import and use other routes
 // import clienteRoutes from './routes/clientes.js'
 // import equipoRoutes from './routes/equipos.js'

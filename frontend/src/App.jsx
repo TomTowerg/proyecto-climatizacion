@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import AuthCallback from './pages/AuthCallback'
+import Clientes from './pages/Clientes'
 import './App.css'
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/clientes" element={<Clientes />} />
           {/* Más rutas se agregarán aquí */}
         </Routes>
       </div>
