@@ -98,6 +98,8 @@ model OrdenTrabajo {
   notas       String?
   tecnico     String
   estado      String   @default("pendiente") // pendiente, en_proceso, completado
+  urgencia    String   @default("media") // baja, media, critica
+  analisisIA  String?  // JSON con el análisis completo de la IA
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

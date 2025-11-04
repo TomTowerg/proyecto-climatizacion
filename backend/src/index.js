@@ -68,6 +68,10 @@ app.use('/api/inventario', inventarioRoutes)
 import cotizacionRoutes from './routes/cotizaciones.js'
 app.use('/api/cotizaciones', cotizacionRoutes)
 
+// IA routes
+import iaRoutes from './routes/ia.js'
+app.use('/api/ia', iaRoutes)
+
 
 // TODO: Import and use other routes
 // import clienteRoutes from './routes/clientes.js'

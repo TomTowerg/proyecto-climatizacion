@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Sparkles, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import { isAuthenticated } from '../services/authService'
 import { getOrdenesTrabajo, createOrdenTrabajo, updateOrdenTrabajo, deleteOrdenTrabajo } from '../services/ordenTrabajoService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
+import { analizarUrgencia } from '../services/iaService'
 
 function OrdenesTrabajo() {
   const { t } = useTranslation()
@@ -20,6 +21,10 @@ function OrdenesTrabajo() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingOrden, setEditingOrden] = useState(null)
+  const [analizando, setAnalizando] = useState(false)
+  const [analisisIA, setAnalisisIA] = useState(null)
+  const [showAnalisisModal, setShowAnalisisModal] = useState(false)
+  const [analisisSeleccionado, setAnalisisSeleccionado] = useState(null)
   const [formData, setFormData] = useState({
     clienteId: '',
     equipoId: '',
@@ -27,7 +32,8 @@ function OrdenesTrabajo() {
     fecha: new Date().toISOString().split('T')[0],
     notas: '',
     tecnico: '',
-    estado: 'pendiente'
+    estado: 'pendiente',
+    urgencia: 'media'
   })
 
   useEffect(() => {
@@ -69,13 +75,59 @@ function OrdenesTrabajo() {
     }
   }
 
+  const handleAnalizarUrgencia = async () => {
+    if (!formData.notas || formData.notas.trim() === '') {
+      toast.error('Por favor escribe una descripción del problema para analizar')
+      return
+    }
+
+    if (!formData.tipo) {
+      toast.error('Por favor selecciona el tipo de trabajo')
+      return
+    }
+
+    setAnalizando(true)
+    try {
+      const clienteNombre = clientes.find(c => c.id === parseInt(formData.clienteId))?.nombre || 'No especificado'
+      
+      const analisis = await analizarUrgencia(
+        formData.notas,
+        formData.tipo,
+        clienteNombre
+      )
+
+      setAnalisisIA(analisis)
+      
+      // Mapear el nivel a nuestro formato
+      const urgenciaMap = {
+        'CRÍTICA': 'critica',
+        'CRITICA': 'critica',
+        'MEDIA': 'media',
+        'BAJA': 'baja'
+      }
+      
+      setFormData({
+        ...formData,
+        urgencia: urgenciaMap[analisis.nivel] || 'media'
+      })
+
+      toast.success('Análisis completado')
+    } catch (error) {
+      console.error('Error al analizar:', error)
+      toast.error('Error al analizar urgencia')
+    } finally {
+      setAnalizando(false)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     try {
       const dataToSend = {
         ...formData,
-        equipoId: formData.equipoId || null
+        equipoId: formData.equipoId || null,
+        analisisIA: analisisIA
       }
 
       if (editingOrden) {
@@ -104,8 +156,19 @@ function OrdenesTrabajo() {
       fecha: new Date(orden.fecha).toISOString().split('T')[0],
       notas: orden.notas || '',
       tecnico: orden.tecnico,
-      estado: orden.estado
+      estado: orden.estado,
+      urgencia: orden.urgencia || 'media'
     })
+    
+    // Parsear análisis IA si existe
+    if (orden.analisisIA) {
+      try {
+        setAnalisisIA(JSON.parse(orden.analisisIA))
+      } catch (e) {
+        setAnalisisIA(null)
+      }
+    }
+    
     setShowModal(true)
   }
 
@@ -128,6 +191,7 @@ function OrdenesTrabajo() {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingOrden(null)
+    setAnalisisIA(null)
     setFormData({
       clienteId: '',
       equipoId: '',
@@ -135,8 +199,26 @@ function OrdenesTrabajo() {
       fecha: new Date().toISOString().split('T')[0],
       notas: '',
       tecnico: '',
-      estado: 'pendiente'
+      estado: 'pendiente',
+      urgencia: 'media'
     })
+  }
+
+  const verAnalisisIA = (orden) => {
+    if (!orden.analisisIA) {
+      toast.error('Esta orden no tiene análisis de IA')
+      return
+    }
+    
+    try {
+      const analisis = typeof orden.analisisIA === 'string' 
+        ? JSON.parse(orden.analisisIA) 
+        : orden.analisisIA
+      setAnalisisSeleccionado(analisis)
+      setShowAnalisisModal(true)
+    } catch (e) {
+      toast.error('Error al cargar análisis')
+    }
   }
 
   const getEstadoBadge = (estado) => {
@@ -171,6 +253,24 @@ function OrdenesTrabajo() {
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
         {labels[tipo]}
+      </span>
+    )
+  }
+
+  const getUrgenciaBadge = (urgencia) => {
+    const badges = {
+      baja: 'bg-green-100 text-green-800',
+      media: 'bg-yellow-100 text-yellow-800',
+      critica: 'bg-red-100 text-red-800'
+    }
+    const labels = {
+      baja: '🟢 Baja',
+      media: '🟡 Media',
+      critica: '🔴 Crítica'
+    }
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[urgencia]}`}>
+        {labels[urgencia]}
       </span>
     )
   }
@@ -238,6 +338,9 @@ function OrdenesTrabajo() {
                     Tipo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Urgencia
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Técnico
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -251,7 +354,7 @@ function OrdenesTrabajo() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrdenes.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                       No hay órdenes de trabajo registradas
                     </td>
                   </tr>
@@ -274,6 +377,9 @@ function OrdenesTrabajo() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getTipoBadge(orden.tipo)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getUrgenciaBadge(orden.urgencia)}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                         {orden.tecnico}
                       </td>
@@ -282,6 +388,15 @@ function OrdenesTrabajo() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
+                          {orden.analisisIA && (
+                            <button
+                              onClick={() => verAnalisisIA(orden)}
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              title="Ver análisis de IA"
+                            >
+                              <Eye size={18} />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleEdit(orden)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -305,10 +420,10 @@ function OrdenesTrabajo() {
         </div>
       </main>
 
-      {/* Modal */}
+      {/* Modal de Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
               {editingOrden ? 'Editar Orden de Trabajo' : 'Crear Orden de Trabajo'}
             </h2>
@@ -419,16 +534,77 @@ function OrdenesTrabajo() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas
+                  Notas / Descripción del Problema *
                 </label>
                 <textarea
                   value={formData.notas}
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="4"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Descripción del trabajo a realizar..."
+                  placeholder="Describe el problema o trabajo a realizar..."
+                  required
                 />
               </div>
+
+              {/* Botón Analizar con IA */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleAnalizarUrgencia}
+                  disabled={analizando || !formData.notas || !formData.tipo}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Sparkles size={18} />
+                  {analizando ? 'Analizando...' : '🤖 Analizar Urgencia con IA'}
+                </button>
+              </div>
+
+              {/* Mostrar Análisis de IA */}
+              {analisisIA && (
+                <div className={`p-4 rounded-lg border-2 ${
+                  analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
+                    ? 'bg-red-50 border-red-200' 
+                    : analisisIA.nivel === 'MEDIA' 
+                    ? 'bg-yellow-50 border-yellow-200' 
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl">
+                      {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' ? '🔴' : analisisIA.nivel === 'MEDIA' ? '🟡' : '🟢'}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg mb-2">
+                        {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
+                          ? '⚠️ URGENCIA CRÍTICA' 
+                          : analisisIA.nivel === 'MEDIA' 
+                          ? '⚡ URGENCIA MEDIA' 
+                          : '✅ URGENCIA BAJA'}
+                      </h3>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <strong>Razones:</strong>
+                          <ul className="list-disc list-inside ml-2 mt-1">
+                            {analisisIA.razones?.map((razon, idx) => (
+                              <li key={idx}>{razon}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <strong>🎯 Acción Recomendada:</strong>
+                          <p className="ml-2 mt-1">{analisisIA.accionRecomendada}</p>
+                        </div>
+                        
+                        <div>
+                          <strong>⏱️ Tiempo de Respuesta:</strong>
+                          <p className="ml-2 mt-1">{analisisIA.tiempoRespuesta}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -446,6 +622,76 @@ function OrdenesTrabajo() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Ver Análisis */}
+      {showAnalisisModal && analisisSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-2xl font-bold">📊 Análisis de IA</h2>
+              <button
+                onClick={() => setShowAnalisisModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className={`p-4 rounded-lg border-2 ${
+              analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
+                ? 'bg-red-50 border-red-200' 
+                : analisisSeleccionado.nivel === 'MEDIA' 
+                ? 'bg-yellow-50 border-yellow-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className="text-4xl">
+                  {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' ? '🔴' : analisisSeleccionado.nivel === 'MEDIA' ? '🟡' : '🟢'}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-xl mb-3">
+                    {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
+                      ? '⚠️ URGENCIA CRÍTICA' 
+                      : analisisSeleccionado.nivel === 'MEDIA' 
+                      ? '⚡ URGENCIA MEDIA' 
+                      : '✅ URGENCIA BAJA'}
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <strong className="text-gray-700">Razones:</strong>
+                      <ul className="list-disc list-inside ml-2 mt-2 space-y-1">
+                        {analisisSeleccionado.razones?.map((razon, idx) => (
+                          <li key={idx} className="text-gray-600">{razon}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <strong className="text-gray-700">🎯 Acción Recomendada:</strong>
+                      <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.accionRecomendada}</p>
+                    </div>
+                    
+                    <div>
+                      <strong className="text-gray-700">⏱️ Tiempo de Respuesta:</strong>
+                      <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.tiempoRespuesta}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowAnalisisModal(false)}
+                className="btn-primary"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

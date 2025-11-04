@@ -67,6 +67,9 @@ export const createCotizacion = async (req, res) => {
   try {
     const { clienteId, inventarioId, precioOfertado, descuento, notas } = req.body
 
+    // Log para debug
+    console.log('Datos recibidos:', { clienteId, inventarioId, precioOfertado, descuento, notas })
+
     if (!clienteId || !inventarioId || !precioOfertado) {
       return res.status(400).json({ 
         error: 'Cliente, equipo y precio son requeridos' 
@@ -97,16 +100,33 @@ export const createCotizacion = async (req, res) => {
       })
     }
 
+    // Convertir valores a números y validar
+    const precio = parseFloat(precioOfertado)
+    const desc = parseFloat(descuento) || 0
+
+    if (isNaN(precio) || precio <= 0) {
+      return res.status(400).json({ 
+        error: 'Precio inválido' 
+      })
+    }
+
+    if (desc < 0 || desc > 100) {
+      return res.status(400).json({ 
+        error: 'Descuento debe estar entre 0 y 100' 
+      })
+    }
+
     // Calcular precio final
-    const desc = descuento || 0
-    const precioFinal = parseFloat(precioOfertado) - (parseFloat(precioOfertado) * (desc / 100))
+    const precioFinal = precio - (precio * (desc / 100))
+
+    console.log('Cálculo:', { precio, desc, precioFinal })
 
     // Crear cotización
     const cotizacion = await prisma.cotizacion.create({
       data: {
         clienteId: parseInt(clienteId),
         inventarioId: parseInt(inventarioId),
-        precioOfertado: parseFloat(precioOfertado),
+        precioOfertado: precio,
         descuento: desc,
         precioFinal,
         notas: notas || ''
@@ -129,10 +149,12 @@ export const createCotizacion = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear cotización:', error)
-    res.status(500).json({ error: 'Error al crear cotización' })
+    res.status(500).json({ 
+      error: 'Error al crear cotización',
+      details: error.message 
+    })
   }
 }
-
 // Actualizar cotización (cambiar estado, precio, etc)
 export const updateCotizacion = async (req, res) => {
   try {

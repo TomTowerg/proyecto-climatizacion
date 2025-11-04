@@ -9,6 +9,7 @@ import Equipos from './pages/Equipos'
 import OrdenesTrabajo from './pages/OrdenesTrabajo'
 import Inventario from './pages/Inventario'
 import Cotizaciones from './pages/Cotizaciones'
+import PruebaIA from './pages/PruebaIA'
 import './App.css'
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/ordenes-trabajo" element={<OrdenesTrabajo />} />
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/cotizaciones" element={<Cotizaciones />} />
+          <Route path="/prueba-ia" element={<PruebaIA />} />
           {/* Más rutas se agregarán aquí */}
         </Routes>
       </div>

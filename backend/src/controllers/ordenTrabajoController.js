@@ -62,7 +62,7 @@ export const getOrdenTrabajoById = async (req, res) => {
 // Crear orden de trabajo
 export const createOrdenTrabajo = async (req, res) => {
   try {
-    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado } = req.body
+    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
 
     // Validar campos requeridos
     if (!clienteId || !tipo || !fecha || !tecnico) {
@@ -114,7 +114,9 @@ export const createOrdenTrabajo = async (req, res) => {
         fecha: new Date(fecha),
         notas: notas || '',
         tecnico,
-        estado: estado || 'pendiente'
+        estado: estado || 'pendiente',
+        urgencia: urgencia || 'media',
+        analisisIA: analisisIA ? JSON.stringify(analisisIA) : null
       },
       include: {
         cliente: true,
@@ -132,11 +134,12 @@ export const createOrdenTrabajo = async (req, res) => {
   }
 }
 
+
 // Actualizar orden de trabajo
 export const updateOrdenTrabajo = async (req, res) => {
   try {
     const { id } = req.params
-    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado } = req.body
+    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
 
     // Verificar que la orden existe
     const existingOrden = await prisma.ordenTrabajo.findUnique({
@@ -167,6 +170,16 @@ export const updateOrdenTrabajo = async (req, res) => {
       }
     }
 
+    // Validar urgencia si se proporciona
+    if (urgencia) {
+      const urgenciasValidas = ['baja', 'media', 'critica']
+      if (!urgenciasValidas.includes(urgencia)) {
+        return res.status(400).json({ 
+          error: 'Urgencia inválida. Debe ser: baja, media o critica' 
+        })
+      }
+    }
+
     // Actualizar orden de trabajo
     const orden = await prisma.ordenTrabajo.update({
       where: { id: parseInt(id) },
@@ -177,7 +190,9 @@ export const updateOrdenTrabajo = async (req, res) => {
         fecha: fecha ? new Date(fecha) : existingOrden.fecha,
         notas: notas !== undefined ? notas : existingOrden.notas,
         tecnico: tecnico || existingOrden.tecnico,
-        estado: estado || existingOrden.estado
+        estado: estado || existingOrden.estado,
+        urgencia: urgencia || existingOrden.urgencia,
+        analisisIA: analisisIA ? JSON.stringify(analisisIA) : existingOrden.analisisIA
       },
       include: {
         cliente: true,
