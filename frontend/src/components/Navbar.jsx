@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { LogOut, Users, Wrench, ClipboardList, LayoutDashboard } from 'lucide-react'
 import { logout } from '../services/authService'
 import toast from 'react-hot-toast'
+import { LogOut, Users, Wrench, ClipboardList, LayoutDashboard, Package, FileText } from 'lucide-react'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -42,6 +42,20 @@ function Navbar() {
               >
                 <Wrench size={18} />
                 Equipos
+              </Link>
+              <Link 
+                to="/inventario" 
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+              <Package size={18} />
+              Inventario
+              </Link>
+              <Link 
+                to="/cotizaciones" 
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+              <FileText size={18} />
+               Cotizaciones
               </Link>
               <Link 
                 to="/ordenes-trabajo" 

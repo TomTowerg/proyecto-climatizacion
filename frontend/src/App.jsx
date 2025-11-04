@@ -7,6 +7,8 @@ import AuthCallback from './pages/AuthCallback'
 import Clientes from './pages/Clientes'
 import Equipos from './pages/Equipos'
 import OrdenesTrabajo from './pages/OrdenesTrabajo'
+import Inventario from './pages/Inventario'
+import Cotizaciones from './pages/Cotizaciones'
 import './App.css'
 
 function App() {
@@ -45,6 +47,8 @@ function App() {
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/equipos" element={<Equipos />} />
           <Route path="/ordenes-trabajo" element={<OrdenesTrabajo />} />
+          <Route path="/inventario" element={<Inventario />} />
+          <Route path="/cotizaciones" element={<Cotizaciones />} />
           {/* Más rutas se agregarán aquí */}
         </Routes>
       </div>

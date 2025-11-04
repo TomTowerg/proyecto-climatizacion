@@ -60,6 +60,14 @@ app.use('/api/equipos', equipoRoutes)
 import ordenTrabajoRoutes from './routes/ordenesTrabajo.js'
 app.use('/api/ordenes-trabajo', ordenTrabajoRoutes)
 
+// Inventario routes
+import inventarioRoutes from './routes/inventario.js'
+app.use('/api/inventario', inventarioRoutes)
+
+// Cotizaciones routes
+import cotizacionRoutes from './routes/cotizaciones.js'
+app.use('/api/cotizaciones', cotizacionRoutes)
+
 
 // TODO: Import and use other routes
 // import clienteRoutes from './routes/clientes.js'
