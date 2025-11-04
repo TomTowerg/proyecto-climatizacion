@@ -10,6 +10,7 @@ import OrdenesTrabajo from './pages/OrdenesTrabajo'
 import Inventario from './pages/Inventario'
 import Cotizaciones from './pages/Cotizaciones'
 import PruebaIA from './pages/PruebaIA'
+import ChatAsistente from './components/ChatAsistente'
 import './App.css'
 
 function App() {
@@ -51,8 +52,10 @@ function App() {
           <Route path="/inventario" element={<Inventario />} />
           <Route path="/cotizaciones" element={<Cotizaciones />} />
           <Route path="/prueba-ia" element={<PruebaIA />} />
-          {/* Más rutas se agregarán aquí */}
         </Routes>
+        
+        {/* Chat Asistente Flotante - Disponible en todas las páginas */}
+        <ChatAsistente />
       </div>
     </Router>
   )
