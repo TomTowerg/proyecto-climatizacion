@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  username      String?
+  password      String?
+  googleId      String?  @unique
+  name          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Cliente {
+  id            Int           @id @default(autoincrement())
+  nombre        String
+  rut           String        @unique
+  email         String
+  telefono      String
+  direccion     String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  equipos       Equipo[]
+  ordenesTrabajos OrdenTrabajo[]
+}
+
+model Equipo {
+  id              Int      @id @default(autoincrement())
+  tipo            String
+  marca           String
+  modelo          String
+  numeroSerie     String   @unique
+  capacidad       String
+  tipoGas         String
+  ano             Int
+  clienteId       Int
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  ordenesTrabajos OrdenTrabajo[]
+}
+
+model OrdenTrabajo {
+  id          Int      @id @default(autoincrement())
+  clienteId   Int
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  equipoId    Int?
+  equipo      Equipo?  @relation(fields: [equipoId], references: [id])
+  tipo        String   // instalacion, mantenimiento, reparacion
+  fecha       DateTime
+  notas       String?
+  tecnico     String
+  estado      String   @default("pendiente") // pendiente, en_proceso, completado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

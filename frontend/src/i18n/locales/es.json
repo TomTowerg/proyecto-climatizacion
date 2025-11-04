@@ -1,0 +1,118 @@
+{
+  "app": {
+    "title": "Sistema de Gestión de Climatización",
+    "welcome": "Bienvenido"
+  },
+  "nav": {
+    "dashboard": "Panel de Control",
+    "clients": "Clientes",
+    "equipment": "Equipos",
+    "workOrders": "Órdenes de Trabajo",
+    "calendar": "Calendario",
+    "weather": "Clima",
+    "settings": "Configuración",
+    "logout": "Cerrar Sesión"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "loginWithGoogle": "Iniciar sesión con Google",
+    "dontHaveAccount": "¿No tienes cuenta?",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?",
+    "signUp": "Registrarse",
+    "signIn": "Ingresar"
+  },
+  "clients": {
+    "title": "Clientes",
+    "add": "Agregar Cliente",
+    "edit": "Editar Cliente",
+    "delete": "Eliminar Cliente",
+    "name": "Nombre",
+    "rut": "RUT",
+    "email": "Correo",
+    "phone": "Teléfono",
+    "address": "Dirección",
+    "actions": "Acciones"
+  },
+  "equipment": {
+    "title": "Equipos",
+    "add": "Agregar Equipo",
+    "edit": "Editar Equipo",
+    "delete": "Eliminar Equipo",
+    "type": "Tipo",
+    "brand": "Marca",
+    "model": "Modelo",
+    "serialNumber": "Número de Serie",
+    "capacity": "Capacidad (BTU)",
+    "gasType": "Tipo de Gas",
+    "year": "Año",
+    "client": "Cliente",
+    "actions": "Acciones"
+  },
+  "workOrders": {
+    "title": "Órdenes de Trabajo",
+    "add": "Crear Orden",
+    "edit": "Editar Orden",
+    "delete": "Eliminar Orden",
+    "type": "Tipo",
+    "date": "Fecha",
+    "description": "Descripción",
+    "notes": "Notas",
+    "status": "Estado",
+    "client": "Cliente",
+    "equipment": "Equipo",
+    "technician": "Técnico",
+    "actions": "Acciones",
+    "types": {
+      "installation": "Instalación",
+      "maintenance": "Mantenimiento",
+      "repair": "Reparación"
+    },
+    "statuses": {
+      "pending": "Pendiente",
+      "inProgress": "En Progreso",
+      "completed": "Completada"
+    }
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "totalClients": "Total de Clientes",
+    "totalEquipment": "Total de Equipos",
+    "monthOrders": "Órdenes del Mes",
+    "completedOrders": "Órdenes Completadas",
+    "recentOrders": "Órdenes Recientes",
+    "statistics": "Estadísticas"
+  },
+  "weather": {
+    "title": "Consultar Clima",
+    "searchCity": "Buscar ciudad",
+    "search": "Buscar",
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
+    "condition": "Condición"
+  },
+  "ai": {
+    "title": "Generar Informe con IA",
+    "prompt": "Describe el mantenimiento realizado",
+    "generate": "Generar Informe",
+    "result": "Resultado"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirmDelete": "¿Estás seguro de eliminar este elemento?",
+    "yes": "Sí",
+    "no": "No"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "app": {
+    "title": "Sistema de Gestión de Climatización",
+    "company": "ClimaPro Chile"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "register": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "username": "Usuario",
+    "loginWithGoogle": "Iniciar sesión con Google",
+    "dontHaveAccount": "¿No tienes cuenta?",
+    "alreadyHaveAccount": "¿Ya tienes cuenta?"
+  },
+  "nav": {
+    "dashboard": "Inicio",
+    "clients": "Clientes",
+    "equipment": "Equipos",
+    "workOrders": "Órdenes de Trabajo",
+    "calendar": "Calendario",
+    "inventory": "Inventario",
+    "settings": "Configuración"
+  },
+  "clients": {
+    "title": "Clientes",
+    "add": "Agregar Cliente",
+    "edit": "Editar Cliente",
+    "delete": "Eliminar Cliente",
+    "name": "Nombre",
+    "rut": "RUT",
+    "email": "Correo",
+    "phone": "Teléfono",
+    "address": "Dirección"
+  },
+  "equipment": {
+    "title": "Equipos",
+    "add": "Agregar Equipo",
+    "edit": "Editar Equipo",
+    "delete": "Eliminar Equipo",
+    "type": "Tipo",
+    "brand": "Marca",
+    "model": "Modelo",
+    "serialNumber": "Número de Serie",
+    "capacity": "Capacidad",
+    "gasType": "Tipo de Gas",
+    "year": "Año"
+  },
+  "workOrders": {
+    "title": "Órdenes de Trabajo",
+    "add": "Crear Orden",
+    "edit": "Editar Orden",
+    "delete": "Eliminar Orden",
+    "client": "Cliente",
+    "type": "Tipo",
+    "date": "Fecha",
+    "notes": "Notas",
+    "technician": "Técnico",
+    "types": {
+      "installation": "Instalación",
+      "maintenance": "Mantenimiento",
+      "repair": "Reparación"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalClients": "Total Clientes",
+    "totalEquipment": "Total Equipos",
+    "monthOrders": "OT del Mes",
+    "completedMaintenance": "Mantenimientos Completados"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "confirmDelete": "¿Estás seguro de eliminar este registro?"
+  },
+  "weather": {
+    "title": "Clima Actual",
+    "search": "Buscar ciudad",
+    "temperature": "Temperatura",
+    "humidity": "Humedad",
+    "condition": "Condición"
+  },
+  "ai": {
+    "title": "Asistente IA",
+    "generate": "Generar Informe",
+    "prompt": "Describe el mantenimiento o equipo",
+    "generating": "Generando..."
+  }
+}
