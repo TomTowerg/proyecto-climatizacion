@@ -145,44 +145,43 @@ Responde SOLO en este formato JSON exacto (sin texto adicional):
 }
 
     // Chat asistente
+   // Chat asistente
     export const chat = async (req, res) => {
-    try {
+      try {
         const { mensaje, historial } = req.body
 
         if (!mensaje) {
-        return res.status(400).json({ 
+          return res.status(400).json({ 
             error: 'Mensaje es requerido' 
-        })
+          })
         }
 
         // Crear prompt con contexto del sistema
-        let prompt = `Eres TECNI-AI, un asistente experto en sistemas de climatización (aires acondicionados).
+        let prompt = `Eres CLIMB-BOT, un asistente experto en sistemas de climatización (aires acondicionados).
 
-    Tu rol es ayudar a técnicos y clientes con:
-    - Diagnóstico de problemas
-    - Guías de reparación paso a paso
-    - Recomendaciones de mantenimiento
-    - Información técnica sobre equipos
+    INSTRUCCIONES IMPORTANTES:
+    - Respuestas MÁX 3-4 líneas (máximo 50 palabras)
+    - Directo al punto, sin rodeos
+    - Si necesitas hacer una lista, máximo 3 puntos
+    - Usa emojis ocasionales para claridad
+    - Tono profesional pero amigable
+    - Si la pregunta requiere diagnóstico extenso, da 2-3 pasos clave solamente
 
-    Responde de forma clara, profesional y práctica. Si no estás seguro de algo, recomienda contactar un técnico profesional.
+      Usuario: ${mensaje}
 
-    ---
+      Responde de forma BREVE y DIRECTA:`
 
-    Usuario: ${mensaje}
+          const respuesta = await generarContenido(prompt)
 
-    Responde de forma concisa y útil:`
-
-        const respuesta = await generarContenido(prompt)
-
-        res.json({
-        respuesta: respuesta.trim(),
-        timestamp: new Date().toISOString()
-        })
-    } catch (error) {
-        console.error('Error en chat:', error)
-        res.status(500).json({ 
-        error: 'Error al procesar mensaje',
-        details: error.message 
-        })
-    }
+          res.json({
+            respuesta: respuesta.trim(),
+            timestamp: new Date().toISOString()
+          })
+        } catch (error) {
+          console.error('Error en chat:', error)
+          res.status(500).json({ 
+            error: 'Error al procesar mensaje',
+            details: error.message 
+          })
+        }
 }
