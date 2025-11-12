@@ -9,7 +9,9 @@
     "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "start:prod": "npx prisma generate && npx prisma migrate deploy && node src/index.js",
+    "build": "npx prisma generate"
   },
   "keywords": [
     "hvac",
@@ -37,4 +39,5 @@
     "nodemon": "^3.0.2",
     "prisma": "^5.7.1"
   }
+  
 }
