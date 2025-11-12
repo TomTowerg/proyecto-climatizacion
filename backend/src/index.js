@@ -19,7 +19,9 @@ app.use(helmet())
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'https://proyecto-climatizacion-production.up.railway.app',
     'https://proyecto-climatizacion-p629.vercel.app',
+    'https://proyecto-climatizacion-nhc3xx8az-tomas-torres-projects.vercel.app',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
