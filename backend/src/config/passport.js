@@ -41,7 +41,10 @@ passport.use(
               where: { id: user.id },
               data: {
                 googleId: profile.id,
-                name: profile.displayName || user.name
+                name: profile.displayName || user.name,
+                // Asegurar que tenga role e isActive si no los tiene
+                role: user.role || 'user',
+                isActive: user.isActive !== undefined ? user.isActive : true
               }
             })
             console.log('Usuario actualizado con googleId')
@@ -56,7 +59,9 @@ passport.use(
               googleId: profile.id,
               email: profile.emails[0].value,
               name: profile.displayName,
-              username: profile.emails[0].value.split('@')[0]
+              username: profile.emails[0].value.split('@')[0],
+              role: 'user',       // ← AGREGADO
+              isActive: true      // ← AGREGADO
             }
           })
           console.log('✅ Usuario creado:', user.id)

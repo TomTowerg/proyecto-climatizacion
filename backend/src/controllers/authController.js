@@ -1,20 +1,26 @@
 import bcrypt from 'bcrypt'
 import prisma from '../utils/prisma.js'
 import { generateToken } from '../utils/jwt.js'
+import { isEmailAllowed, isDomainAllowed } from '../config/allowedEmails.js'
 
 // Registro de usuario
 export const register = async (req, res) => {
   try {
     const { email, username, password, name } = req.body
 
-    // Validar que los campos requeridos existan
     if (!email || !password) {
       return res.status(400).json({ 
         error: 'Email y contraseña son requeridos' 
       })
     }
 
-    // Verificar si el usuario ya existe
+    // VERIFICAR LISTA BLANCA
+    if (!isEmailAllowed(email) && !isDomainAllowed(email)) {
+      return res.status(403).json({ 
+        error: 'Este email no está autorizado. Contacta al administrador.' 
+      })
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email }
     })
@@ -25,26 +31,25 @@ export const register = async (req, res) => {
       })
     }
 
-    // Encriptar contraseña
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Crear usuario
     const user = await prisma.user.create({
       data: {
         email,
         username: username || email.split('@')[0],
         password: hashedPassword,
-        name
+        name,
+        role: 'user',
+        isActive: true
       }
     })
 
-    // Generar token JWT
     const token = generateToken({ 
       userId: user.id, 
-      email: user.email 
+      email: user.email,
+      role: user.role
     })
 
-    // Responder sin enviar la contraseña
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
       token,
@@ -52,7 +57,8 @@ export const register = async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        name: user.name
+        name: user.name,
+        role: user.role
       }
     })
 
@@ -69,14 +75,12 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    // Validar campos
     if (!email || !password) {
       return res.status(400).json({ 
         error: 'Email y contraseña son requeridos' 
       })
     }
 
-    // Buscar usuario
     const user = await prisma.user.findUnique({
       where: { email }
     })
@@ -87,7 +91,13 @@ export const login = async (req, res) => {
       })
     }
 
-    // Verificar contraseña
+    // Verificar si está activo
+    if (!user.isActive) {
+      return res.status(403).json({ 
+        error: 'Cuenta desactivada. Contacta al administrador.' 
+      })
+    }
+
     const validPassword = await bcrypt.compare(password, user.password)
 
     if (!validPassword) {
@@ -96,13 +106,12 @@ export const login = async (req, res) => {
       })
     }
 
-    // Generar token
     const token = generateToken({ 
       userId: user.id, 
-      email: user.email 
+      email: user.email,
+      role: user.role
     })
 
-    // Responder con token y datos del usuario
     res.json({
       message: 'Login exitoso',
       token,
@@ -110,7 +119,8 @@ export const login = async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        name: user.name
+        name: user.name,
+        role: user.role
       }
     })
 
@@ -125,25 +135,33 @@ export const login = async (req, res) => {
 // Callback de Google OAuth
 export const googleCallback = async (req, res) => {
   try {
-    // req.user viene de passport
     const user = req.user
 
     if (!user) {
       return res.redirect(`${process.env.FRONTEND_URL}/?error=google_auth_failed`)
     }
 
-    // Generar token JWT
+    // VERIFICAR LISTA BLANCA
+    if (!isEmailAllowed(user.email) && !isDomainAllowed(user.email)) {
+      return res.redirect(`${process.env.FRONTEND_URL}/?error=email_not_allowed`)
+    }
+
+    if (!user.isActive) {
+      return res.redirect(`${process.env.FRONTEND_URL}/?error=account_disabled`)
+    }
+
     const token = generateToken({ 
       userId: user.id, 
-      email: user.email 
+      email: user.email,
+      role: user.role
     })
 
-    // Redirigir al frontend con el token
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
       id: user.id,
       email: user.email,
       username: user.username,
-      name: user.name
+      name: user.name,
+      role: user.role
     }))}`)
 
   } catch (error) {
@@ -151,10 +169,9 @@ export const googleCallback = async (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL}/?error=server_error`)
   }
 }
-// Obtener usuario actual (requiere autenticación)
+
 export const getCurrentUser = async (req, res) => {
   try {
-    // req.userId viene del middleware de autenticación
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
@@ -162,6 +179,8 @@ export const getCurrentUser = async (req, res) => {
         email: true,
         username: true,
         name: true,
+        role: true,
+        isActive: true,
         createdAt: true
       }
     })
@@ -182,7 +201,6 @@ export const getCurrentUser = async (req, res) => {
   }
 }
 
-// Logout (opcional - frontend maneja eliminando el token)
 export const logout = async (req, res) => {
   res.json({ 
     message: 'Logout exitoso' 

@@ -10,8 +10,12 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "start:prod": "npx prisma migrate deploy && node src/index.js",
-    "build": "npx prisma generate && npx prisma migrate deploy"
+    "start:prod": "npx prisma migrate deploy && npx prisma db seed && node src/index.js",
+    "build": "npx prisma generate && npx prisma migrate deploy",
+    "seed": "node prisma/seed.js"
+  },
+    "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": [
     "hvac",

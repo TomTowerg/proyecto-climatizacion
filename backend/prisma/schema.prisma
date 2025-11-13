@@ -1,12 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,6 +14,8 @@ model User {
   password      String?
   googleId      String?  @unique
   name          String?
+  role          String   @default("user")
+  isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -47,7 +46,7 @@ model Inventario {
   precioCompra    Float
   precioVenta     Float
   stock           Int      @default(1)
-  estado          String   @default("disponible") // disponible, reservado, vendido
+  estado          String   @default("disponible")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   cotizaciones    Cotizacion[]
@@ -62,7 +61,7 @@ model Cotizacion {
   precioOfertado  Float
   descuento       Float       @default(0)
   precioFinal     Float
-  estado          String      @default("pendiente") // pendiente, aprobada, rechazada
+  estado          String      @default("pendiente")
   notas           String?
   fechaCotizacion DateTime    @default(now())
   fechaRespuesta  DateTime?
@@ -93,13 +92,13 @@ model OrdenTrabajo {
   cliente     Cliente  @relation(fields: [clienteId], references: [id])
   equipoId    Int?
   equipo      Equipo?  @relation(fields: [equipoId], references: [id])
-  tipo        String   // instalacion, mantenimiento, reparacion
+  tipo        String
   fecha       DateTime
   notas       String?
   tecnico     String
-  estado      String   @default("pendiente") // pendiente, en_proceso, completado
-  urgencia    String   @default("media") // baja, media, critica
-  analisisIA  String?  // JSON con el análisis completo de la IA
+  estado      String   @default("pendiente")
+  urgencia    String   @default("media")
+  analisisIA  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
