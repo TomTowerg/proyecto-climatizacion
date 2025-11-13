@@ -18,10 +18,24 @@ router.get('/google',
 )
 
 router.get('/google/callback', 
+  (req, res, next) => {
+    console.log('=== GOOGLE CALLBACK INICIADO ===')
+    console.log('URL completa:', req.url)
+    console.log('Query params:', req.query)
+    next()
+  },
   passport.authenticate('google', { 
     session: false,
     failureRedirect: `${process.env.FRONTEND_URL}/?error=google_auth_failed`
   }),
+  (req, res, next) => {
+    console.log('=== DESPUÉS DE PASSPORT.AUTHENTICATE ===')
+    console.log('Usuario autenticado:', req.user ? 'SÍ' : 'NO')
+    if (req.user) {
+      console.log('Usuario:', { id: req.user.id, email: req.user.email })
+    }
+    next()
+  },
   googleCallback
 )
 
