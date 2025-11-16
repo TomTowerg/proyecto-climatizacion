@@ -1,6 +1,7 @@
 # 🌡️ Sistema de Gestión de Climatización
 
 Aplicación web full-stack para la gestión interna de una empresa de climatización en Chile.
+gestion de climatizacion 
 
 ## 🚀 Tecnologías Utilizadas
 
