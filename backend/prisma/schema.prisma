@@ -35,70 +35,175 @@ model Cliente {
 }
 
 model Inventario {
-  id              Int      @id @default(autoincrement())
-  tipo            String
-  marca           String
-  modelo          String
-  numeroSerie     String   @unique
-  capacidad       String
-  tipoGas         String
-  ano             Int
-  precioCompra    Float
-  precioVenta     Float
-  stock           Int      @default(1)
-  estado          String   @default("disponible")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  cotizaciones    Cotizacion[]
+  id                      Int      @id @default(autoincrement())
+  tipo                    String   // Split Muro, Ventana, Portátil, etc.
+  marca                   String   // Hisense, Kendal, Vesta, ANWO, Samsung, Clark
+  modelo                  String   // Nombre completo del modelo
+  capacidadBTU            Int      // 9000, 12000, 18000, 22000, 24000, 36000
+  metrosCuadrados         String?  // "16-20", "24-30", "32-40", "45-50"
+  tipoGas                 String   // R32, R410
+  
+  // Precios de la hoja "BRUTO"
+  precioNeto              Float    // Precio sin IVA
+  precioConIVA            Float    // Precio con IVA (19%)
+  precioMaterial          Float    // Precio + kit básico instalación
+  valorLogistica          Float    // Costo de instalación/transporte
+  valorMaterial           Float    // Costo solo del kit básico
+  
+  // Precios de la hoja "CLIENTE"
+  precioCliente           Float    // Precio final que ve el cliente (desde)
+  precioClienteNeto       Float    // Precio cliente sin IVA
+  precioClienteIVA        Float    // IVA del precio cliente
+  
+  // Precios de la hoja "INTERNO"
+  valorEquipoMaterialIVA  Float    // Valor equipo + material con IVA
+  gananciaDescontandoIVA  Float    // Margen después de IVA
+  gananciaDescontandoTecnicos Float // Utilidad neta
+  
+  // Control de stock
+  stock                   Int      @default(0)
+  estado                  String   @default("disponible") // disponible, agotado, descontinuado
+  
+  // Metadatos
+  numeroSerie             String?  @unique
+  ano                     Int?     // Año del modelo
+  codigoModelo            String?  // Ej: GES24ECO-INV-R32
+  caracteristicas         String?  // WiFi, APP, Inverter, etc.
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  // Relaciones
+  cotizaciones            Cotizacion[]
+  equipos                 Equipo[]
 }
 
 model Cotizacion {
   id              Int         @id @default(autoincrement())
+  
+  // Relación con cliente
   clienteId       Int
   cliente         Cliente     @relation(fields: [clienteId], references: [id])
+  
+  // Relación con inventario
   inventarioId    Int
   inventario      Inventario  @relation(fields: [inventarioId], references: [id])
-  precioOfertado  Float
-  descuento       Float       @default(0)
-  precioFinal     Float
-  estado          String      @default("pendiente")
-  notas           String?
+  
+  // Tipo de servicio
+  tipo            String      // "instalacion", "mantencion", "reparacion"
+  
+  // Precios y descuentos
+  precioOfertado  Float       // Precio base del equipo
+  costoInstalacion Float      @default(100000) // Costo de instalación
+  costoMaterial   Float       @default(0)  // Materiales adicionales
+  subtotal        Float       // Suma de todo sin descuento
+  descuento       Float       @default(0)  // Porcentaje o monto de descuento
+  precioFinal     Float       // Total final a pagar
+  
+  // Estados y fechas
+  estado          String      @default("pendiente") // "pendiente", "aprobada", "eliminada"
   fechaCotizacion DateTime    @default(now())
-  fechaRespuesta  DateTime?
+  fechaRespuesta  DateTime?   // Cuando el cliente responde
+  fechaAprobacion DateTime?   // Cuando se aprueba
+  
+  // Información adicional
+  notas           String?
+  agente          String?     // Nombre del agente que hizo la cotización
+  direccionInstalacion String? // Dirección donde se instalará
+  
+  // Relaciones creadas al aprobar
+  equipoCreado    Equipo?     @relation("CotizacionAprobada")
+  ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
 
 model Equipo {
-  id              Int      @id @default(autoincrement())
-  tipo            String
-  marca           String
-  modelo          String
-  numeroSerie     String   @unique
-  capacidad       String
-  tipoGas         String
-  ano             Int
-  clienteId       Int
-  cliente         Cliente  @relation(fields: [clienteId], references: [id])
-  fechaInstalacion DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  ordenesTrabajos OrdenTrabajo[]
+  id                Int      @id @default(autoincrement())
+  
+  // Información del equipo
+  tipo              String
+  marca             String
+  modelo            String
+  numeroSerie       String   @unique
+  capacidad         String
+  tipoGas           String
+  ano               Int?
+  
+  // Relación con cliente
+  clienteId         Int
+  cliente           Cliente  @relation(fields: [clienteId], references: [id])
+  
+  // Relación con inventario (de dónde viene el equipo)
+  inventarioId      Int?
+  inventario        Inventario? @relation(fields: [inventarioId], references: [id])
+  
+  // Relación con cotización que lo creó (si fue aprobada)
+  cotizacionId      Int?     @unique
+  cotizacion        Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
+  
+  // Fechas
+  fechaInstalacion  DateTime?
+  fechaCompra       DateTime?
+  
+  // Estado del equipo
+  estado            String   @default("activo") // activo, en_mantenimiento, desactivado
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relaciones
+  ordenesTrabajos   OrdenTrabajo[]
 }
 
 model OrdenTrabajo {
-  id          Int      @id @default(autoincrement())
-  clienteId   Int
-  cliente     Cliente  @relation(fields: [clienteId], references: [id])
-  equipoId    Int?
-  equipo      Equipo?  @relation(fields: [equipoId], references: [id])
-  tipo        String
-  fecha       DateTime
-  notas       String?
-  tecnico     String
-  estado      String   @default("pendiente")
-  urgencia    String   @default("media")
-  analisisIA  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  
+  // Relación con cliente
+  clienteId     Int
+  cliente       Cliente  @relation(fields: [clienteId], references: [id])
+  
+  // Relación con equipo
+  equipoId      Int?
+  equipo        Equipo?  @relation(fields: [equipoId], references: [id])
+  
+  // Relación con cotización que la creó (si fue aprobada)
+  cotizacionId  Int?     @unique
+  cotizacion    Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
+  
+  // Tipo de trabajo
+  tipo          String   // "instalacion", "mantencion", "reparacion"
+  
+  // Programación
+  fecha         DateTime
+  horaInicio    String?  // Hora programada de inicio
+  horaFin       String?  // Hora estimada de fin
+  duracion      String?  // "2 horas por equipo"
+  
+  // Personal
+  tecnico       String
+  ayudante      String?
+  
+  // Estado y urgencia
+  estado        String   @default("pendiente") // pendiente, en_progreso, completada, cancelada
+  urgencia      String   @default("media")     // baja, media, alta
+  
+  // Trabajo realizado
+  trabajoRealizado String?  // Descripción del trabajo
+  materialesUsados String?  // Lista de materiales utilizados
+  costoMateriales  Float?   // Costo de materiales adicionales
+  costoManoObra    Float?   // Costo de mano de obra
+  costoTotal       Float?   // Costo total de la OT
+  
+  // Notas y análisis
+  notas         String?
+  analisisIA    String?  // Análisis y recomendaciones de IA
+  
+  // Satisfacción del cliente
+  calificacion  Int?     // 1-5 estrellas
+  comentarioCliente String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
