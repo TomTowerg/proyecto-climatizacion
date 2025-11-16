@@ -288,7 +288,7 @@ const INVENTARIO_DATA = [
     precioConIVA: 559000,
     precioMaterial: 589000,
     valorLogistica: 47300,
-    valorMaterial: 30000,
+    valorMaterial: 20000,
     precioCliente: 767500,
     precioClienteNeto: 644958,
     precioClienteIVA: 122542,
@@ -621,57 +621,66 @@ const INVENTARIO_DATA = [
 async function main() {
   console.log('🌱 Iniciando seed de base de datos...\n')
 
-  // 1. CREAR USUARIOS ADMINISTRADORES
-  console.log('👤 Creando usuarios administradores...')
-  for (const adminData of ADMIN_USERS) {
-    const hashedPassword = await bcrypt.hash(adminData.password, 10)
+  try {
+    // 1. CREAR/ACTUALIZAR USUARIOS ADMINISTRADORES
+    console.log('👤 Creando usuarios administradores...')
+    for (const adminData of ADMIN_USERS) {
+      const hashedPassword = await bcrypt.hash(adminData.password, 10)
+      
+      const user = await prisma.user.upsert({
+        where: { email: adminData.email },
+        update: {}, // No actualizar si existe
+        create: {
+          email: adminData.email,
+          password: hashedPassword,
+          name: adminData.name,
+          username: adminData.username,
+          role: 'admin',
+          isActive: true
+        }
+      })
+
+      console.log(`✅ Usuario admin: ${user.email}`)
+    }
+
+    // 2. CREAR/ACTUALIZAR INVENTARIO DE PRODUCTOS
+    console.log('\n📦 Poblando inventario con productos...')
+    let productosCreados = 0
     
-    const user = await prisma.user.upsert({
-      where: { email: adminData.email },
-      update: {
-        role: 'admin',
-        isActive: true
-      },
-      create: {
-        email: adminData.email,
-        password: hashedPassword,
-        name: adminData.name,
-        username: adminData.username,
-        role: 'admin',
-        isActive: true
-      }
-    })
+    for (const producto of INVENTARIO_DATA) {
+      // Crear identificador único para cada producto
+      const serieUnica = producto.codigoModelo || `${producto.marca}-${producto.modelo.replace(/\s+/g, '-')}-${producto.capacidadBTU}BTU`
+      
+      const inventario = await prisma.inventario.upsert({
+        where: { numeroSerie: serieUnica },
+        update: {
+          // Actualizar stock y estado si ya existe
+          stock: producto.stock,
+          estado: producto.estado
+        },
+        create: {
+          ...producto,
+          numeroSerie: serieUnica
+        }
+      })
 
-    console.log(`✅ Usuario admin: ${user.email}`)
+      productosCreados++
+      console.log(`✅ ${productosCreados}/${INVENTARIO_DATA.length} - ${inventario.marca} ${inventario.modelo} ${inventario.capacidadBTU} BTU`)
+    }
+
+    console.log('\n🎉 Seed completado exitosamente!')
+    console.log(`📊 Total usuarios administradores: ${ADMIN_USERS.length}`)
+    console.log(`📦 Total productos en inventario: ${productosCreados}`)
+
+  } catch (error) {
+    console.error('❌ Error en seed:', error)
+    throw error
   }
-
-  // 2. CREAR INVENTARIO DE PRODUCTOS
-  console.log('\n📦 Poblando inventario con productos...')
-  let productosCreados = 0
-  
-  for (const producto of INVENTARIO_DATA) {
-    // Crear identificador único para cada producto
-    const serieUnica = producto.codigoModelo || `${producto.marca}-${producto.modelo.replace(/\s+/g, '-')}-${producto.capacidadBTU}BTU`
-    
-    const inventario = await prisma.inventario.create({
-      data: {
-        ...producto,
-        numeroSerie: serieUnica
-      }
-    })
-
-    productosCreados++
-    console.log(`✅ ${productosCreados}/${INVENTARIO_DATA.length} - ${inventario.marca} ${inventario.modelo} ${inventario.capacidadBTU} BTU`)
-  }
-
-  console.log('\n🎉 Seed completado exitosamente!')
-  console.log(`📊 Total usuarios administradores: ${ADMIN_USERS.length}`)
-  console.log(`📦 Total productos en inventario: ${productosCreados}`)
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en seed:', e)
+    console.error(e)
     process.exit(1)
   })
   .finally(async () => {

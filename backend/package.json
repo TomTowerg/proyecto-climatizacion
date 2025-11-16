@@ -10,8 +10,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "start:prod": "node src/index.js",
+    "start:prod": "npx prisma migrate deploy && node src/index.js",
     "build": "npx prisma generate",
+    "seed": "node prisma/seed.js"
+  },
+  "prisma": {
     "seed": "node prisma/seed.js"
   },
   "keywords": [
