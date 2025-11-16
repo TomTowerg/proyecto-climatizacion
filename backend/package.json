@@ -6,11 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "npx prisma migrate deploy --skip-seed && node src/index.js",
+    "start": "node src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "start:prod": "npx prisma migrate deploy --skip-seed && node src/index.js",
+    "start:prod": "node src/index.js",
     "build": "npx prisma generate",
     "seed": "node prisma/seed.js"
   },
