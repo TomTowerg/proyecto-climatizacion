@@ -1,4 +1,11 @@
 import prisma from '../utils/prisma.js'
+import { aprobarCotizacion, rechazarCotizacion, obtenerEstadisticasCotizaciones } from '../services/cotizacionService.js'
+
+/**
+ * ═══════════════════════════════════════════════════════
+ * FUNCIONES ORIGINALES (MANTENIDAS)
+ * ═══════════════════════════════════════════════════════
+ */
 
 // Obtener todas las cotizaciones
 export const getCotizaciones = async (req, res) => {
@@ -21,13 +28,15 @@ export const getCotizaciones = async (req, res) => {
             marca: true,
             modelo: true,
             numeroSerie: true,
-            capacidad: true,
-            precioVenta: true
+            capacidadBTU: true,
+            precioCliente: true
           }
-        }
+        },
+        equipo: true,
+        ordenTrabajo: true
       },
       orderBy: {
-        fechaCotizacion: 'desc'
+        createdAt: 'desc'
       }
     })
 
@@ -47,7 +56,13 @@ export const getCotizacionById = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         cliente: true,
-        inventario: true
+        inventario: true,
+        equipo: true,
+        ordenTrabajo: {
+          include: {
+            tecnico: true
+          }
+        }
       }
     })
 
@@ -65,14 +80,32 @@ export const getCotizacionById = async (req, res) => {
 // Crear cotización
 export const createCotizacion = async (req, res) => {
   try {
-    const { clienteId, inventarioId, precioOfertado, descuento, notas } = req.body
+    const { 
+      tipo, // instalacion, mantencion, reparacion
+      clienteId, 
+      inventarioId, 
+      precioOfertado, 
+      costoInstalacion,
+      costoMaterial,
+      descuento, 
+      notas,
+      agente,
+      direccionInstalacion
+    } = req.body
 
     // Log para debug
-    console.log('Datos recibidos:', { clienteId, inventarioId, precioOfertado, descuento, notas })
+    console.log('Datos recibidos:', req.body)
 
-    if (!clienteId || !inventarioId || !precioOfertado) {
+    // Validaciones
+    if (!tipo || !clienteId) {
       return res.status(400).json({ 
-        error: 'Cliente, equipo y precio son requeridos' 
+        error: 'Tipo de servicio y cliente son requeridos' 
+      })
+    }
+
+    if (tipo === 'instalacion' && !inventarioId) {
+      return res.status(400).json({ 
+        error: 'Para instalación se requiere seleccionar un producto del inventario' 
       })
     }
 
@@ -85,51 +118,51 @@ export const createCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    // Verificar que el equipo existe y está disponible
-    const equipo = await prisma.inventario.findUnique({
-      where: { id: parseInt(inventarioId) }
-    })
-
-    if (!equipo) {
-      return res.status(404).json({ error: 'Equipo no encontrado en inventario' })
-    }
-
-    if (equipo.estado === 'vendido') {
-      return res.status(400).json({ 
-        error: 'El equipo ya fue vendido' 
+    // Si es instalación, verificar que el producto existe
+    let producto = null
+    if (inventarioId) {
+      producto = await prisma.inventario.findUnique({
+        where: { id: parseInt(inventarioId) }
       })
-    }
 
-    // Convertir valores a números y validar
-    const precio = parseFloat(precioOfertado)
-    const desc = parseFloat(descuento) || 0
+      if (!producto) {
+        return res.status(404).json({ error: 'Producto no encontrado en inventario' })
+      }
 
-    if (isNaN(precio) || precio <= 0) {
-      return res.status(400).json({ 
-        error: 'Precio inválido' 
-      })
-    }
-
-    if (desc < 0 || desc > 100) {
-      return res.status(400).json({ 
-        error: 'Descuento debe estar entre 0 y 100' 
-      })
+      if (producto.stock === 0) {
+        return res.status(400).json({ 
+          error: 'Producto sin stock disponible' 
+        })
+      }
     }
 
     // Calcular precio final
-    const precioFinal = precio - (precio * (desc / 100))
+    const basePrice = precioOfertado || (producto?.precioCliente || 0)
+    const instalacion = parseFloat(costoInstalacion) || 0
+    const materiales = parseFloat(costoMaterial) || 0
+    const desc = parseFloat(descuento) || 0
+    
+    const subtotal = basePrice + instalacion + materiales
+    const precioFinal = subtotal * (1 - desc / 100)
 
-    console.log('Cálculo:', { precio, desc, precioFinal })
+    console.log('Cálculo:', { basePrice, instalacion, materiales, desc, subtotal, precioFinal })
 
     // Crear cotización
     const cotizacion = await prisma.cotizacion.create({
       data: {
+        tipo: tipo || 'instalacion',
         clienteId: parseInt(clienteId),
-        inventarioId: parseInt(inventarioId),
-        precioOfertado: precio,
+        inventarioId: inventarioId ? parseInt(inventarioId) : null,
+        precioOfertado: basePrice,
+        costoInstalacion: instalacion,
+        costoMaterial: materiales,
         descuento: desc,
+        subtotal,
         precioFinal,
-        notas: notas || ''
+        notas: notas || '',
+        agente,
+        direccionInstalacion,
+        estado: 'pendiente'
       },
       include: {
         cliente: true,
@@ -137,13 +170,10 @@ export const createCotizacion = async (req, res) => {
       }
     })
 
-    // Actualizar estado del equipo a reservado
-    await prisma.inventario.update({
-      where: { id: parseInt(inventarioId) },
-      data: { estado: 'reservado' }
-    })
+    console.log(`✅ Cotización creada: #${cotizacion.id} - ${tipo}`)
 
     res.status(201).json({
+      success: true,
       message: 'Cotización creada exitosamente',
       cotizacion
     })
@@ -155,6 +185,7 @@ export const createCotizacion = async (req, res) => {
     })
   }
 }
+
 // Actualizar cotización (cambiar estado, precio, etc)
 export const updateCotizacion = async (req, res) => {
   try {
@@ -170,17 +201,32 @@ export const updateCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
+    // No permitir actualizar si ya está aprobada o eliminada
+    if (existingCotizacion.estado !== 'pendiente' && estado) {
+      return res.status(400).json({ 
+        error: 'No se puede modificar una cotización aprobada o eliminada' 
+      })
+    }
+
     // Calcular nuevo precio final si cambió
-    const desc = descuento !== undefined ? descuento : existingCotizacion.descuento
-    const precio = precioOfertado !== undefined ? precioOfertado : existingCotizacion.precioOfertado
-    const precioFinal = precio - (precio * (desc / 100))
+    const desc = descuento !== undefined ? parseFloat(descuento) : existingCotizacion.descuento
+    const precio = precioOfertado !== undefined ? parseFloat(precioOfertado) : existingCotizacion.precioOfertado
+    const instalacion = existingCotizacion.costoInstalacion || 0
+    const materiales = existingCotizacion.costoMaterial || 0
+    
+    const subtotal = precio + instalacion + materiales
+    const precioFinal = subtotal * (1 - desc / 100)
 
     const updateData = {
-      precioOfertado: parseFloat(precio),
+      precioOfertado: precio,
       descuento: desc,
+      subtotal,
       precioFinal,
-      notas: notas !== undefined ? notas : existingCotizacion.notas,
-      estado: estado || existingCotizacion.estado
+      notas: notas !== undefined ? notas : existingCotizacion.notas
+    }
+
+    if (estado) {
+      updateData.estado = estado
     }
 
     if (fechaRespuesta) {
@@ -196,23 +242,8 @@ export const updateCotizacion = async (req, res) => {
       }
     })
 
-    // Si se rechaza, liberar el equipo
-    if (estado === 'rechazada') {
-      await prisma.inventario.update({
-        where: { id: existingCotizacion.inventarioId },
-        data: { estado: 'disponible' }
-      })
-    }
-
-    // Si se aprueba, marcar equipo como vendido
-    if (estado === 'aprobada') {
-      await prisma.inventario.update({
-        where: { id: existingCotizacion.inventarioId },
-        data: { estado: 'vendido', stock: 0 }
-      })
-    }
-
     res.json({
+      success: true,
       message: 'Cotización actualizada exitosamente',
       cotizacion
     })
@@ -235,11 +266,9 @@ export const deleteCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // Liberar el equipo si está reservado
-    if (existingCotizacion.estado === 'pendiente') {
-      await prisma.inventario.update({
-        where: { id: existingCotizacion.inventarioId },
-        data: { estado: 'disponible' }
+    if (existingCotizacion.estado === 'aprobada') {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar una cotización aprobada' 
       })
     }
 
@@ -247,9 +276,103 @@ export const deleteCotizacion = async (req, res) => {
       where: { id: parseInt(id) }
     })
 
-    res.json({ message: 'Cotización eliminada exitosamente' })
+    res.json({ 
+      success: true,
+      message: 'Cotización eliminada exitosamente' 
+    })
   } catch (error) {
     console.error('Error al eliminar cotización:', error)
     res.status(500).json({ error: 'Error al eliminar cotización' })
   }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════
+ * FUNCIONES NUEVAS - FASE 2
+ * ═══════════════════════════════════════════════════════
+ */
+
+/**
+ * APROBAR COTIZACIÓN ⭐ ENDPOINT PRINCIPAL FASE 2
+ * Ejecuta el flujo automático: Cliente → Equipo → OT → Stock
+ */
+export const aprobar = async (req, res) => {
+  try {
+    const { id } = req.params
+    const usuarioId = req.userId || 1 // ID del usuario que aprueba
+
+    console.log(`\n🚀 Aprobando cotización #${id}...`)
+
+    const resultado = await aprobarCotizacion(parseInt(id), usuarioId)
+
+    res.json({
+      success: true,
+      mensaje: resultado.mensaje,
+      cotizacion: resultado.cotizacion,
+      equipo: resultado.equipo,
+      ordenTrabajo: resultado.ordenTrabajo
+    })
+
+  } catch (error) {
+    console.error('❌ Error al aprobar cotización:', error)
+    res.status(500).json({ 
+      error: 'Error al aprobar cotización',
+      detalle: error.message 
+    })
+  }
+}
+
+/**
+ * RECHAZAR COTIZACIÓN
+ */
+export const rechazar = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { motivo } = req.body
+
+    const resultado = await rechazarCotizacion(parseInt(id), motivo)
+
+    res.json({
+      success: true,
+      mensaje: resultado.mensaje,
+      cotizacion: resultado.cotizacion
+    })
+
+  } catch (error) {
+    console.error('Error al rechazar cotización:', error)
+    res.status(500).json({ 
+      error: 'Error al rechazar cotización',
+      detalle: error.message 
+    })
+  }
+}
+
+/**
+ * OBTENER ESTADÍSTICAS
+ */
+export const getEstadisticas = async (req, res) => {
+  try {
+    const estadisticas = await obtenerEstadisticasCotizaciones()
+    res.json(estadisticas)
+  } catch (error) {
+    console.error('Error al obtener estadísticas:', error)
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas',
+      detalle: error.message 
+    })
+  }
+}
+
+export default {
+  // Funciones originales
+  getCotizaciones,
+  getCotizacionById,
+  createCotizacion,
+  updateCotizacion,
+  deleteCotizacion,
+  
+  // Funciones nuevas Fase 2
+  aprobar,
+  rechazar,
+  getEstadisticas
 }
