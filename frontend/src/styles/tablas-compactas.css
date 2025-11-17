@@ -1,0 +1,176 @@
+/* Estilos para tablas compactas - Sin scroll horizontal */
+
+/* Contenedor de tabla optimizado */
+.tabla-compacta {
+  width: 100%;
+  overflow: visible;
+}
+
+.tabla-compacta table {
+  width: 100%;
+  table-layout: auto;
+}
+
+/* Headers más compactos */
+.tabla-compacta th {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+/* Celdas más compactas */
+.tabla-compacta td {
+  padding: 0.75rem !important;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+/* Columna de Tipo - más angosta */
+.col-tipo {
+  width: 8%;
+  min-width: 80px;
+}
+
+/* Columna de Marca/Modelo - mediana */
+.col-marca-modelo {
+  width: 20%;
+  min-width: 160px;
+}
+
+/* Columna de N° Serie - compacta con truncado */
+.col-numero-serie {
+  width: 25%;
+  min-width: 180px;
+  max-width: 250px;
+}
+
+.numero-serie-text {
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
+}
+
+/* Columna de Capacidad - angosta */
+.col-capacidad {
+  width: 10%;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Columna de Cliente - mediana */
+.col-cliente {
+  width: 15%;
+  min-width: 120px;
+}
+
+/* Columna de Acciones - fija */
+.col-acciones {
+  width: 12%;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Texto truncado con tooltip */
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.truncate-text:hover {
+  overflow: visible;
+  white-space: normal;
+  position: relative;
+  z-index: 10;
+  background: white;
+  padding: 0.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Badges más compactos */
+.badge-compacto {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Botones de acción más compactos */
+.btn-accion-compacto {
+  padding: 0.375rem;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive - ocultar columnas en pantallas pequeñas */
+@media (max-width: 1400px) {
+  .col-numero-serie {
+    display: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .col-capacidad {
+    font-size: 0.75rem;
+  }
+}
+
+/* Para Cotizaciones */
+.col-equipo-info {
+  width: 25%;
+  min-width: 200px;
+}
+
+.col-precio {
+  width: 10%;
+  min-width: 90px;
+  text-align: right;
+}
+
+.col-descuento {
+  width: 8%;
+  min-width: 60px;
+  text-align: center;
+}
+
+.col-total {
+  width: 12%;
+  min-width: 100px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.col-estado {
+  width: 10%;
+  min-width: 90px;
+  text-align: center;
+}
+
+/* Información de equipo en 2 líneas */
+.equipo-info-compacto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.equipo-nombre {
+  font-weight: 500;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.equipo-capacidad {
+  font-size: 0.75rem;
+  color: #6b7280;
+}

@@ -15,6 +15,7 @@ import {
 } from '../services/cotizacionService'
 import { getClientes } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
+import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
   const navigate = useNavigate()
@@ -37,7 +38,7 @@ function Cotizaciones() {
     tipo: ''
   })
   const [formData, setFormData] = useState({
-    tipo: 'instalacion', // instalacion, mantencion, reparacion
+    tipo: 'instalacion',
     clienteId: '',
     inventarioId: '',
     precioOfertado: '',
@@ -59,7 +60,6 @@ function Cotizaciones() {
   }, [navigate])
 
   useEffect(() => {
-    // Actualizar campos según tipo de servicio
     if (formData.tipo === 'instalacion') {
       setFormData(prev => ({
         ...prev,
@@ -93,7 +93,6 @@ function Cotizaciones() {
       setClientes(clientesData)
       setInventario(inventarioData)
       
-      // Filtrar solo inventario disponible (con stock > 0)
       const disponible = inventarioData.filter(item => 
         item.stock > 0 && item.estado === 'disponible'
       )
@@ -121,7 +120,6 @@ function Cotizaciones() {
     e.preventDefault()
 
     try {
-      // Preparar datos con valores numéricos
       const dataToSend = {
         tipo: formData.tipo,
         clienteId: parseInt(formData.clienteId),
@@ -241,7 +239,6 @@ function Cotizaciones() {
     }
   }
 
-  // ⭐ Ver PDF
   const handleVerPDF = (cotizacionId) => {
     setPdfCotizacionId(cotizacionId)
     setShowPDFModal(true)
@@ -298,7 +295,7 @@ function Cotizaciones() {
       rechazada: 'Rechazada'
     }
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[estado]}`}>
+      <span className={`badge-compacto ${badges[estado]}`}>
         {labels[estado]}
       </span>
     )
@@ -316,13 +313,12 @@ function Cotizaciones() {
       reparacion: '🔨 Reparación'
     }
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
+      <span className={`badge-compacto ${badges[tipo]}`}>
         {labels[tipo]}
       </span>
     )
   }
 
-  // Aplicar filtros
   const filteredCotizaciones = cotizaciones.filter(cot => {
     const matchesSearch = 
       cot.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -335,7 +331,6 @@ function Cotizaciones() {
     return matchesSearch && matchesEstado && matchesTipo
   })
 
-  // Estadísticas
   const stats = {
     total: cotizaciones.length,
     pendientes: cotizaciones.filter(c => c.estado === 'pendiente').length,
@@ -377,7 +372,7 @@ function Cotizaciones() {
           </button>
         </div>
 
-        {/* Estadísticas Rápidas */}
+        {/* Estadísticas */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="card">
             <p className="text-sm text-gray-600">Total</p>
@@ -468,27 +463,39 @@ function Cotizaciones() {
           )}
         </div>
 
-        {/* Tabla */}
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
+        {/* Tabla Optimizada */}
+        <div className="card">
+          <div className="tabla-compacta">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Equipo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Desc.</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo-cot">
+                    Tipo
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-equipo-info">
+                    Equipo
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-precio">
+                    Precio
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-descuento">
+                    Desc.
+                  </th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-total">
+                    Total
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-estado">
+                    Estado
+                  </th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-acciones-cot">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCotizaciones.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                       {searchTerm || Object.values(filters).some(v => v) ? (
                         'No se encontraron cotizaciones con estos filtros'
                       ) : (
@@ -499,44 +506,59 @@ function Cotizaciones() {
                 ) : (
                   filteredCotizaciones.map((cotizacion) => (
                     <tr key={cotizacion.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(cotizacion.createdAt || cotizacion.fechaCotizacion).toLocaleDateString('es-CL')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{cotizacion.cliente?.nombre}</div>
-                        <div className="text-sm text-gray-500">{cotizacion.cliente?.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      {/* Tipo */}
+                      <td className="px-3 py-3 col-tipo-cot">
                         {getTipoBadge(cotizacion.tipo)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">{cotizacion.inventario?.marca} {cotizacion.inventario?.modelo}</div>
-                        <div className="text-sm text-gray-500">{cotizacion.inventario?.capacidadBTU} BTU</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-900">
-                        ${cotizacion.precioOfertado.toLocaleString('es-CL')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {cotizacion.descuento}%
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-bold text-green-600">
-                          ${cotizacion.precioFinal.toLocaleString('es-CL')}
+                      
+                      {/* Equipo - 2 líneas */}
+                      <td className="px-3 py-3 col-equipo-info">
+                        <div className="info-2-lineas">
+                          <div className="info-principal truncate-text" title={`${cotizacion.inventario?.marca} ${cotizacion.inventario?.modelo}`}>
+                            {cotizacion.inventario?.marca} {cotizacion.inventario?.modelo}
+                          </div>
+                          <div className="info-secundaria">
+                            {cotizacion.inventario?.capacidadBTU?.toLocaleString('es-CL')} BTU
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      
+                      {/* Precio */}
+                      <td className="px-3 py-3 col-precio text-right">
+                        <span className="text-sm text-gray-900">
+                          ${cotizacion.precioOfertado?.toLocaleString('es-CL')}
+                        </span>
+                      </td>
+                      
+                      {/* Descuento */}
+                      <td className="px-3 py-3 col-descuento text-center">
+                        <span className="text-sm text-gray-600">
+                          {cotizacion.descuento}%
+                        </span>
+                      </td>
+                      
+                      {/* Total */}
+                      <td className="px-3 py-3 col-total text-right">
+                        <span className="text-sm font-bold text-green-600">
+                          ${cotizacion.precioFinal?.toLocaleString('es-CL')}
+                        </span>
+                      </td>
+                      
+                      {/* Estado */}
+                      <td className="px-3 py-3 col-estado">
                         {getEstadoBadge(cotizacion.estado)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
-                          {/* ⭐ Botón Ver PDF (solo para aprobadas) */}
+                      
+                      {/* Acciones */}
+                      <td className="px-3 py-3 col-acciones-cot">
+                        <div className="flex gap-1 justify-center flex-wrap">
                           {cotizacion.estado === 'aprobada' && (
                             <button
                               onClick={() => handleVerPDF(cotizacion.id)}
-                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                              className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
                               title="Ver PDF"
                             >
-                              <FileText size={18} />
+                              <FileText size={16} />
                             </button>
                           )}
                           
@@ -544,33 +566,33 @@ function Cotizaciones() {
                             <>
                               <button
                                 onClick={() => handleAprobar(cotizacion)}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                className="btn-accion-compacto text-green-600 hover:bg-green-50"
                                 title="Aprobar"
                               >
-                                <CheckCircle size={18} />
+                                <CheckCircle size={16} />
                               </button>
                               <button
                                 onClick={() => handleRechazar(cotizacion)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="btn-accion-compacto text-red-600 hover:bg-red-50"
                                 title="Rechazar"
                               >
-                                <XCircle size={18} />
+                                <XCircle size={16} />
                               </button>
                             </>
                           )}
                           <button
                             onClick={() => handleEdit(cotizacion)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
                             title="Editar"
                           >
-                            <Edit size={18} />
+                            <Edit size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(cotizacion.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="btn-accion-compacto text-red-600 hover:bg-red-50"
                             title="Eliminar"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -587,7 +609,7 @@ function Cotizaciones() {
         </div>
       </main>
 
-      {/* Modal de Crear/Editar */}
+      {/* Modales (sin cambios, continúan igual) */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 my-8">
@@ -595,8 +617,8 @@ function Cotizaciones() {
               {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
             
+            {/* Resto del formulario igual que el original */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Tipo de Servicio */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
                 <div className="grid grid-cols-3 gap-3">
@@ -627,7 +649,6 @@ function Cotizaciones() {
                 </div>
               </div>
 
-              {/* Cliente y Producto */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -663,14 +684,13 @@ function Cotizaciones() {
                     <option value="">Seleccionar...</option>
                     {inventarioDisponible.map(item => (
                       <option key={item.id} value={item.id}>
-                        {item.marca} {item.modelo} - Stock: {item.stock}
+                        {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {/* Precios y Costos */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -735,7 +755,6 @@ function Cotizaciones() {
                 </div>
               </div>
 
-              {/* Vista Previa del Total */}
               {formData.precioOfertado && (
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
                   <div className="space-y-2 text-sm">
@@ -767,7 +786,6 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* Información Adicional */}
               {formData.tipo === 'instalacion' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -892,7 +910,7 @@ function Cotizaciones() {
         </div>
       )}
 
-      {/* ⭐ Modal de PDF */}
+      {/* Modal de PDF */}
       {showPDFModal && pdfCotizacionId && (
         <VisorPDF
           cotizacionId={pdfCotizacionId}

@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar'
 import { isAuthenticated } from '../services/authService'
 import { getEquipos, createEquipo, updateEquipo, deleteEquipo } from '../services/equipoService'
 import { getClientes } from '../services/clienteService'
+import '../styles/tablas-compactas.css'
 
 function Equipos() {
   const { t } = useTranslation()
@@ -169,27 +170,27 @@ function Equipos() {
           </div>
         </div>
 
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="card">
+          <div className="tabla-compacta">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-marca-modelo">
                     Marca/Modelo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-numero-serie">
                     N° Serie
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-capacidad">
                     Capacidad
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-cliente">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-acciones">
                     Acciones
                   </th>
                 </tr>
@@ -204,35 +205,60 @@ function Equipos() {
                 ) : (
                   filteredEquipos.map((equipo) => (
                     <tr key={equipo.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{equipo.tipo}</div>
+                      {/* Tipo */}
+                      <td className="px-3 py-3 col-tipo">
+                        <span className="text-sm font-medium text-gray-900">
+                          {equipo.tipo}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900">{equipo.marca}</div>
-                        <div className="text-sm text-gray-500">{equipo.modelo}</div>
+                      
+                      {/* Marca/Modelo */}
+                      <td className="px-3 py-3 col-marca-modelo">
+                        <div className="info-2-lineas">
+                          <div className="info-principal">{equipo.marca}</div>
+                          <div className="info-secundaria truncate-text" title={equipo.modelo}>
+                            {equipo.modelo}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {equipo.numeroSerie}
+                      
+                      {/* N° Serie */}
+                      <td className="px-3 py-3 col-numero-serie">
+                        <span className="numero-serie-text" title={equipo.numeroSerie}>
+                          {equipo.numeroSerie}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {equipo.capacidad}
+                      
+                      {/* Capacidad */}
+                      <td className="px-3 py-3 col-capacidad">
+                        <span className="badge-compacto bg-blue-100 text-blue-800">
+                          {equipo.capacidad}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                        {equipo.cliente?.nombre}
+                      
+                      {/* Cliente */}
+                      <td className="px-3 py-3 col-cliente">
+                        <span className="text-sm text-gray-900 truncate-text" title={equipo.cliente?.nombre}>
+                          {equipo.cliente?.nombre}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
+                      
+                      {/* Acciones */}
+                      <td className="px-3 py-3 col-acciones">
+                        <div className="flex gap-1 justify-center">
                           <button
                             onClick={() => handleEdit(equipo)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
+                            title="Editar"
                           >
-                            <Edit size={18} />
+                            <Edit size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(equipo.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="btn-accion-compacto text-red-600 hover:bg-red-50"
+                            title="Eliminar"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
@@ -266,6 +292,7 @@ function Equipos() {
                     required
                   >
                     <option value="">Seleccionar...</option>
+                    <option value="Split Muro">Split Muro</option>
                     <option value="Split">Split</option>
                     <option value="Cassette">Cassette</option>
                     <option value="Piso-Techo">Piso-Techo</option>
@@ -361,7 +388,7 @@ function Equipos() {
                     type="text"
                     value={formData.capacidad}
                     onChange={(e) => setFormData({ ...formData, capacidad: e.target.value })}
-                    placeholder="12.000 BTU"
+                    placeholder="12000 BTU"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
