@@ -10,6 +10,7 @@
     "lint": "eslint . --ext js,jsx"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.6.2",
     "clsx": "^2.1.1",
     "date-fns": "^2.30.0",

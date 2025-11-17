@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/react' 
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AuthCallback from './pages/AuthCallback'
@@ -13,6 +14,7 @@ import CalendarioOT from './pages/CalendarioOT'
 import StockPanel from './pages/StockPanel'
 import { isAuthenticated } from './services/authService'
 import './index.css'
+
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }) {
@@ -107,7 +109,7 @@ function App() {
             }
           />
           
-          {/* ⭐ NUEVAS RUTAS - FASE 2 */}
+          {/*  NUEVAS RUTAS - FASE 2 */}
           <Route
             path="/calendario"
             element={
@@ -128,6 +130,9 @@ function App() {
           {/* Ruta por defecto */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+        {/* ANALYTICS - AGREGADO */}
+        <Analytics />
       </div>
     </Router>
   )
