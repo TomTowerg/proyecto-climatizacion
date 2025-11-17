@@ -60,6 +60,109 @@ export const chatConContexto = async (mensajes) => {
  */
 
 /**
+ * ⭐ ANALIZAR URGENCIA DE ORDEN DE TRABAJO (NUEVO)
+ * Determina el nivel de urgencia basado en la descripción del problema
+ */
+export const analizarUrgencia = async (descripcionProblema, tipoServicio, clienteNombre) => {
+  try {
+    console.log(`🤖 Analizando urgencia con IA...`)
+    console.log(`📝 Problema: "${descripcionProblema}"`)
+    console.log(`📝 Tipo: ${tipoServicio}`)
+    console.log(`📝 Cliente: ${clienteNombre}`)
+
+    const prompt = `
+Eres un experto técnico en climatización HVAC.
+Analiza la siguiente orden de trabajo y determina el nivel de urgencia:
+
+TIPO DE SERVICIO: ${tipoServicio}
+CLIENTE: ${clienteNombre}
+DESCRIPCIÓN DEL PROBLEMA:
+"${descripcionProblema}"
+
+Analiza estos factores:
+1. Gravedad del problema (¿afecta salud, seguridad o comodidad?)
+2. Época del año (verano/invierno = más urgente)
+3. Tipo de cliente (residencial, comercial, salud)
+4. Riesgo de daños mayores si se demora
+
+Clasifica la urgencia en uno de estos niveles:
+- CRÍTICA: Requiere atención inmediata (menos de 4 horas)
+- MEDIA: Requiere atención pronto (1-2 días)
+- BAJA: Puede programarse con flexibilidad (3-7 días)
+
+Responde ÚNICAMENTE en formato JSON válido sin markdown:
+{
+  "nivel": "CRÍTICA" | "MEDIA" | "BAJA",
+  "razones": ["razón 1", "razón 2", "razón 3"],
+  "accionRecomendada": "descripción breve de la acción a tomar",
+  "tiempoRespuesta": "tiempo estimado de respuesta recomendado"
+}
+`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    let text = response.text()
+
+    console.log(`📥 Respuesta IA raw:`, text)
+
+    // Limpiar el texto de markdown si existe
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+
+    try {
+      const analisis = JSON.parse(text)
+      
+      // Validar que tenga los campos requeridos
+      if (!analisis.nivel || !analisis.razones || !analisis.accionRecomendada) {
+        throw new Error('Respuesta incompleta de la IA')
+      }
+
+      console.log(`✅ Análisis de urgencia completado: ${analisis.nivel}`)
+      return analisis
+
+    } catch (parseError) {
+      console.error('❌ Error al parsear respuesta IA:', parseError)
+      console.log('📄 Texto recibido:', text)
+      
+      // Fallback: intentar extraer el nivel de urgencia del texto
+      const nivelMatch = text.match(/urgencia.*?(CRÍTICA|CRITICA|MEDIA|BAJA)/i)
+      const nivel = nivelMatch ? nivelMatch[1].toUpperCase() : 'MEDIA'
+      
+      return {
+        nivel: nivel,
+        razones: ["Análisis realizado con IA", "Recomendación basada en descripción"],
+        accionRecomendada: "Evaluar y atender según procedimiento estándar",
+        tiempoRespuesta: nivel === 'CRÍTICA' ? 'Menos de 4 horas' : nivel === 'MEDIA' ? '1-2 días' : '3-7 días',
+        textoCompleto: text
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error en análisis de urgencia:', error)
+    
+    // Fallback: determinar urgencia básica por palabras clave
+    const problemaBajo = descripcionProblema.toLowerCase()
+    let nivelFallback = 'MEDIA'
+    
+    const palabrasCriticas = ['humo', 'fuego', 'quemado', 'chispas', 'peligro', 'urgente', 'emergencia', 'bebé', 'niño', 'enfermo']
+    const palabrasBajas = ['preventivo', 'programado', 'limpieza', 'revisión', 'funciona bien']
+    
+    if (palabrasCriticas.some(p => problemaBajo.includes(p))) {
+      nivelFallback = 'CRÍTICA'
+    } else if (palabrasBajas.some(p => problemaBajo.includes(p))) {
+      nivelFallback = 'BAJA'
+    }
+    
+    return {
+      nivel: nivelFallback,
+      razones: ["Análisis automático por palabras clave"],
+      accionRecomendada: "Atender según nivel de urgencia determinado",
+      tiempoRespuesta: nivelFallback === 'CRÍTICA' ? 'Inmediato' : nivelFallback === 'MEDIA' ? '1-2 días' : 'Según disponibilidad',
+      error: error.message
+    }
+  }
+}
+
+/**
  * ANALIZAR ORDEN DE TRABAJO
  * Proporciona recomendaciones basadas en el tipo de servicio y equipo
  */
@@ -385,6 +488,7 @@ export default {
   chatConContexto,
   
   // Funciones nuevas Fase 2
+  analizarUrgencia,      // ⭐ NUEVA - Para órdenes de trabajo
   analizarOrdenTrabajo,
   recomendarEquipo,
   analizarProblema,

@@ -24,6 +24,12 @@ export const updateOrdenTrabajo = async (id, ordenData) => {
   return response.data
 }
 
+// ⭐ COMPLETAR ORDEN DE TRABAJO (NUEVO)
+export const completarOrden = async (id) => {
+  const response = await api.patch(`/ordenes-trabajo/${id}/completar`)
+  return response.data
+}
+
 // Eliminar orden de trabajo
 export const deleteOrdenTrabajo = async (id) => {
   const response = await api.delete(`/ordenes-trabajo/${id}`)

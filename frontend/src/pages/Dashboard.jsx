@@ -11,7 +11,10 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  DollarSign,
+  BarChart3
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -19,6 +22,8 @@ import { isAuthenticated } from '../services/authService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
 import { getOrdenesTrabajo } from '../services/ordenTrabajoService'
+import { getCotizaciones, getEstadisticas } from '../services/cotizacionService'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 function Dashboard() {
   const navigate = useNavigate()
@@ -33,6 +38,8 @@ function Dashboard() {
     ordenesCompletadas: 0,
     urgenciasCriticas: 0
   })
+  const [cotizacionStats, setCotizacionStats] = useState(null)
+  const [cotizaciones, setCotizaciones] = useState([])
   const [ordenesRecientes, setOrdenesRecientes] = useState([])
   const [userName, setUserName] = useState('')
 
@@ -71,14 +78,24 @@ function Dashboard() {
       let productos = []
       try {
         const inventarioModule = await import('../services/inventarioService')
-        if (inventarioModule.getProductos) {
-          productos = await inventarioModule.getProductos()
-        } else if (inventarioModule.default) {
-          productos = await inventarioModule.default()
+        if (inventarioModule.getInventario) {
+          productos = await inventarioModule.getInventario()
         }
       } catch (error) {
         console.log('Inventario no disponible')
         productos = []
+      }
+
+      // ⭐ Cargar estadísticas de cotizaciones y todas las cotizaciones
+      try {
+        const [cotizacionStatsData, cotizacionesData] = await Promise.all([
+          getEstadisticas(),
+          getCotizaciones()
+        ])
+        setCotizacionStats(cotizacionStatsData)
+        setCotizaciones(cotizacionesData)
+      } catch (error) {
+        console.log('Estadísticas de cotizaciones no disponibles')
       }
 
       // Calcular estadísticas
@@ -129,6 +146,44 @@ function Dashboard() {
     }
     return info[estado] || info.pendiente
   }
+
+  // Datos para gráfico de cotizaciones (Pie Chart)
+  const cotizacionesChartData = cotizacionStats ? [
+    { name: 'Pendientes', value: cotizacionStats.pendientes, color: '#EAB308' },
+    { name: 'Aprobadas', value: cotizacionStats.aprobadas, color: '#22C55E' },
+    { name: 'Rechazadas', value: cotizacionStats.rechazadas, color: '#EF4444' }
+  ].filter(item => item.value > 0) : []
+
+  // Datos para gráfico de cotizaciones por mes (últimos 6 meses)
+  const getCotizacionesPorMes = () => {
+    if (!cotizaciones || cotizaciones.length === 0) return []
+
+    const ahora = new Date()
+    const meses = []
+    
+    for (let i = 5; i >= 0; i--) {
+      const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
+      const nombreMes = fecha.toLocaleDateString('es-CL', { month: 'short' })
+      const mes = fecha.getMonth()
+      const año = fecha.getFullYear()
+      
+      const cotizacionesMes = cotizaciones.filter(c => {
+        const fechaCot = new Date(c.createdAt || c.fechaCotizacion)
+        return fechaCot.getMonth() === mes && fechaCot.getFullYear() === año
+      })
+
+      meses.push({
+        mes: nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1),
+        total: cotizacionesMes.length,
+        aprobadas: cotizacionesMes.filter(c => c.estado === 'aprobada').length,
+        pendientes: cotizacionesMes.filter(c => c.estado === 'pendiente').length
+      })
+    }
+
+    return meses
+  }
+
+  const cotizacionesMensuales = getCotizacionesPorMes()
 
   if (loading) {
     return (
@@ -213,6 +268,110 @@ function Dashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ⭐ Estadísticas de Cotizaciones con Métricas */}
+        {cotizacionStats && (
+          <div className="card mb-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/cotizaciones')}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="text-indigo-600" size={24} />
+                Cotizaciones
+              </h2>
+              <ArrowRight className="text-gray-400" size={20} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {/* Total */}
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{cotizacionStats.total}</p>
+                <p className="text-xs text-gray-600 mt-1">Total</p>
+              </div>
+
+              {/* Pendientes */}
+              <div className="text-center">
+                <p className="text-2xl font-bold text-yellow-600">{cotizacionStats.pendientes}</p>
+                <p className="text-xs text-gray-600 mt-1">Pendientes</p>
+              </div>
+
+              {/* Aprobadas */}
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{cotizacionStats.aprobadas}</p>
+                <p className="text-xs text-gray-600 mt-1">Aprobadas</p>
+              </div>
+
+              {/* Tasa */}
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">{cotizacionStats.tasaAprobacion}%</p>
+                <p className="text-xs text-gray-600 mt-1">Tasa Aprobación</p>
+              </div>
+
+              {/* Valor */}
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1">
+                  <DollarSign className="text-green-600" size={20} />
+                  <p className="text-xl font-bold text-green-600">
+                    {(cotizacionStats.valorTotalAprobadas / 1000000).toFixed(1)}M
+                  </p>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Valor Total</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ⭐ Gráficos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Gráfico de Estados de Cotizaciones */}
+          {cotizacionesChartData.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart3 className="text-indigo-600" size={20} />
+                Distribución de Cotizaciones
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={cotizacionesChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {cotizacionesChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Gráfico de Cotizaciones Mensuales */}
+          {cotizacionesMensuales.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <TrendingUp className="text-blue-600" size={20} />
+                Cotizaciones Últimos 6 Meses
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={cotizacionesMensuales}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="aprobadas" fill="#22C55E" name="Aprobadas" />
+                  <Bar dataKey="pendientes" fill="#EAB308" name="Pendientes" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

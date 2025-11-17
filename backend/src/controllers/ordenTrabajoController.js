@@ -19,7 +19,14 @@ export const getOrdenesTrabajo = async (req, res) => {
             tipo: true,
             marca: true,
             modelo: true,
-            numeroSerie: true
+            numeroSerie: true,
+            capacidad: true,
+            // ⭐ INCLUIR INVENTARIO para obtener capacidadBTU
+            inventario: {
+              select: {
+                capacidadBTU: true
+              }
+            }
           }
         }
       },
@@ -28,7 +35,22 @@ export const getOrdenesTrabajo = async (req, res) => {
       }
     })
 
-    res.json(ordenes)
+    // ⭐ Mapear para agregar capacidadBTU del inventario si el equipo no tiene capacidad
+    const ordenesConCapacidad = ordenes.map(orden => {
+      if (orden.equipo && orden.equipo.inventario) {
+        return {
+          ...orden,
+          equipo: {
+            ...orden.equipo,
+            // Si no tiene capacidad, usar la del inventario
+            capacidad: orden.equipo.capacidad || `${orden.equipo.inventario.capacidadBTU} BTU`
+          }
+        }
+      }
+      return orden
+    })
+
+    res.json(ordenesConCapacidad)
   } catch (error) {
     console.error('Error al obtener órdenes de trabajo:', error)
     res.status(500).json({ error: 'Error al obtener órdenes de trabajo' })
@@ -44,7 +66,11 @@ export const getOrdenTrabajoById = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         cliente: true,
-        equipo: true
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
 
@@ -63,6 +89,8 @@ export const getOrdenTrabajoById = async (req, res) => {
 export const createOrdenTrabajo = async (req, res) => {
   try {
     const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
+
+    console.log('📝 Creando orden con análisis:', analisisIA)
 
     // Validar campos requeridos
     if (!clienteId || !tipo || !fecha || !tecnico) {
@@ -120,9 +148,15 @@ export const createOrdenTrabajo = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: true
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
+
+    console.log('✅ Orden creada con urgencia:', orden.urgencia)
 
     res.status(201).json({
       message: 'Orden de trabajo creada exitosamente',
@@ -133,7 +167,6 @@ export const createOrdenTrabajo = async (req, res) => {
     res.status(500).json({ error: 'Error al crear orden de trabajo' })
   }
 }
-
 
 // Actualizar orden de trabajo
 export const updateOrdenTrabajo = async (req, res) => {
@@ -196,7 +229,11 @@ export const updateOrdenTrabajo = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: true
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
 
@@ -207,6 +244,51 @@ export const updateOrdenTrabajo = async (req, res) => {
   } catch (error) {
     console.error('Error al actualizar orden de trabajo:', error)
     res.status(500).json({ error: 'Error al actualizar orden de trabajo' })
+  }
+}
+
+// ⭐ COMPLETAR ORDEN DE TRABAJO
+export const completarOrden = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Verificar que la orden existe
+    const existingOrden = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) }
+    })
+
+    if (!existingOrden) {
+      return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    }
+
+    if (existingOrden.estado === 'completado') {
+      return res.status(400).json({ error: 'Esta orden ya está completada' })
+    }
+
+    // Actualizar a completado
+    const orden = await prisma.ordenTrabajo.update({
+      where: { id: parseInt(id) },
+      data: {
+        estado: 'completado',
+        fechaCompletado: new Date()
+      },
+      include: {
+        cliente: true,
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
+      }
+    })
+
+    res.json({
+      message: 'Orden completada exitosamente',
+      orden
+    })
+  } catch (error) {
+    console.error('Error al completar orden:', error)
+    res.status(500).json({ error: 'Error al completar orden de trabajo' })
   }
 }
 
@@ -278,4 +360,14 @@ export const getEstadisticas = async (req, res) => {
     console.error('Error al obtener estadísticas:', error)
     res.status(500).json({ error: 'Error al obtener estadísticas' })
   }
+}
+
+export default {
+  getOrdenesTrabajo,
+  getOrdenTrabajoById,
+  createOrdenTrabajo,
+  updateOrdenTrabajo,
+  completarOrden,
+  deleteOrdenTrabajo,
+  getEstadisticas
 }

@@ -5,21 +5,32 @@ import {
   createOrdenTrabajo, 
   updateOrdenTrabajo, 
   deleteOrdenTrabajo,
-  getEstadisticas
+  completarOrden,
+  getEstadisticas 
 } from '../controllers/ordenTrabajoController.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Todas las rutas requieren autenticación
-router.use(authenticate)
+// Obtener estadísticas (debe ir antes de /:id)
+router.get('/estadisticas', authenticate, getEstadisticas)
 
-// Rutas de órdenes de trabajo
-router.get('/', getOrdenesTrabajo)
-router.get('/estadisticas', getEstadisticas)
-router.get('/:id', getOrdenTrabajoById)
-router.post('/', createOrdenTrabajo)
-router.put('/:id', updateOrdenTrabajo)
-router.delete('/:id', deleteOrdenTrabajo)
+// Obtener todas las órdenes de trabajo
+router.get('/', authenticate, getOrdenesTrabajo)
+
+// Obtener orden de trabajo por ID
+router.get('/:id', authenticate, getOrdenTrabajoById)
+
+// Crear orden de trabajo
+router.post('/', authenticate, createOrdenTrabajo)
+
+// Actualizar orden de trabajo
+router.put('/:id', authenticate, updateOrdenTrabajo)
+
+// ⭐ COMPLETAR ORDEN DE TRABAJO (NUEVO)
+router.patch('/:id/completar', authenticate, completarOrden)
+
+// Eliminar orden de trabajo
+router.delete('/:id', authenticate, deleteOrdenTrabajo)
 
 export default router

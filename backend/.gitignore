@@ -3,32 +3,57 @@ node_modules/
 
 # Environment variables
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
-# Database
+# Database files
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
 prisma/dev.db
 prisma/dev.db-journal
+
+# Prisma generated files
+node_modules/.prisma/
+prisma/migrations/**/migration.sql
 
 # Logs
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+pnpm-debug.log*
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
-
-# Editor
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
 
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
 # Build
 dist/
 build/
+.cache/
+
+# Uploads (si tienes manejo de archivos)
+uploads/
+public/uploads/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

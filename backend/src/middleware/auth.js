@@ -1,45 +1,51 @@
-import { verifyToken } from '../utils/jwt.js'
+import jwt from 'jsonwebtoken'
 
-// Middleware para verificar autenticación
+const JWT_SECRET = process.env.JWT_SECRET || 'mi_secreto_super_seguro_para_jwt_12345'
+
+/**
+ * MIDDLEWARE DE AUTENTICACIÓN
+ * Verifica el token JWT en:
+ * 1. Authorization header (Bearer token)
+ * 2. Query parameter ?token=xxx (para PDFs en iframes)
+ */
 export const authenticate = (req, res, next) => {
   try {
-    // Obtener token del header Authorization
+    let token = null
+
+    // 1. Intentar obtener token del header Authorization
     const authHeader = req.headers.authorization
-
-    if (!authHeader) {
-      return res.status(401).json({ 
-        error: 'Token no proporcionado' 
-      })
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
     }
 
-    // Formato esperado: "Bearer TOKEN"
-    const token = authHeader.split(' ')[1]
+    // 2. Si no hay token en header, intentar desde query params
+    if (!token && req.query.token) {
+      token = req.query.token
+    }
 
+    // 3. Verificar que haya token
     if (!token) {
-      return res.status(401).json({ 
-        error: 'Formato de token inválido' 
-      })
+      return res.status(401).json({ error: 'No se proporcionó token de autenticación' })
     }
 
-    // Verificar token
-    const decoded = verifyToken(token)
+    // 4. Verificar y decodificar el token
+    const decoded = jwt.verify(token, JWT_SECRET)
 
-    if (!decoded) {
-      return res.status(401).json({ 
-        error: 'Token inválido o expirado' 
-      })
-    }
-
-    // Agregar userId al request para uso en las rutas
+    // 5. Agregar información del usuario a la request
     req.userId = decoded.userId
     req.userEmail = decoded.email
 
     next()
-
   } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' })
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' })
+    }
     console.error('Error en autenticación:', error)
-    res.status(401).json({ 
-      error: 'Error de autenticación' 
-    })
+    return res.status(500).json({ error: 'Error al verificar autenticación' })
   }
 }
+
+export default authenticate

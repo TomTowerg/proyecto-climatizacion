@@ -204,6 +204,9 @@ model OrdenTrabajo {
   calificacion  Int?     // 1-5 estrellas
   comentarioCliente String?
   
+  // ⭐ Fecha de completado (NUEVO)
+  fechaCompletado DateTime?
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Sparkles, Eye } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Sparkles, Eye, CheckCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import { isAuthenticated } from '../services/authService'
-import { getOrdenesTrabajo, createOrdenTrabajo, updateOrdenTrabajo, deleteOrdenTrabajo } from '../services/ordenTrabajoService'
+import { getOrdenesTrabajo, createOrdenTrabajo, updateOrdenTrabajo, deleteOrdenTrabajo, completarOrden } from '../services/ordenTrabajoService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
 import { analizarUrgencia } from '../services/iaService'
@@ -90,11 +90,19 @@ function OrdenesTrabajo() {
     try {
       const clienteNombre = clientes.find(c => c.id === parseInt(formData.clienteId))?.nombre || 'No especificado'
       
+      console.log('📝 Datos enviados al análisis:', {
+        notas: formData.notas,
+        tipo: formData.tipo,
+        cliente: clienteNombre
+      })
+
       const analisis = await analizarUrgencia(
         formData.notas,
         formData.tipo,
         clienteNombre
       )
+
+      console.log('✅ Análisis recibido:', analisis)
 
       setAnalisisIA(analisis)
       
@@ -106,17 +114,41 @@ function OrdenesTrabajo() {
         'BAJA': 'baja'
       }
       
+      const urgenciaCalculada = urgenciaMap[analisis.nivel?.toUpperCase()] || 'media'
+      
+      console.log('🎯 Urgencia asignada:', urgenciaCalculada)
+      
       setFormData({
         ...formData,
-        urgencia: urgenciaMap[analisis.nivel] || 'media'
+        urgencia: urgenciaCalculada
       })
 
-      toast.success('Análisis completado')
+      toast.success('✨ Análisis completado con IA')
     } catch (error) {
-      console.error('Error al analizar:', error)
-      toast.error('Error al analizar urgencia')
+      console.error('❌ Error al analizar:', error)
+      toast.error('Error al analizar urgencia. Verifique que la API de Gemini esté configurada.')
     } finally {
       setAnalizando(false)
+    }
+  }
+
+  const handleCompletar = async (orden) => {
+    if (orden.estado === 'completado') {
+      toast.error('Esta orden ya está completada')
+      return
+    }
+
+    if (!window.confirm(`¿Marcar orden #${orden.id} como completada?`)) {
+      return
+    }
+
+    try {
+      await completarOrden(orden.id)
+      toast.success('✅ Orden marcada como completada')
+      fetchData()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Error al completar orden')
     }
   }
 
@@ -129,6 +161,8 @@ function OrdenesTrabajo() {
         equipoId: formData.equipoId || null,
         analisisIA: analisisIA
       }
+
+      console.log('📤 Enviando orden:', dataToSend)
 
       if (editingOrden) {
         await updateOrdenTrabajo(editingOrden.id, dataToSend)
@@ -163,7 +197,10 @@ function OrdenesTrabajo() {
     // Parsear análisis IA si existe
     if (orden.analisisIA) {
       try {
-        setAnalisisIA(JSON.parse(orden.analisisIA))
+        const analisis = typeof orden.analisisIA === 'string' 
+          ? JSON.parse(orden.analisisIA) 
+          : orden.analisisIA
+        setAnalisisIA(analisis)
       } catch (e) {
         setAnalisisIA(null)
       }
@@ -366,11 +403,18 @@ function OrdenesTrabajo() {
                           {new Date(orden.fecha).toLocaleDateString('es-CL')}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{orden.cliente?.nombre}</div>
                         {orden.equipo && (
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 mt-1">
+                            <span className="font-medium">{orden.equipo.tipo}</span>
+                            {' • '}
                             {orden.equipo.marca} {orden.equipo.modelo}
+                            {orden.equipo.capacidad && (
+                              <span className="text-blue-600 ml-1">
+                                ({orden.equipo.capacidad})
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -388,6 +432,18 @@ function OrdenesTrabajo() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
+                          {/* Botón Completar (solo para pendientes y en proceso) */}
+                          {orden.estado !== 'completado' && (
+                            <button
+                              onClick={() => handleCompletar(orden)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Completar orden"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
+                          
+                          {/* Botón Ver Análisis IA */}
                           {orden.analisisIA && (
                             <button
                               onClick={() => verAnalisisIA(orden)}
@@ -397,15 +453,21 @@ function OrdenesTrabajo() {
                               <Eye size={18} />
                             </button>
                           )}
+                          
+                          {/* Botón Editar */}
                           <button
                             onClick={() => handleEdit(orden)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Editar"
                           >
                             <Edit size={18} />
                           </button>
+                          
+                          {/* Botón Eliminar */}
                           <button
                             onClick={() => handleDelete(orden.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -462,7 +524,7 @@ function OrdenesTrabajo() {
                     <option value="">Seleccionar...</option>
                     {equiposFiltrados.map(equipo => (
                       <option key={equipo.id} value={equipo.id}>
-                        {equipo.marca} {equipo.modelo} - {equipo.numeroSerie}
+                        {equipo.tipo} - {equipo.marca} {equipo.modelo} ({equipo.numeroSerie})
                       </option>
                     ))}
                   </select>
@@ -527,6 +589,7 @@ function OrdenesTrabajo() {
                     value={formData.tecnico}
                     onChange={(e) => setFormData({ ...formData, tecnico: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nombre del técnico"
                     required
                   />
                 </div>
@@ -541,7 +604,7 @@ function OrdenesTrabajo() {
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="4"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe el problema o trabajo a realizar..."
+                  placeholder="Describe detalladamente el problema o trabajo a realizar..."
                   required
                 />
               </div>

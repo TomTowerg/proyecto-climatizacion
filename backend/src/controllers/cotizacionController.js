@@ -1,5 +1,7 @@
 import prisma from '../utils/prisma.js'
 import { aprobarCotizacion, rechazarCotizacion, obtenerEstadisticasCotizaciones } from '../services/cotizacionService.js'
+import { generarPDFCotizacion } from '../services/pdfService.js'
+import fs from 'fs'
 
 /**
  * ═══════════════════════════════════════════════════════
@@ -32,8 +34,8 @@ export const getCotizaciones = async (req, res) => {
             precioCliente: true
           }
         },
-        equipo: true,
-        ordenTrabajo: true
+        equipoCreado: true,
+        ordenCreada: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -57,8 +59,8 @@ export const getCotizacionById = async (req, res) => {
       include: {
         cliente: true,
         inventario: true,
-        equipo: true,
-        ordenTrabajo: {
+        equipoCreado: true,
+        ordenCreada: {
           include: {
             tecnico: true
           }
@@ -363,6 +365,60 @@ export const getEstadisticas = async (req, res) => {
   }
 }
 
+/**
+ * GENERAR PDF DE COTIZACIÓN ⭐ NUEVO
+ */
+export const generarPDF = async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    console.log(`📄 Generando PDF para cotización #${id}`)
+
+    // Obtener cotización con todas las relaciones
+    const cotizacion = await prisma.cotizacion.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        cliente: true,
+        inventario: true
+      }
+    })
+
+    if (!cotizacion) {
+      return res.status(404).json({ error: 'Cotización no encontrada' })
+    }
+
+    // Solo generar PDF para cotizaciones aprobadas
+    if (cotizacion.estado !== 'aprobada') {
+      return res.status(400).json({ 
+        error: 'Solo se puede generar PDF de cotizaciones aprobadas' 
+      })
+    }
+
+    // Generar PDF usando el servicio existente
+    const resultado = await generarPDFCotizacion(cotizacion)
+
+    // Leer el archivo generado
+    const pdfBuffer = fs.readFileSync(resultado.filePath)
+
+    // Configurar headers para visualización en navegador
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename=cotizacion-${id}.pdf`)
+    res.setHeader('Content-Length', pdfBuffer.length)
+
+    // Enviar PDF
+    res.send(pdfBuffer)
+
+    console.log(`✅ PDF enviado para cotización #${id}`)
+
+  } catch (error) {
+    console.error('❌ Error al generar PDF:', error)
+    res.status(500).json({ 
+      error: 'Error al generar PDF',
+      detalle: error.message 
+    })
+  }
+}
+
 export default {
   // Funciones originales
   getCotizaciones,
@@ -374,5 +430,6 @@ export default {
   // Funciones nuevas Fase 2
   aprobar,
   rechazar,
-  getEstadisticas
+  getEstadisticas,
+  generarPDF
 }

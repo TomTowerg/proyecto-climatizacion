@@ -1,23 +1,32 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
 import AuthCallback from './pages/AuthCallback'
+import Dashboard from './pages/Dashboard'
 import Clientes from './pages/Clientes'
 import Equipos from './pages/Equipos'
 import OrdenesTrabajo from './pages/OrdenesTrabajo'
 import Inventario from './pages/Inventario'
 import Cotizaciones from './pages/Cotizaciones'
-import PruebaIA from './pages/PruebaIA'
-import ChatAsistente from './components/ChatAsistente'
-import './App.css'
+import CalendarioOT from './pages/CalendarioOT'
+import StockPanel from './pages/StockPanel'
+import { isAuthenticated } from './services/authService'
+import './index.css'
+
+// Componente para rutas protegidas
+function ProtectedRoute({ children }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
 
 function App() {
   return (
     <Router>
       <div className="App">
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 3000,
@@ -28,34 +37,97 @@ function App() {
             success: {
               duration: 3000,
               iconTheme: {
-                primary: '#10b981',
+                primary: '#10B981',
                 secondary: '#fff',
               },
             },
             error: {
               duration: 4000,
               iconTheme: {
-                primary: '#ef4444',
+                primary: '#EF4444',
                 secondary: '#fff',
               },
             },
           }}
         />
+
         <Routes>
+          {/* Rutas Públicas */}
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/clientes" element={<Clientes />} />
-          <Route path="/equipos" element={<Equipos />} />
-          <Route path="/ordenes-trabajo" element={<OrdenesTrabajo />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/cotizaciones" element={<Cotizaciones />} />
-          <Route path="/prueba-ia" element={<PruebaIA />} />
+
+          {/* Rutas Protegidas */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clientes"
+            element={
+              <ProtectedRoute>
+                <Clientes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/equipos"
+            element={
+              <ProtectedRoute>
+                <Equipos />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ordenes-trabajo"
+            element={
+              <ProtectedRoute>
+                <OrdenesTrabajo />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inventario"
+            element={
+              <ProtectedRoute>
+                <Inventario />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cotizaciones"
+            element={
+              <ProtectedRoute>
+                <Cotizaciones />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* ⭐ NUEVAS RUTAS - FASE 2 */}
+          <Route
+            path="/calendario"
+            element={
+              <ProtectedRoute>
+                <CalendarioOT />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock-panel"
+            element={
+              <ProtectedRoute>
+                <StockPanel />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Ruta por defecto */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        
-        {/* Chat Asistente Flotante - Disponible en todas las páginas */}
-        <ChatAsistente />
       </div>
     </Router>
   )
