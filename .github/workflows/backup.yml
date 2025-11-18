@@ -1,0 +1,38 @@
+﻿name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Create backup
+        env:
+          DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+        run: |
+          mkdir -p backups
+          FECHA=$(date +%Y%m%d_%H%M%S)
+          BACKUP_FILE="railway_backup_${FECHA}.sql"
+          echo "📦 Creando backup: $BACKUP_FILE"
+          pg_dump "$DATABASE_URL" > "backups/$BACKUP_FILE"
+          gzip "backups/$BACKUP_FILE"
+          echo "✅ Backup creado: backups/${BACKUP_FILE}.gz"
+      
+      - name: Upload backup to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backups/*.sql.gz
+          retention-days: 30
