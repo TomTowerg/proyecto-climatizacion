@@ -23,16 +23,16 @@ jobs:
           DATABASE_URL: postgresql://postgres:dbKUkTXqlRuplXranpqWLINhsZjGWxMa@postgres.railway.internal:5432/railway
         run: |
           mkdir -p backups
-          FECHA=`$(date +%Y%m%d_%H%M%S)
-          BACKUP_FILE="railway_backup_`${FECHA}.sql"
-          echo "📦 Creando backup: `$BACKUP_FILE"
-          pg_dump "`$DATABASE_URL" > "backups/`$BACKUP_FILE"
-          gzip "backups/`$BACKUP_FILE"
-          echo "✅ Backup creado: backups/`${BACKUP_FILE}.gz"
+          FECHA=$(date +%Y%m%d_%H%M%S)
+          BACKUP_FILE="railway_backup_${FECHA}.sql"
+          echo "Creando backup: $BACKUP_FILE"
+          pg_dump "$DATABASE_URL" > "backups/$BACKUP_FILE"
+          gzip "backups/$BACKUP_FILE"
+          echo "Backup creado: backups/${BACKUP_FILE}.gz"
       
       - name: Upload backup to artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: database-backup-`${{ github.run_number }}
+          name: database-backup-${{ github.run_number }}
           path: backups/*.sql.gz
           retention-days: 30
