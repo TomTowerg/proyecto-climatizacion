@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react' 
 import Login from './pages/Login'
@@ -12,6 +12,7 @@ import Inventario from './pages/Inventario'
 import Cotizaciones from './pages/Cotizaciones'
 import CalendarioOT from './pages/CalendarioOT'
 import StockPanel from './pages/StockPanel'
+import ChatAsistente from './components/ChatAsistente'
 import { isAuthenticated } from './services/authService'
 import './index.css'
 
@@ -22,6 +23,26 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/" replace />
   }
   return children
+}
+
+// Componente para manejar el chatbot condicionalmente
+function ConditionalChatbot() {
+  const location = useLocation()
+  
+  // Lista de rutas donde NO debe aparecer el chatbot
+  const publicRoutes = ['/', '/register', '/auth/callback']
+  
+  // No mostrar chatbot en rutas públicas
+  if (publicRoutes.includes(location.pathname)) {
+    return null
+  }
+  
+  // Solo mostrar si está autenticado Y no está en ruta pública
+  if (!isAuthenticated()) {
+    return null
+  }
+  
+  return <ChatAsistente />
 }
 
 function App() {
@@ -130,6 +151,9 @@ function App() {
           {/* Ruta por defecto */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+        {/* CHATBOT ASISTENTE - Solo en rutas autenticadas, excluye login/register */}
+        <ConditionalChatbot />
 
         {/* ANALYTICS - AGREGADO */}
         <Analytics />
