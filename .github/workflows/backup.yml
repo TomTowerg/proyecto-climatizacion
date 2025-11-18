@@ -20,7 +20,7 @@ jobs:
       
       - name: Create backup
         env:
-          DATABASE_URL: postgresql://postgres:dbKUkTXqlRuplXranpqWLINhsZjGWxMa@tramway.proxy.rlwy.net:41274/railway
+          DATABASE_URL: postgresql://postgres:dbKUkTXqlRuplXranpqWLINhsZjGWxMa@postgres.railway.internal:5432/railway
         run: |
           mkdir -p backups
           FECHA=$(date +%Y%m%d_%H%M%S)
