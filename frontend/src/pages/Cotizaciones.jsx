@@ -15,7 +15,7 @@ import {
 } from '../services/cotizacionService'
 import { getClientes } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
-import { getEquiposByCliente } from '../services/equipoService' // ⭐ NUEVO
+import { getEquiposByCliente } from '../services/equipoService' // NUEVO
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
@@ -24,7 +24,7 @@ function Cotizaciones() {
   const [clientes, setClientes] = useState([])
   const [inventario, setInventario] = useState([])
   const [inventarioDisponible, setInventarioDisponible] = useState([])
-  const [equiposCliente, setEquiposCliente] = useState([]) // ⭐ NUEVO
+  const [equiposCliente, setEquiposCliente] = useState([]) // NUEVO
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -62,7 +62,7 @@ function Cotizaciones() {
     fetchData()
   }, [navigate])
 
-  // ⭐ NUEVO: Actualizar campos según tipo de servicio
+  //  NUEVO: Actualizar campos según tipo de servicio
   useEffect(() => {
     if (formData.tipo === 'instalacion') {
       setFormData(prev => ({
@@ -121,7 +121,7 @@ function Cotizaciones() {
     }
   }
 
-  // ⭐ NUEVO: Obtener equipos del cliente
+  //  NUEVO: Obtener equipos del cliente
   const fetchEquiposCliente = async (clienteId) => {
     try {
       const equipos = await getEquiposByCliente(clienteId)
@@ -163,7 +163,7 @@ function Cotizaciones() {
         direccionInstalacion: formData.direccionInstalacion
       }
 
-      // ⭐ Agregar inventarioId o equipoId según el tipo
+      //  Agregar inventarioId o equipoId según el tipo
       if (formData.tipo === 'instalacion') {
         dataToSend.inventarioId = parseInt(formData.inventarioId)
       } else {
@@ -196,7 +196,7 @@ function Cotizaciones() {
       tipo: cotizacion.tipo || 'instalacion',
       clienteId: cotizacion.clienteId,
       inventarioId: cotizacion.inventarioId || '',
-      equipoId: cotizacion.equipoId || '', // ⭐ NUEVO
+      equipoId: cotizacion.equipoId || '', 
       precioOfertado: cotizacion.precioOfertado,
       costoInstalacion: cotizacion.costoInstalacion || 0,
       costoMaterial: cotizacion.costoMaterial || 0,
@@ -292,12 +292,12 @@ function Cotizaciones() {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingCotizacion(null)
-    setEquiposCliente([]) // ⭐ Limpiar equipos
+    setEquiposCliente([]) // Limpiar equipos
     setFormData({
       tipo: 'instalacion',
       clienteId: '',
       inventarioId: '',
-      equipoId: '', // ⭐ NUEVO
+      equipoId: '', // NUEVO
       precioOfertado: '',
       costoInstalacion: '50000',
       costoMaterial: '20000',
@@ -326,7 +326,7 @@ function Cotizaciones() {
     }
   }
 
-  // ⭐ NUEVO: Handler para cambio de equipo
+  // NUEVO: Handler para cambio de equipo
   const handleEquipoChange = (equipoId) => {
     setFormData({
       ...formData,
@@ -562,7 +562,7 @@ function Cotizaciones() {
                   </tr>
                 ) : (
                   filteredCotizaciones.map((cotizacion) => {
-                    // ⭐ Mostrar inventario para instalación, equipo para mantención/reparación
+                    // Mostrar inventario para instalación, equipo para mantención/reparación
                     let marca = 'N/A'
                     let modelo = 'N/A'
                     let capacidad = 'N/A'
@@ -678,7 +678,7 @@ function Cotizaciones() {
         </div>
       </main>
 
-      {/* Modal de Crear/Editar - ⭐ ACTUALIZADO */}
+      {/* Modal de Crear/Editar - ACTUALIZADO */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 my-8">
@@ -740,7 +740,7 @@ function Cotizaciones() {
                   </select>
                 </div>
 
-                {/* ⭐ INSTALACIÓN: Mostrar inventario */}
+                {/* INSTALACIÓN: Mostrar inventario */}
                 {formData.tipo === 'instalacion' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -763,7 +763,7 @@ function Cotizaciones() {
                   </div>
                 )}
 
-                {/* ⭐ MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
+                {/* MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
                 {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
