@@ -278,18 +278,20 @@ function OrdenesTrabajo() {
 
   const getTipoBadge = (tipo) => {
     const badges = {
-      instalacion: 'bg-purple-100 text-purple-800',
-      mantenimiento: 'bg-blue-100 text-blue-800',
-      reparacion: 'bg-red-100 text-red-800'
+      instalacion: 'bg-blue-100 text-blue-800',
+      mantencion: 'bg-purple-100 text-purple-800',
+      mantenimiento: 'bg-purple-100 text-purple-800',
+      reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: 'Instalación',
-      mantenimiento: 'Mantenimiento',
-      reparacion: 'Reparación'
+      instalacion: '🔧 Instalación',
+      mantencion: '⚙️ Mantención',
+      mantenimiento: '⚙️ Mantención',
+      reparacion: '🔨 Reparación'
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
-        {labels[tipo]}
+        {labels[tipo] || tipo}
       </span>
     )
   }
@@ -543,9 +545,9 @@ function OrdenesTrabajo() {
                     required
                   >
                     <option value="">Seleccionar...</option>
-                    <option value="instalacion">Instalación</option>
-                    <option value="mantenimiento">Mantenimiento</option>
-                    <option value="reparacion">Reparación</option>
+                    <option value="instalacion">🔧 Instalación</option>
+                    <option value="mantencion">⚙️ Mantención</option>
+                    <option value="reparacion">🔨 Reparación</option>
                   </select>
                 </div>
 

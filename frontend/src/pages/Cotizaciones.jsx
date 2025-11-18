@@ -15,6 +15,7 @@ import {
 } from '../services/cotizacionService'
 import { getClientes } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
+import { getEquiposByCliente } from '../services/equipoService' // ⭐ NUEVO
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
@@ -23,6 +24,7 @@ function Cotizaciones() {
   const [clientes, setClientes] = useState([])
   const [inventario, setInventario] = useState([])
   const [inventarioDisponible, setInventarioDisponible] = useState([])
+  const [equiposCliente, setEquiposCliente] = useState([]) // ⭐ NUEVO
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -40,7 +42,8 @@ function Cotizaciones() {
   const [formData, setFormData] = useState({
     tipo: 'instalacion',
     clienteId: '',
-    inventarioId: '',
+    inventarioId: '', // Para instalación
+    equipoId: '', // Para mantención/reparación ⭐ NUEVO
     precioOfertado: '',
     costoInstalacion: '50000',
     costoMaterial: '20000',
@@ -59,27 +62,40 @@ function Cotizaciones() {
     fetchData()
   }, [navigate])
 
+  // ⭐ NUEVO: Actualizar campos según tipo de servicio
   useEffect(() => {
     if (formData.tipo === 'instalacion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: prev.costoInstalacion || '50000',
-        costoMaterial: prev.costoMaterial || '20000'
+        costoMaterial: prev.costoMaterial || '20000',
+        equipoId: '' // Limpiar equipoId
       }))
     } else if (formData.tipo === 'mantencion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: '0',
-        costoMaterial: '10000'
+        costoMaterial: '10000',
+        inventarioId: '', // Limpiar inventarioId
+        precioOfertado: '50000' // Precio base para mantención
       }))
     } else if (formData.tipo === 'reparacion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: '0',
-        costoMaterial: prev.costoMaterial || '15000'
+        costoMaterial: prev.costoMaterial || '15000',
+        inventarioId: '', // Limpiar inventarioId
+        precioOfertado: '60000' // Precio base para reparación
       }))
     }
   }, [formData.tipo])
+
+  // ⭐ NUEVO: Cargar equipos cuando cambia el cliente (para mantención/reparación)
+  useEffect(() => {
+    if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion')) {
+      fetchEquiposCliente(formData.clienteId)
+    }
+  }, [formData.clienteId, formData.tipo])
 
   const fetchData = async () => {
     try {
@@ -105,6 +121,21 @@ function Cotizaciones() {
     }
   }
 
+  // ⭐ NUEVO: Obtener equipos del cliente
+  const fetchEquiposCliente = async (clienteId) => {
+    try {
+      const equipos = await getEquiposByCliente(clienteId)
+      setEquiposCliente(equipos)
+      
+      if (equipos.length === 0) {
+        toast.info('Este cliente no tiene equipos registrados')
+      }
+    } catch (error) {
+      console.error('Error al cargar equipos del cliente:', error)
+      setEquiposCliente([])
+    }
+  }
+
   const calcularTotal = () => {
     const precio = parseFloat(formData.precioOfertado) || 0
     const instalacion = parseFloat(formData.costoInstalacion) || 0
@@ -123,7 +154,6 @@ function Cotizaciones() {
       const dataToSend = {
         tipo: formData.tipo,
         clienteId: parseInt(formData.clienteId),
-        inventarioId: parseInt(formData.inventarioId),
         precioOfertado: parseFloat(formData.precioOfertado),
         costoInstalacion: parseFloat(formData.costoInstalacion) || 0,
         costoMaterial: parseFloat(formData.costoMaterial) || 0,
@@ -131,6 +161,13 @@ function Cotizaciones() {
         notas: formData.notas,
         agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
         direccionInstalacion: formData.direccionInstalacion
+      }
+
+      // ⭐ Agregar inventarioId o equipoId según el tipo
+      if (formData.tipo === 'instalacion') {
+        dataToSend.inventarioId = parseInt(formData.inventarioId)
+      } else {
+        dataToSend.equipoId = parseInt(formData.equipoId)
       }
 
       if (editingCotizacion) {
@@ -158,7 +195,8 @@ function Cotizaciones() {
     setFormData({
       tipo: cotizacion.tipo || 'instalacion',
       clienteId: cotizacion.clienteId,
-      inventarioId: cotizacion.inventarioId,
+      inventarioId: cotizacion.inventarioId || '',
+      equipoId: cotizacion.equipoId || '', // ⭐ NUEVO
       precioOfertado: cotizacion.precioOfertado,
       costoInstalacion: cotizacion.costoInstalacion || 0,
       costoMaterial: cotizacion.costoMaterial || 0,
@@ -204,10 +242,17 @@ function Cotizaciones() {
       
       toast.dismiss(loadingToast)
       
+      // ⭐ Mensaje diferente según el tipo
+      const mensajesTipo = {
+        instalacion: '✅ Equipo creado',
+        mantencion: '✅ Equipo asignado',
+        reparacion: '✅ Equipo asignado'
+      }
+      
       toast.success(
         <div>
           <p className="font-bold">¡Cotización aprobada exitosamente!</p>
-          <p className="text-sm mt-1">✅ Equipo creado: #{resultado.equipo?.id}</p>
+          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id}</p>
           <p className="text-sm">✅ Orden de trabajo: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
@@ -247,10 +292,12 @@ function Cotizaciones() {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingCotizacion(null)
+    setEquiposCliente([]) // ⭐ Limpiar equipos
     setFormData({
       tipo: 'instalacion',
       clienteId: '',
       inventarioId: '',
+      equipoId: '', // ⭐ NUEVO
       precioOfertado: '',
       costoInstalacion: '50000',
       costoMaterial: '20000',
@@ -277,6 +324,14 @@ function Cotizaciones() {
         precioOfertado: ''
       })
     }
+  }
+
+  // ⭐ NUEVO: Handler para cambio de equipo
+  const handleEquipoChange = (equipoId) => {
+    setFormData({
+      ...formData,
+      equipoId
+    })
   }
 
   const clearFilters = () => {
@@ -323,7 +378,9 @@ function Cotizaciones() {
     const matchesSearch = 
       cot.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cot.inventario?.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cot.inventario?.modelo.toLowerCase().includes(searchTerm.toLowerCase())
+      cot.inventario?.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cot.equipo?.marca.toLowerCase().includes(searchTerm.toLowerCase()) || // ⭐ NUEVO
+      cot.equipo?.modelo.toLowerCase().includes(searchTerm.toLowerCase()) // ⭐ NUEVO
     
     const matchesEstado = !filters.estado || cot.estado === filters.estado
     const matchesTipo = !filters.tipo || cot.tipo === filters.tipo
@@ -504,100 +561,112 @@ function Cotizaciones() {
                     </td>
                   </tr>
                 ) : (
-                  filteredCotizaciones.map((cotizacion) => (
-                    <tr key={cotizacion.id} className="hover:bg-gray-50">
-                      {/* Tipo */}
-                      <td className="px-3 py-3 col-tipo-cot">
-                        {getTipoBadge(cotizacion.tipo)}
-                      </td>
-                      
-                      {/* Equipo - 2 líneas */}
-                      <td className="px-3 py-3 col-equipo-info">
-                        <div className="info-2-lineas">
-                          <div className="info-principal truncate-text" title={`${cotizacion.inventario?.marca} ${cotizacion.inventario?.modelo}`}>
-                            {cotizacion.inventario?.marca} {cotizacion.inventario?.modelo}
+                  filteredCotizaciones.map((cotizacion) => {
+                    // ⭐ Mostrar inventario para instalación, equipo para mantención/reparación
+                    let marca = 'N/A'
+                    let modelo = 'N/A'
+                    let capacidad = 'N/A'
+                    
+                    if (cotizacion.tipo === 'instalacion' && cotizacion.inventario) {
+                      marca = cotizacion.inventario.marca
+                      modelo = cotizacion.inventario.modelo
+                      capacidad = cotizacion.inventario.capacidadBTU
+                    } else if ((cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion') && cotizacion.equipo) {
+                      marca = cotizacion.equipo.marca
+                      modelo = cotizacion.equipo.modelo
+                      capacidad = cotizacion.equipo.capacidad
+                    }
+                    
+                    return (
+                      <tr key={cotizacion.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-3 col-tipo-cot">
+                          {getTipoBadge(cotizacion.tipo)}
+                        </td>
+                        
+                        <td className="px-3 py-3 col-equipo-info">
+                          <div className="info-2-lineas">
+                            <div className="info-principal truncate-text" title={`${marca} ${modelo}`}>
+                              {marca} {modelo}
+                            </div>
+                            <div className="info-secundaria">
+                              {typeof capacidad === 'number' 
+                                ? `${capacidad.toLocaleString('es-CL')} BTU`
+                                : capacidad}
+                            </div>
                           </div>
-                          <div className="info-secundaria">
-                            {cotizacion.inventario?.capacidadBTU?.toLocaleString('es-CL')} BTU
-                          </div>
-                        </div>
-                      </td>
-                      
-                      {/* Precio */}
-                      <td className="px-3 py-3 col-precio text-right">
-                        <span className="text-sm text-gray-900">
-                          ${cotizacion.precioOfertado?.toLocaleString('es-CL')}
-                        </span>
-                      </td>
-                      
-                      {/* Descuento */}
-                      <td className="px-3 py-3 col-descuento text-center">
-                        <span className="text-sm text-gray-600">
-                          {cotizacion.descuento}%
-                        </span>
-                      </td>
-                      
-                      {/* Total */}
-                      <td className="px-3 py-3 col-total text-right">
-                        <span className="text-sm font-bold text-green-600">
-                          ${cotizacion.precioFinal?.toLocaleString('es-CL')}
-                        </span>
-                      </td>
-                      
-                      {/* Estado */}
-                      <td className="px-3 py-3 col-estado">
-                        {getEstadoBadge(cotizacion.estado)}
-                      </td>
-                      
-                      {/* Acciones */}
-                      <td className="px-3 py-3 col-acciones-cot">
-                        <div className="flex gap-1 justify-center flex-wrap">
-                          {cotizacion.estado === 'aprobada' && (
+                        </td>
+                        
+                        <td className="px-3 py-3 col-precio text-right">
+                          <span className="text-sm text-gray-900">
+                            ${cotizacion.precioOfertado?.toLocaleString('es-CL')}
+                          </span>
+                        </td>
+                        
+                        <td className="px-3 py-3 col-descuento text-center">
+                          <span className="text-sm text-gray-600">
+                            {cotizacion.descuento}%
+                          </span>
+                        </td>
+                        
+                        <td className="px-3 py-3 col-total text-right">
+                          <span className="text-sm font-bold text-green-600">
+                            ${cotizacion.precioFinal?.toLocaleString('es-CL')}
+                          </span>
+                        </td>
+                        
+                        <td className="px-3 py-3 col-estado">
+                          {getEstadoBadge(cotizacion.estado)}
+                        </td>
+                        
+                        <td className="px-3 py-3 col-acciones-cot">
+                          <div className="flex gap-1 justify-center flex-wrap">
+                            {cotizacion.estado === 'aprobada' && (
+                              <button
+                                onClick={() => handleVerPDF(cotizacion.id)}
+                                className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
+                                title="Ver PDF"
+                              >
+                                <FileText size={16} />
+                              </button>
+                            )}
+                            
+                            {cotizacion.estado === 'pendiente' && (
+                              <>
+                                <button
+                                  onClick={() => handleAprobar(cotizacion)}
+                                  className="btn-accion-compacto text-green-600 hover:bg-green-50"
+                                  title="Aprobar"
+                                >
+                                  <CheckCircle size={16} />
+                                </button>
+                                <button
+                                  onClick={() => handleRechazar(cotizacion)}
+                                  className="btn-accion-compacto text-red-600 hover:bg-red-50"
+                                  title="Rechazar"
+                                >
+                                  <XCircle size={16} />
+                                </button>
+                              </>
+                            )}
                             <button
-                              onClick={() => handleVerPDF(cotizacion.id)}
-                              className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
-                              title="Ver PDF"
+                              onClick={() => handleEdit(cotizacion)}
+                              className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
+                              title="Editar"
                             >
-                              <FileText size={16} />
+                              <Edit size={16} />
                             </button>
-                          )}
-                          
-                          {cotizacion.estado === 'pendiente' && (
-                            <>
-                              <button
-                                onClick={() => handleAprobar(cotizacion)}
-                                className="btn-accion-compacto text-green-600 hover:bg-green-50"
-                                title="Aprobar"
-                              >
-                                <CheckCircle size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleRechazar(cotizacion)}
-                                className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                                title="Rechazar"
-                              >
-                                <XCircle size={16} />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => handleEdit(cotizacion)}
-                            className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
-                            title="Editar"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cotizacion.id)}
-                            className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            <button
+                              onClick={() => handleDelete(cotizacion.id)}
+                              className="btn-accion-compacto text-red-600 hover:bg-red-50"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
@@ -609,7 +678,7 @@ function Cotizaciones() {
         </div>
       </main>
 
-      {/* Modales (sin cambios, continúan igual) */}
+      {/* Modal de Crear/Editar - ⭐ ACTUALIZADO */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 my-8">
@@ -617,8 +686,8 @@ function Cotizaciones() {
               {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
             
-            {/* Resto del formulario igual que el original */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Tipo de Servicio */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
                 <div className="grid grid-cols-3 gap-3">
@@ -649,6 +718,7 @@ function Cotizaciones() {
                 </div>
               </div>
 
+              {/* Cliente y Producto/Equipo */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -670,31 +740,71 @@ function Cotizaciones() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Producto *
-                  </label>
-                  <select
-                    value={formData.inventarioId}
-                    onChange={(e) => handleInventarioChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={editingCotizacion}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {inventarioDisponible.map(item => (
-                      <option key={item.id} value={item.id}>
-                        {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
+                {/* ⭐ INSTALACIÓN: Mostrar inventario */}
+                {formData.tipo === 'instalacion' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Producto (Inventario) *
+                    </label>
+                    <select
+                      value={formData.inventarioId}
+                      onChange={(e) => handleInventarioChange(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                      disabled={editingCotizacion}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {inventarioDisponible.map(item => (
+                        <option key={item.id} value={item.id}>
+                          {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* ⭐ MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
+                {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Equipo del Cliente *
+                    </label>
+                    <select
+                      value={formData.equipoId}
+                      onChange={(e) => handleEquipoChange(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                      disabled={editingCotizacion || !formData.clienteId}
+                    >
+                      <option value="">
+                        {!formData.clienteId 
+                          ? 'Primero seleccione un cliente...' 
+                          : equiposCliente.length === 0
+                          ? 'Este cliente no tiene equipos'
+                          : 'Seleccionar equipo...'}
                       </option>
-                    ))}
-                  </select>
-                </div>
+                      {equiposCliente.map(equipo => (
+                        <option key={equipo.id} value={equipo.id}>
+                          {equipo.marca} {equipo.modelo} - {equipo.capacidad}
+                        </option>
+                      ))}
+                    </select>
+                    {!formData.clienteId && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Seleccione primero un cliente para ver sus equipos
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Precios */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio Equipo *
+                    {formData.tipo === 'instalacion' && 'Precio Equipo *'}
+                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
+                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
                   </label>
                   <input
                     type="number"
@@ -755,11 +865,16 @@ function Cotizaciones() {
                 </div>
               </div>
 
+              {/* Vista Previa del Total */}
               {formData.precioOfertado && (
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>Equipo:</span>
+                      <span>
+                        {formData.tipo === 'instalacion' && 'Equipo:'}
+                        {formData.tipo === 'mantencion' && 'Mantención:'}
+                        {formData.tipo === 'reparacion' && 'Reparación:'}
+                      </span>
                       <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
                     </div>
                     {formData.tipo === 'instalacion' && (
@@ -786,6 +901,7 @@ function Cotizaciones() {
                 </div>
               )}
 
+              {/* Información Adicional */}
               {formData.tipo === 'instalacion' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -850,7 +966,8 @@ function Cotizaciones() {
                   {cotizacionToApprove.cliente?.nombre}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {cotizacionToApprove.inventario?.marca} {cotizacionToApprove.inventario?.modelo}
+                  {cotizacionToApprove.inventario?.marca || cotizacionToApprove.equipo?.marca}{' '}
+                  {cotizacionToApprove.inventario?.modelo || cotizacionToApprove.equipo?.modelo}
                 </p>
                 <div className="pt-2">
                   {getTipoBadge(cotizacionToApprove.tipo)}
@@ -866,9 +983,15 @@ function Cotizaciones() {
                   <div className="text-sm text-yellow-800">
                     <p className="font-medium mb-1">El sistema automáticamente:</p>
                     <ul className="space-y-1 ml-4 list-disc">
-                      <li>Creará el equipo para el cliente</li>
+                      {cotizacionToApprove.tipo === 'instalacion' ? (
+                        <>
+                          <li>Creará el equipo para el cliente</li>
+                          <li>Reducirá el stock del producto</li>
+                        </>
+                      ) : (
+                        <li>Usará el equipo existente del cliente</li>
+                      )}
                       <li>Generará una orden de trabajo</li>
-                      <li>Reducirá el stock del producto</li>
                       <li>Marcará la cotización como aprobada</li>
                     </ul>
                   </div>

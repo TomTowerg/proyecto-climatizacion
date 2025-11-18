@@ -34,6 +34,18 @@ export const getCotizaciones = async (req, res) => {
             precioCliente: true
           }
         },
+        equipo: { // Incluir equipo para mantención/reparació
+          select: {
+             id: true,
+            tipo: true,
+            marca: true,
+            modelo: true,
+            numeroSerie: true,
+            capacidad: true,
+            tipoGas: true,
+            clienteId: true
+          }
+        },
         equipoCreado: true,
         ordenCreada: true
       },
@@ -79,13 +91,14 @@ export const getCotizacionById = async (req, res) => {
   }
 }
 
-// Crear cotización
+// Crear cotización ⭐ ACTUALIZADO CON SOPORTE PARA EQUIPOID
 export const createCotizacion = async (req, res) => {
   try {
     const { 
       tipo, // instalacion, mantencion, reparacion
       clienteId, 
-      inventarioId, 
+      inventarioId, // Para instalación
+      equipoId, // ⭐ NUEVO - Para mantención/reparación
       precioOfertado, 
       costoInstalacion,
       costoMaterial,
@@ -96,19 +109,28 @@ export const createCotizacion = async (req, res) => {
     } = req.body
 
     // Log para debug
-    console.log('Datos recibidos:', req.body)
+    console.log('📋 Datos recibidos:', { tipo, clienteId, inventarioId, equipoId })
 
-    // Validaciones
+    // Validaciones básicas
     if (!tipo || !clienteId) {
       return res.status(400).json({ 
         error: 'Tipo de servicio y cliente son requeridos' 
       })
     }
 
-    if (tipo === 'instalacion' && !inventarioId) {
-      return res.status(400).json({ 
-        error: 'Para instalación se requiere seleccionar un producto del inventario' 
-      })
+    // ⭐ VALIDACIONES POR TIPO DE SERVICIO
+    if (tipo === 'instalacion') {
+      if (!inventarioId) {
+        return res.status(400).json({ 
+          error: 'Para instalación se requiere seleccionar un producto del inventario' 
+        })
+      }
+    } else if (tipo === 'mantencion' || tipo === 'reparacion') {
+      if (!equipoId) {
+        return res.status(400).json({ 
+          error: `Para ${tipo} se requiere seleccionar un equipo del cliente` 
+        })
+      }
     }
 
     // Verificar que el cliente existe
@@ -120,9 +142,11 @@ export const createCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    // Si es instalación, verificar que el producto existe
     let producto = null
-    if (inventarioId) {
+    let equipo = null
+
+    // ⭐ SI ES INSTALACIÓN - Validar inventario
+    if (tipo === 'instalacion' && inventarioId) {
       producto = await prisma.inventario.findUnique({
         where: { id: parseInt(inventarioId) }
       })
@@ -138,6 +162,29 @@ export const createCotizacion = async (req, res) => {
       }
     }
 
+    // ⭐ SI ES MANTENCIÓN O REPARACIÓN - Validar equipo
+    if ((tipo === 'mantencion' || tipo === 'reparacion') && equipoId) {
+      equipo = await prisma.equipo.findUnique({
+        where: { id: parseInt(equipoId) },
+        include: {
+          cliente: true
+        }
+      })
+
+      if (!equipo) {
+        return res.status(404).json({ error: 'Equipo no encontrado' })
+      }
+
+      // Verificar que el equipo pertenece al cliente
+      if (equipo.clienteId !== parseInt(clienteId)) {
+        return res.status(400).json({ 
+          error: 'El equipo no pertenece al cliente seleccionado' 
+        })
+      }
+
+      console.log(`✅ Equipo validado: ${equipo.marca} ${equipo.modelo} - Cliente: ${equipo.cliente.nombre}`)
+    }
+
     // Calcular precio final
     const basePrice = precioOfertado || (producto?.precioCliente || 0)
     const instalacion = parseFloat(costoInstalacion) || 0
@@ -147,40 +194,58 @@ export const createCotizacion = async (req, res) => {
     const subtotal = basePrice + instalacion + materiales
     const precioFinal = subtotal * (1 - desc / 100)
 
-    console.log('Cálculo:', { basePrice, instalacion, materiales, desc, subtotal, precioFinal })
+    console.log('💰 Cálculo:', { basePrice, instalacion, materiales, desc, subtotal, precioFinal })
 
-    // Crear cotización
+    // ⭐ CREAR COTIZACIÓN CON EQUIPOID
+    const cotizacionData = {
+      tipo: tipo || 'instalacion',
+      clienteId: parseInt(clienteId),
+      precioOfertado: basePrice,
+      costoInstalacion: instalacion,
+      costoMaterial: materiales,
+      descuento: desc,
+      subtotal,
+      precioFinal,
+      notas: notas || '',
+      agente,
+      direccionInstalacion,
+      estado: 'pendiente'
+    }
+
+    // Agregar inventarioId solo si es instalación
+    if (tipo === 'instalacion' && inventarioId) {
+      cotizacionData.inventarioId = parseInt(inventarioId)
+    }
+
+    // ⭐ Agregar equipoId solo si es mantención/reparación
+    if ((tipo === 'mantencion' || tipo === 'reparacion') && equipoId) {
+      cotizacionData.equipoId = parseInt(equipoId)
+    }
+
+    // ⭐ CREAR COTIZACIÓN - SIN include en el create (evita conflictos)
     const cotizacion = await prisma.cotizacion.create({
-      data: {
-        tipo: tipo || 'instalacion',
-        clienteId: parseInt(clienteId),
-        inventarioId: inventarioId ? parseInt(inventarioId) : null,
-        precioOfertado: basePrice,
-        costoInstalacion: instalacion,
-        costoMaterial: materiales,
-        descuento: desc,
-        subtotal,
-        precioFinal,
-        notas: notas || '',
-        agente,
-        direccionInstalacion,
-        estado: 'pendiente'
-      },
-      include: {
-        cliente: true,
-        inventario: true
-      }
+      data: cotizacionData
     })
 
     console.log(`✅ Cotización creada: #${cotizacion.id} - ${tipo}`)
 
+    // ⭐ LUEGO obtener con las relaciones
+    const cotizacionCompleta = await prisma.cotizacion.findUnique({
+      where: { id: cotizacion.id },
+      include: {
+        cliente: true,
+        inventario: true,
+        equipo: true
+      }
+    })
+
     res.status(201).json({
       success: true,
       message: 'Cotización creada exitosamente',
-      cotizacion
+      cotizacion: cotizacionCompleta
     })
   } catch (error) {
-    console.error('Error al crear cotización:', error)
+    console.error('❌ Error al crear cotización:', error)
     res.status(500).json({ 
       error: 'Error al crear cotización',
       details: error.message 

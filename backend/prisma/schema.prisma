@@ -86,8 +86,12 @@ model Cotizacion {
   cliente         Cliente     @relation(fields: [clienteId], references: [id])
   
   // Relación con inventario
-  inventarioId    Int
-  inventario      Inventario  @relation(fields: [inventarioId], references: [id])
+  inventarioId    Int?
+  inventario      Inventario?  @relation(fields: [inventarioId], references: [id])
+
+  // Relación con equipo (para mantención/reparación)
+  equipoId        Int?
+  equipo          Equipo?     @relation(fields: [equipoId], references: [id])
   
   // Tipo de servicio
   tipo            String      // "instalacion", "mantencion", "reparacion"
@@ -142,6 +146,9 @@ model Equipo {
   // Relación con cotización que lo creó (si fue aprobada)
   cotizacionId      Int?     @unique
   cotizacion        Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
+
+  // Cotizaciones de mantención/reparación que usan este equipo
+  cotizaciones      Cotizacion[]
   
   // Fechas
   fechaInstalacion  DateTime?

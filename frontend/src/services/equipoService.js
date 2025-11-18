@@ -11,6 +11,11 @@ export const getEquipoById = async (id) => {
   const response = await api.get(`/equipos/${id}`)
   return response.data
 }
+// Obtner equipos por id de clientes
+export const getEquiposByCliente = async (clienteId) => {
+  const response = await api.get(`/equipos/cliente/${clienteId}`)
+  return response.data
+}
 
 // Crear equipo
 export const createEquipo = async (equipoData) => {

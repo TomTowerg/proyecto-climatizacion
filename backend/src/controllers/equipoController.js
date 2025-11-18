@@ -26,6 +26,47 @@ export const getEquipos = async (req, res) => {
   }
 }
 
+// ⭐ NUEVO - Obtener equipos por cliente
+export const getEquiposByCliente = async (req, res) => {
+  try {
+    const { clienteId } = req.params
+
+    const equipos = await prisma.equipo.findMany({
+      where: {
+        clienteId: parseInt(clienteId)
+      },
+      include: {
+        cliente: {
+          select: {
+            id: true,
+            nombre: true,
+            rut: true
+          }
+        },
+        ordenesTrabajos: {
+          select: {
+            id: true,
+            tipo: true,
+            estado: true,
+            fecha: true
+          },
+          orderBy: {
+            fecha: 'desc'
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    res.json(equipos)
+  } catch (error) {
+    console.error('Error al obtener equipos del cliente:', error)
+    res.status(500).json({ error: 'Error al obtener equipos del cliente' })
+  }
+}
+
 // Obtener equipo por ID
 export const getEquipoById = async (req, res) => {
   try {
@@ -203,4 +244,13 @@ export const deleteEquipo = async (req, res) => {
     console.error('Error al eliminar equipo:', error)
     res.status(500).json({ error: 'Error al eliminar equipo' })
   }
+}
+
+export default {
+  getEquipos,
+  getEquiposByCliente, // ⭐ NUEVO
+  getEquipoById,
+  createEquipo,
+  updateEquipo,
+  deleteEquipo
 }

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
 
+
 // USUARIOS ADMINISTRADOR
 const ADMIN_USERS = [
   {
