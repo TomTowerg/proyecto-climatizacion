@@ -24,6 +24,9 @@ import iaRoutes from './routes/ia.js'
 dotenv.config()
 
 const app = express()
+// Configurar trust proxy para Railway/proxies
+app.set('trust proxy', 1)
+
 const PORT = process.env.PORT || 5000
 
 // ============================================
