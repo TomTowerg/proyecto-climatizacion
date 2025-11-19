@@ -1,6 +1,11 @@
+// ============================================
+// SCHEMA COMPATIBLE CON DATOS EXISTENTES
+// Reemplazar: backend/prisma/schema.prisma
+// ============================================
+
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]  // ← NUEVO
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -23,13 +28,34 @@ model User {
 
 model Cliente {
   id              Int           @id @default(autoincrement())
+  
+  // Datos públicos (sin cifrar - necesarios para búsquedas)
   nombre          String
-  rut             String        @unique
-  email           String
-  telefono        String
-  direccion       String
+  
+  // ============================================
+  // DATOS CIFRADOS - NUEVO
+  // ============================================
+  rut_encrypted      String?
+  rut_hash           String?  @unique  // Para búsquedas sin descifrar
+  email_encrypted    String?
+  email_hash         String?  @unique  // Para búsquedas sin descifrar
+  telefono_encrypted String?
+  direccion_encrypted String?
+  
+  // ============================================
+  // CAMPOS ANTIGUOS - MANTENER POR AHORA
+  // (Eliminar después de migración exitosa)
+  // ============================================
+  rut             String?  @unique  // DEPRECATED - usar rut_encrypted
+  email           String?           // DEPRECATED - usar email_encrypted
+  telefono        String?           // DEPRECATED - usar telefono_encrypted
+  direccion       String?           // DEPRECATED - usar direccion_encrypted
+  
+  // Fechas
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  
+  // Relaciones
   equipos         Equipo[]
   ordenesTrabajos OrdenTrabajo[]
   cotizaciones    Cotizacion[]
@@ -37,97 +63,68 @@ model Cliente {
 
 model Inventario {
   id                      Int      @id @default(autoincrement())
-  tipo                    String   // Split Muro, Ventana, Portátil, etc.
-  marca                   String   // Hisense, Kendal, Vesta, ANWO, Samsung, Clark
-  modelo                  String   // Nombre completo del modelo
-  capacidadBTU            Int      // 9000, 12000, 18000, 22000, 24000, 36000
-  metrosCuadrados         String?  // "16-20", "24-30", "32-40", "45-50"
-  tipoGas                 String   // R32, R410
-  
-  // Precios de la hoja "BRUTO"
-  precioNeto              Float    // Precio sin IVA
-  precioConIVA            Float    // Precio con IVA (19%)
-  precioMaterial          Float    // Precio + kit básico instalación
-  valorLogistica          Float    // Costo de instalación/transporte
-  valorMaterial           Float    // Costo solo del kit básico
-  
-  // Precios de la hoja "CLIENTE"
-  precioCliente           Float    // Precio final que ve el cliente (desde)
-  precioClienteNeto       Float    // Precio cliente sin IVA
-  precioClienteIVA        Float    // IVA del precio cliente
-  
-  // Precios de la hoja "INTERNO"
-  valorEquipoMaterialIVA  Float    // Valor equipo + material con IVA
-  gananciaDescontandoIVA  Float    // Margen después de IVA
-  gananciaDescontandoTecnicos Float // Utilidad neta
-  
-  // Control de stock
+  tipo                    String
+  marca                   String
+  modelo                  String
+  capacidad               String?  // Opcional para compatibilidad
+  capacidadBTU            String?  // Mantener compatibilidad
+  numeroSerie             String?  // Mantener compatibilidad
+  codigoModelo            String?  // Mantener compatibilidad
+  caracteristicas         String?  // Mantener compatibilidad
+  metrosCuadrados         String?
+  tipoGas                 String
+  precioNeto              Float
+  precioConIVA            Float
+  precioMaterial          Float
+  valorLogistica          Float
+  valorMaterial           Float
+  precioCliente           Float
+  precioClienteNeto       Float
+  precioClienteIVA        Float
+  valorEquipoMaterialIVA  Float
+  gananciaDescontandoIVA  Float
+  gananciaDescontandoTecnicos Float
   stock                   Int      @default(0)
-  estado                  String   @default("disponible") // disponible, agotado, descontinuado
-  
-  // Metadatos
-  numeroSerie             String?  @unique
-  ano                     Int?     // Año del modelo
-  codigoModelo            String?  // Ej: GES24ECO-INV-R32
-  caracteristicas         String?  // WiFi, APP, Inverter, etc.
-  
+  estado                  String   @default("disponible")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
-  
-  // Relaciones
   cotizaciones            Cotizacion[]
   equipos                 Equipo[]
 }
 
 model Cotizacion {
   id              Int         @id @default(autoincrement())
-  
-  // Relación con cliente
   clienteId       Int
   cliente         Cliente     @relation(fields: [clienteId], references: [id])
-  
-  // Relación con inventario
   inventarioId    Int?
   inventario      Inventario?  @relation(fields: [inventarioId], references: [id])
-
-  // Relación con equipo (para mantención/reparación)
   equipoId        Int?
   equipo          Equipo?     @relation(fields: [equipoId], references: [id])
-  
-  // Tipo de servicio
-  tipo            String      // "instalacion", "mantencion", "reparacion"
-  
-  // Precios y descuentos
-  precioOfertado  Float       // Precio base del equipo
-  costoInstalacion Float      @default(100000) // Costo de instalación
-  costoMaterial   Float       @default(0)  // Materiales adicionales
-  subtotal        Float       // Suma de todo sin descuento
-  descuento       Float       @default(0)  // Porcentaje o monto de descuento
-  precioFinal     Float       // Total final a pagar
-  
-  // Estados y fechas
-  estado          String      @default("pendiente") // "pendiente", "aprobada", "eliminada"
+  tipo            String?     // Opcional para compatibilidad
+  marca           String?     // Opcional para compatibilidad
+  modelo          String?     // Opcional para compatibilidad
+  capacidad       String?     // Opcional para compatibilidad
+  precioOfertado  Float
+  costoInstalacion Float      @default(100000)
+  costoMaterial   Float       @default(0)
+  subtotal        Float
+  descuento       Float       @default(0)
+  precioFinal     Float
+  estado          String      @default("pendiente")
   fechaCotizacion DateTime    @default(now())
-  fechaRespuesta  DateTime?   // Cuando el cliente responde
-  fechaAprobacion DateTime?   // Cuando se aprueba
-  
-  // Información adicional
+  fechaRespuesta  DateTime?
+  fechaAprobacion DateTime?
   notas           String?
-  agente          String?     // Nombre del agente que hizo la cotización
-  direccionInstalacion String? // Dirección donde se instalará
-  
-  // Relaciones creadas al aprobar
+  agente          String?
+  direccionInstalacion String?
   equipoCreado    Equipo?     @relation("CotizacionAprobada")
   ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
-  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
 
 model Equipo {
   id                Int      @id @default(autoincrement())
-  
-  // Información del equipo
   tipo              String
   marca             String
   modelo            String
@@ -135,86 +132,48 @@ model Equipo {
   capacidad         String
   tipoGas           String
   ano               Int?
-  
-  // Relación con cliente
+  fechaCompra       DateTime?  // Mantener compatibilidad
+  fechaInstalacion  DateTime?  // Mantener compatibilidad
   clienteId         Int
   cliente           Cliente  @relation(fields: [clienteId], references: [id])
-  
-  // Relación con inventario (de dónde viene el equipo)
   inventarioId      Int?
   inventario        Inventario? @relation(fields: [inventarioId], references: [id])
-  
-  // Relación con cotización que lo creó (si fue aprobada)
   cotizacionId      Int?     @unique
   cotizacion        Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
-
-  // Cotizaciones de mantención/reparación que usan este equipo
-  cotizaciones      Cotizacion[]
-  
-  // Fechas
-  fechaInstalacion  DateTime?
-  fechaCompra       DateTime?
-  
-  // Estado del equipo
-  estado            String   @default("activo") // activo, en_mantenimiento, desactivado
-  
+  estado            String   @default("activo")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
-  // Relaciones
   ordenesTrabajos   OrdenTrabajo[]
+  cotizacionesMantenimiento Cotizacion[]
 }
 
 model OrdenTrabajo {
   id            Int      @id @default(autoincrement())
-  
-  // Relación con cliente
   clienteId     Int
   cliente       Cliente  @relation(fields: [clienteId], references: [id])
-  
-  // Relación con equipo
   equipoId      Int?
   equipo        Equipo?  @relation(fields: [equipoId], references: [id])
-  
-  // Relación con cotización que la creó (si fue aprobada)
   cotizacionId  Int?     @unique
   cotizacion    Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
-  
-  // Tipo de trabajo
-  tipo          String   // "instalacion", "mantencion", "reparacion"
-  
-  // Programación
-  fecha         DateTime
-  horaInicio    String?  // Hora programada de inicio
-  horaFin       String?  // Hora estimada de fin
-  duracion      String?  // "2 horas por equipo"
-  
-  // Personal
-  tecnico       String
-  ayudante      String?
-  
-  // Estado y urgencia
-  estado        String   @default("pendiente") // pendiente, en_progreso, completada, cancelada
-  urgencia      String   @default("media")     // baja, media, alta
-  
-  // Trabajo realizado
-  trabajoRealizado String?  // Descripción del trabajo
-  materialesUsados String?  // Lista de materiales utilizados
-  costoMateriales  Float?   // Costo de materiales adicionales
-  costoManoObra    Float?   // Costo de mano de obra
-  costoTotal       Float?   // Costo total de la OT
-  
-  // Notas y análisis
+  tipo          String
+  descripcion   String?  // Opcional para compatibilidad
+  fecha         DateTime?  // Mantener compatibilidad
+  tecnico       String?    // Mantener compatibilidad
+  urgencia      String?    // Mantener compatibilidad
+  estado        String   @default("pendiente")
+  prioridad     String   @default("media")
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  trabajoRealizado String?
+  materialesUsados String?
+  costoMateriales  Float?
+  costoManoObra    Float?
+  costoTotal       Float?
   notas         String?
-  analisisIA    String?  // Análisis y recomendaciones de IA
-  
-  // Satisfacción del cliente
-  calificacion  Int?     // 1-5 estrellas
+  analisisIA    String?
+  calificacion  Int?
   comentarioCliente String?
-  
-  // ⭐ Fecha de completado (NUEVO)
   fechaCompletado DateTime?
-  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

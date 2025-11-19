@@ -1,106 +1,120 @@
+// ============================================
+// INDEX.JS CON SEGURIDAD COMPLETA
+// Reemplazar: backend/src/index.js
+// ============================================
+
 import express from 'express'
 import cors from 'cors'
-import helmet from 'helmet'
-import morgan from 'morgan'
 import dotenv from 'dotenv'
-import session from 'express-session'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import helmet from 'helmet'
+import xss from 'xss-clean'
 
-// ⭐ NUEVO: Configurar __dirname para ES modules
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Cargar variables de entorno PRIMERO
-dotenv.config()
-
-console.log('🚀 Iniciando servidor...')
-console.log('Environment:', process.env.NODE_ENV || 'development')
-
-// Importar passport DESPUÉS de dotenv
-import passport from './config/passport.js'
-console.log('✅ Passport importado')
+// Importar rate limiters
+import { apiLimiter, loginLimiter, registerLimiter } from './middleware/rateLimiter.js'
 
 // Importar rutas
 import authRoutes from './routes/auth.js'
-import clienteRoutes from './routes/clientes.js'
-import equipoRoutes from './routes/equipos.js'
-import ordenTrabajoRoutes from './routes/ordenesTrabajo.js'
+import clientesRoutes from './routes/clientes.js'
+import equiposRoutes from './routes/equipos.js'
+import ordenesTrabajoRoutes from './routes/ordenesTrabajo.js'
 import inventarioRoutes from './routes/inventario.js'
-import cotizacionRoutes from './routes/cotizaciones.js'
+import cotizacionesRoutes from './routes/cotizaciones.js'
 import iaRoutes from './routes/ia.js'
+
+dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Middleware básico
-app.use(helmet())
+// ============================================
+// MIDDLEWARES DE SEGURIDAD
+// ============================================
+
+// 1. Helmet - Headers de seguridad HTTP
+app.use(helmet({
+  contentSecurityPolicy: false, // Deshabilitar para desarrollo
+  crossOriginEmbedderPolicy: false
+}))
+
+// 2. XSS Protection - Prevenir ataques XSS
+app.use(xss())
+
+// 3. CORS configurado
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://proyecto-climatizacion-production.up.railway.app',
-    'https://proyecto-climatizacion-p629.vercel.app',
-    'https://proyecto-climatizacion-nhc3xx8az-tomas-torres-projects.vercel.app',
-    process.env.FRONTEND_URL
-  ].filter(Boolean),
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }))
-app.use(morgan('dev'))
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
 
-// ⭐ NUEVO: Servir archivos PDF generados
-app.use('/pdfs', express.static(path.join(__dirname, '../pdfs')))
+// 4. Parse JSON
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'fallback_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 horas
-  }
-}))
+// 5. Rate Limiting General para toda la API
+app.use('/api', apiLimiter)
 
-// Initialize Passport
-app.use(passport.initialize())
-app.use(passport.session())
+// ============================================
+// RUTAS
+// ============================================
 
-console.log('✅ Middleware configurado')
-console.log('✅ Passport inicializado')
-
-// Routes
-app.get('/', (req, res) => {
+// Health check (sin rate limiting)
+app.get('/health', (req, res) => {
   res.json({ 
-    message: 'API de Gestión de Climatización',
-    version: '1.0.0',
-    status: 'running'
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   })
 })
 
-// Auth routes
+// Rutas de autenticación (con rate limiting específico)
 app.use('/api/auth', authRoutes)
-app.use('/api/clientes', clienteRoutes)
-app.use('/api/equipos', equipoRoutes)
-app.use('/api/ordenes-trabajo', ordenTrabajoRoutes)
+
+// Rutas protegidas
+app.use('/api/clientes', clientesRoutes)
+app.use('/api/equipos', equiposRoutes)
+app.use('/api/ordenes-trabajo', ordenesTrabajoRoutes)
 app.use('/api/inventario', inventarioRoutes)
-app.use('/api/cotizaciones', cotizacionRoutes)
+app.use('/api/cotizaciones', cotizacionesRoutes)
 app.use('/api/ia', iaRoutes)
 
-console.log('✅ Rutas configuradas')
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.stack)
-  res.status(500).json({ 
-    error: 'Something went wrong!',
-    message: err.message 
+// Ruta 404
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Ruta no encontrada',
+    path: req.originalUrl 
   })
 })
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`)
+// ============================================
+// MANEJO DE ERRORES GLOBAL
+// ============================================
+app.use((err, req, res, next) => {
+  console.error('Error:', err)
+  
+  // Error de rate limiting
+  if (err.status === 429) {
+    return res.status(429).json({
+      error: 'Demasiadas peticiones',
+      message: err.message
+    })
+  }
+  
+  // Error general
+  res.status(err.status || 500).json({
+    error: err.message || 'Error interno del servidor',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  })
 })
+
+// ============================================
+// INICIAR SERVIDOR
+// ============================================
+app.listen(PORT, () => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log(`🚀 Servidor iniciado en puerto ${PORT}`)
+  console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`)
+  console.log(`🔒 Seguridad: Helmet + XSS + Rate Limiting activos`)
+  console.log(`🔐 Cifrado de datos: ${process.env.ENCRYPTION_KEY ? 'Activo' : '⚠️  NO CONFIGURADO'}`)
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+})
+
+export default app

@@ -1,32 +1,73 @@
+// ============================================
+// RUTAS DE AUTENTICACIÓN CON RATE LIMITING
+// Reemplazar: backend/src/routes/auth.js
+// ============================================
+
 import express from 'express'
-import passport from 'passport'
-import { register, login, getCurrentUser, logout, googleCallback } from '../controllers/authController.js'
-import { authenticate } from '../middleware/auth.js'
+import { 
+  register, 
+  login, 
+  googleLogin, 
+  verifyToken,
+  changePassword 
+} from '../controllers/authController.js'
+import { loginLimiter, registerLimiter, strictLimiter } from '../middleware/rateLimiter.js'
+import { authenticateToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// Rutas públicas (no requieren autenticación)
-router.post('/register', register)
-router.post('/login', login)
+// ============================================
+// RUTAS PÚBLICAS (Con Rate Limiting)
+// ============================================
 
-// Rutas de Google OAuth
-router.get('/google', 
-  passport.authenticate('google', { 
-    scope: ['profile', 'email'],
-    session: false
-  })
+// Registro - Máximo 3 intentos por hora
+router.post('/register', registerLimiter, register)
+
+// Login - Máximo 5 intentos cada 15 minutos
+router.post('/login', loginLimiter, login)
+
+// Login con Google - Rate limiting normal
+router.post('/google', loginLimiter, googleLogin)
+
+// Verificar token - Sin rate limiting estricto (se usa frecuentemente)
+router.get('/verify', verifyToken)
+
+// ============================================
+// RUTAS PROTEGIDAS (Requieren autenticación)
+// ============================================
+
+// Cambiar contraseña - Requiere estar logueado + rate limiting estricto
+router.post('/change-password', 
+  authenticateToken,
+  strictLimiter,
+  changePassword
 )
 
-router.get('/google/callback', 
-  passport.authenticate('google', { 
-    session: false,
-    failureRedirect: `${process.env.FRONTEND_URL}/?error=google_auth_failed`
-  }),
-  googleCallback
-)
+// Obtener perfil del usuario actual
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      }
+    })
 
-// Rutas protegidas (requieren autenticación)
-router.get('/me', authenticate, getCurrentUser)
-router.post('/logout', authenticate, logout)
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    res.json(user)
+  } catch (error) {
+    console.error('Error al obtener perfil:', error)
+    res.status(500).json({ error: 'Error al obtener perfil' })
+  }
+})
 
 export default router
