@@ -108,66 +108,6 @@ app.use((err, req, res, next) => {
   })
 })
 
-// ⚠️ ENDPOINT TEMPORAL PARA MIGRACIÓN DE PRODUCCIÓN
-app.get('/api/migrate-production-data-2025', async (req, res) => {
-  try {
-    console.log('🔐 Iniciando migración de datos sensibles en producción...')
-    
-    const { encryptSensitiveFields } = await import('./utils/encryption.js')
-    const clientes = await prisma.cliente.findMany()
-    
-    let migrated = 0
-    let skipped = 0
-    let errors = 0
-    const results = []
-    
-    for (const cliente of clientes) {
-      try {
-        if (cliente.rut_encrypted) {
-          results.push(`⏭️  ${cliente.nombre} - Ya migrado`)
-          skipped++
-          continue
-        }
-        
-        const datosParaCifrar = { nombre: cliente.nombre }
-        if (cliente.rut) datosParaCifrar.rut = cliente.rut
-        if (cliente.email) datosParaCifrar.email = cliente.email
-        if (cliente.telefono) datosParaCifrar.telefono = cliente.telefono
-        if (cliente.direccion) datosParaCifrar.direccion = cliente.direccion
-        
-        const datosCifrados = encryptSensitiveFields(datosParaCifrar)
-        
-        await prisma.cliente.update({
-          where: { id: cliente.id },
-          data: datosCifrados
-        })
-        
-        results.push(`✅ ${cliente.nombre} - Migrado`)
-        migrated++
-        
-      } catch (error) {
-        results.push(`❌ ${cliente.nombre} - Error`)
-        errors++
-      }
-    }
-    
-    res.json({
-      success: errors === 0,
-      total: clientes.length,
-      migrated,
-      skipped,
-      errors,
-      results
-    })
-    
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    })
-  }
-})
-
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
