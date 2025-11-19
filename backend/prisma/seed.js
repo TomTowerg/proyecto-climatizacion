@@ -4,27 +4,15 @@ import bcrypt from 'bcrypt'
 const prisma = new PrismaClient()
 
 
-// USUARIOS ADMINISTRADOR
+// USUARIOS DE DESARROLLO (Solo para pruebas locales)
+// ⚠️ IMPORTANTE: En producción, usar: node prisma/seed-production.js
+// ⚠️ Este usuario es solo para desarrollo y pruebas
 const ADMIN_USERS = [
   {
-    email: 'admin@climatizacion.com',
+    email: 'admin@example.com',
     password: 'Admin123!',
-    name: 'Administrador Principal',
+    name: 'Administrador Demo',
     username: 'admin',
-    role: 'admin'
-  },
-  {
-    email: 'niveksar@gmail.com',
-    password: 'Nivek123!',
-    name: 'Kevin Torres',
-    username: 'niveksar',
-    role: 'admin'
-  },
-  {
-    email: 'torres.tomas35@gmail.com',
-    password: 'Tomas123!',
-    name: 'Tomas Torres',
-    username: 'tomastorres',
     role: 'admin'
   }
 ]

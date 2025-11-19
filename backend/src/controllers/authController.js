@@ -1,5 +1,6 @@
 // ============================================
-// AUTH CONTROLLER MEJORADO
+// AUTH CONTROLLER CON WHITELIST SEGURA
+// Variables de entorno - NO emails en código
 // Reemplazar: backend/src/controllers/authController.js
 // ============================================
 
@@ -8,10 +9,32 @@ import jwt from 'jsonwebtoken'
 import prisma from '../utils/prisma.js'
 
 // ============================================
+// WHITELIST DESDE VARIABLE DE ENTORNO
+// ============================================
+// Los emails se configuran en:
+// - Local: backend/.env → ALLOWED_GOOGLE_EMAILS=email1@gmail.com,email2@gmail.com
+// - Producción: Railway → Variables → ALLOWED_GOOGLE_EMAILS
+
+const ALLOWED_GOOGLE_EMAILS = process.env.ALLOWED_GOOGLE_EMAILS
+  ?.split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(email => email.length > 0) || []
+
+// Log de configuración (sin mostrar emails completos en producción)
+if (process.env.NODE_ENV !== 'production') {
+  console.log(`🔐 Whitelist configurada con ${ALLOWED_GOOGLE_EMAILS.length} email(s)`)
+}
+
+// Advertencia si no hay emails configurados
+if (ALLOWED_GOOGLE_EMAILS.length === 0) {
+  console.warn('⚠️ WARNING: ALLOWED_GOOGLE_EMAILS no está configurado')
+  console.warn('⚠️ Nadie podrá hacer login con Google hasta que se configure')
+}
+
+// ============================================
 // VALIDACIÓN DE CONTRASEÑA FUERTE
 // ============================================
 function validatePasswordStrength(password) {
-  // Mínimo 8 caracteres, 1 mayúscula, 1 minúscula, 1 número
   const minLength = password.length >= 8
   const hasUpperCase = /[A-Z]/.test(password)
   const hasLowerCase = /[a-z]/.test(password)
@@ -35,14 +58,12 @@ export const register = async (req, res) => {
   try {
     const { email, username, password, name } = req.body
 
-    // Validar campos requeridos
     if (!email || !password) {
       return res.status(400).json({ 
         error: 'Email y contraseña son requeridos' 
       })
     }
 
-    // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return res.status(400).json({ 
@@ -50,7 +71,6 @@ export const register = async (req, res) => {
       })
     }
 
-    // Validar fuerza de contraseña
     const passwordValidation = validatePasswordStrength(password)
     if (!passwordValidation.isValid) {
       return res.status(400).json({ 
@@ -59,7 +79,6 @@ export const register = async (req, res) => {
       })
     }
 
-    // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
     })
@@ -70,10 +89,8 @@ export const register = async (req, res) => {
       })
     }
 
-    // Hash de contraseña con bcrypt (12 rounds - más seguro)
     const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Crear usuario
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
@@ -85,7 +102,6 @@ export const register = async (req, res) => {
       }
     })
 
-    // Generar JWT
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -96,7 +112,6 @@ export const register = async (req, res) => {
       { expiresIn: '7d' }
     )
 
-    // Respuesta sin password
     const { password: _, ...userWithoutPassword } = user
 
     res.status(201).json({
@@ -121,14 +136,12 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    // Validar campos requeridos
     if (!email || !password) {
       return res.status(400).json({ 
         error: 'Email y contraseña son requeridos' 
       })
     }
 
-    // Buscar usuario
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
     })
@@ -139,14 +152,12 @@ export const login = async (req, res) => {
       })
     }
 
-    // Verificar si el usuario está activo
     if (!user.isActive) {
       return res.status(403).json({ 
         error: 'Usuario desactivado. Contacta al administrador' 
       })
     }
 
-    // Verificar contraseña
     const validPassword = await bcrypt.compare(password, user.password)
 
     if (!validPassword) {
@@ -155,7 +166,6 @@ export const login = async (req, res) => {
       })
     }
 
-    // Generar JWT
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -166,13 +176,11 @@ export const login = async (req, res) => {
       { expiresIn: '7d' }
     )
 
-    // Actualizar última vez que se logueó (opcional)
     await prisma.user.update({
       where: { id: user.id },
       data: { updatedAt: new Date() }
     })
 
-    // Respuesta sin password
     const { password: _, ...userWithoutPassword } = user
 
     res.json({
@@ -191,7 +199,7 @@ export const login = async (req, res) => {
 }
 
 // ============================================
-// LOGIN CON GOOGLE (OAuth)
+// LOGIN CON GOOGLE - WHITELIST SEGURA
 // ============================================
 export const googleLogin = async (req, res) => {
   try {
@@ -203,44 +211,78 @@ export const googleLogin = async (req, res) => {
       })
     }
 
+    // ⭐ VERIFICAR WHITELIST (desde variable de entorno)
+    const emailLower = email.toLowerCase()
+    const isAllowed = ALLOWED_GOOGLE_EMAILS.includes(emailLower)
+
+    if (!isAllowed) {
+      // Log sin mostrar email completo en producción
+      const maskedEmail = process.env.NODE_ENV === 'production' 
+        ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+        : email
+      
+      console.log(`❌ Intento de acceso no autorizado: ${maskedEmail}`)
+      
+      return res.status(403).json({ 
+        error: 'Acceso no autorizado',
+        message: 'Tu email no tiene permiso para acceder a esta aplicación. Contacta al administrador si crees que esto es un error.'
+      })
+    }
+
+    // Log de acceso exitoso
+    const maskedEmail = process.env.NODE_ENV === 'production'
+      ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+      : email
+    console.log(`✅ Acceso autorizado: ${maskedEmail}`)
+
     // Buscar usuario por Google ID o email
     let user = await prisma.user.findFirst({
       where: {
         OR: [
           { googleId },
-          { email: email.toLowerCase() }
+          { email: emailLower }
         ]
       }
     })
 
-    // Si no existe, crear nuevo usuario
+    // Si no existe, crear nuevo usuario como ADMIN
     if (!user) {
+      console.log(`🆕 Creando nuevo usuario admin desde whitelist`)
       user = await prisma.user.create({
         data: {
-          email: email.toLowerCase(),
+          email: emailLower,
           googleId,
           name,
-          role: 'user',
+          role: 'admin', // ⭐ Whitelist = Admin
           isActive: true,
-          password: null // No tiene password (solo OAuth)
+          password: null
         }
       })
     } else if (!user.googleId) {
       // Si existe por email pero no tiene googleId, agregarlo
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { googleId }
+        data: { 
+          googleId,
+          role: 'admin' // Asegurar rol admin
+        }
       })
+    } else {
+      // Asegurar que tiene rol admin
+      if (user.role !== 'admin') {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'admin' }
+        })
+      }
     }
 
-    // Verificar si el usuario está activo
     if (!user.isActive) {
       return res.status(403).json({ 
         error: 'Usuario desactivado. Contacta al administrador' 
       })
     }
 
-    // Generar JWT
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -251,7 +293,6 @@ export const googleLogin = async (req, res) => {
       { expiresIn: '7d' }
     )
 
-    // Respuesta sin password
     const { password: _, ...userWithoutPassword } = user
 
     res.json({
@@ -330,7 +371,7 @@ export const verifyToken = async (req, res) => {
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body
-    const userId = req.user.userId // Del middleware de autenticación
+    const userId = req.user.userId
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ 
@@ -338,7 +379,6 @@ export const changePassword = async (req, res) => {
       })
     }
 
-    // Validar fuerza de nueva contraseña
     const passwordValidation = validatePasswordStrength(newPassword)
     if (!passwordValidation.isValid) {
       return res.status(400).json({ 
@@ -347,7 +387,6 @@ export const changePassword = async (req, res) => {
       })
     }
 
-    // Obtener usuario
     const user = await prisma.user.findUnique({
       where: { id: userId }
     })
@@ -358,7 +397,6 @@ export const changePassword = async (req, res) => {
       })
     }
 
-    // Verificar contraseña actual
     const validPassword = await bcrypt.compare(currentPassword, user.password)
     if (!validPassword) {
       return res.status(401).json({ 
@@ -366,10 +404,8 @@ export const changePassword = async (req, res) => {
       })
     }
 
-    // Hash de nueva contraseña (12 rounds)
     const hashedPassword = await bcrypt.hash(newPassword, 12)
 
-    // Actualizar contraseña
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword }
