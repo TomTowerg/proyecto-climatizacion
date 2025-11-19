@@ -237,15 +237,20 @@ feat(auth): implementar login con Google OAuth
 
 MIT
 
-## 🆘 Soporte
+# 🔐 Seguridad
 
-Si tienes problemas:
+### Características de Seguridad Implementadas
 
-1. Revisa que todas las dependencias estén instaladas
-2. Verifica que las variables de entorno estén configuradas
-3. Asegúrate de que el backend esté corriendo antes de iniciar el frontend
-4. Revisa los logs en la consola para mensajes de error
+- **Cifrado de Datos Personales**: AES-256-GCM para RUT, email, teléfono y dirección
+- **Rate Limiting**: Protección contra ataques de fuerza bruta
+- **Headers de Seguridad**: Helmet con 12+ headers protectores
+- **Autenticación JWT**: Tokens seguros con expiración
+- **Contraseñas**: bcrypt con 12 rounds
+- **Cumplimiento Legal**: Ley 19.628 Chile
 
+### Variables de Entorno Requeridas
+```env
+DATABASE_URL=postgresql://...
+ENCRYPTION_KEY=clave_de_32_caracteres_minimo
+JWT_SECRET=tu_jwt_secret
 ---
-
-**¡Hecho con ❤️ en Chile!** 🇨🇱
