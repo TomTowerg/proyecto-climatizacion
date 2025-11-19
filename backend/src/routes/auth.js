@@ -4,6 +4,7 @@
 // ============================================
 
 import express from 'express'
+import prisma from '../utils/prisma.js'  // ⭐ AGREGAR ESTA LÍNEA
 import { 
   register, 
   login, 

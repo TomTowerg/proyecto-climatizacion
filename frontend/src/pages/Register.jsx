@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
-import toast from 'react-hot-toast'
-import { register } from '../services/authService'
+// ============================================
+// REGISTER.JSX - CON VALIDACIÓN DE CONTRASEÑA
+// Ubicación: frontend/src/pages/Register.jsx
+// ============================================
 
-function Register() {
-  const { t } = useTranslation()
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import PasswordInput from '../components/PasswordInput'
+
+const Register = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
@@ -14,144 +16,184 @@ function Register() {
     password: '',
     confirmPassword: ''
   })
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
 
     // Validar que las contraseñas coincidan
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Las contraseñas no coinciden')
-      return
-    }
-
-    // Validar longitud mínima de contraseña
-    if (formData.password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres')
+      setError('Las contraseñas no coinciden')
       return
     }
 
     setLoading(true)
 
     try {
-      const { confirmPassword, ...userData } = formData
-      const response = await register(userData)
-      toast.success(response.message || 'Usuario registrado exitosamente')
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          username: formData.username,
+          password: formData.password
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Manejo de errores del backend
+        if (response.status === 403) {
+          setError('Tu email no está autorizado para registrarse. Solo el personal autorizado puede crear una cuenta.')
+        } else if (response.status === 400) {
+          if (data.error === 'Contraseña débil') {
+            setError(`Contraseña débil: ${data.details.join(', ')}`)
+          } else {
+            setError(data.error || 'Error al registrarse')
+          }
+        } else {
+          setError(data.error || 'Error al registrarse')
+        }
+        return
+      }
+
+      // Registro exitoso
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Redirigir al dashboard
       navigate('/dashboard')
-    } catch (error) {
-      console.error('Error en registro:', error)
-      const errorMessage = error.response?.data?.error || 'Error al registrar usuario'
-      toast.error(errorMessage)
+
+    } catch (err) {
+      console.error('Error en registro:', err)
+      setError('Error de conexión. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 py-8">
-      <div className="card max-w-md w-full mx-4">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          {t('auth.register')}
-        </h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Registrarse
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Sistema de Gestión de Climatización
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nombre Completo */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Nombre Completo
             </label>
             <input
               type="text"
-              name="name"
+              required
               value={formData.name}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Tu nombre completo"
             />
           </div>
 
+          {/* Correo Electrónico */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.email')}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Correo Electrónico
             </label>
             <input
               type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
-              disabled={loading}
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="tu@email.com"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Solo emails autorizados pueden registrarse
+            </p>
           </div>
 
+          {/* Usuario */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.username')}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Usuario
             </label>
             <input
               type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.password')}
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
-              disabled={loading}
-              minLength={6}
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="nombreusuario"
             />
           </div>
 
+          {/* Contraseña - CON VALIDACIÓN */}
+          <PasswordInput
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            label="Contraseña"
+          />
+
+          {/* Confirmar Contraseña */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmar Contraseña
             </label>
             <input
               type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
-              disabled={loading}
-              minLength={6}
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Confirma tu contraseña"
             />
+            {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+              <p className="mt-1 text-xs text-red-600">
+                Las contraseñas no coinciden
+              </p>
+            )}
           </div>
 
-          <button 
-            type="submit" 
-            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={loading}
+          {/* Botón Registrarse */}
+          <button
+            type="submit"
+            disabled={loading || formData.password !== formData.confirmPassword}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? t('common.loading') : t('auth.register')}
+            {loading ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
-          {t('auth.alreadyHaveAccount')}{' '}
-          <Link to="/" className="text-blue-600 hover:underline">
-            {t('auth.login')}
-          </Link>
-        </p>
+        {/* Link a Login */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            ¿Ya tienes cuenta?{' '}
+            <button
+              onClick={() => navigate('/login')}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Iniciar Sesión
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   )
