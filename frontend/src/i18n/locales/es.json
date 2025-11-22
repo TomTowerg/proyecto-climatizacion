@@ -4,13 +4,14 @@
     "welcome": "Bienvenido"
   },
   "nav": {
-    "dashboard": "Panel de Control",
+    "dashboard": "Dashboard",
     "clients": "Clientes",
     "equipment": "Equipos",
-    "workOrders": "Órdenes de Trabajo",
+    "workOrders": "Órdenes",
+    "inventory": "Inventario",
+    "quotes": "Cotizaciones",
     "calendar": "Calendario",
-    "weather": "Clima",
-    "settings": "Configuración",
+    "stockPanel": "Panel de Stock",
     "logout": "Cerrar Sesión"
   },
   "auth": {
@@ -23,68 +24,400 @@
     "dontHaveAccount": "¿No tienes cuenta?",
     "alreadyHaveAccount": "¿Ya tienes cuenta?",
     "signUp": "Registrarse",
-    "signIn": "Ingresar"
+    "signIn": "Ingresar",
+    "form": {
+      "fullName": "Nombre Completo",
+      "namePlaceholder": "Tu nombre completo",
+      "username": "Usuario",
+      "usernamePlaceholder": "nombreusuario",
+      "confirmPassword": "Confirmar Contraseña",
+      "confirmPlaceholder": "Confirma tu contraseña",
+      "authorizedOnly": "Solo emails autorizados pueden registrarse"
+    },
+    "messages": {
+      "passwordsDoNotMatch": "Las contraseñas no coinciden",
+      "emailNotAuthorized": "Tu email no está autorizado para registrarse. Solo el personal autorizado puede crear una cuenta.",
+      "weakPassword": "Contraseña débil",
+      "registrationError": "Error al registrarse",
+      "connectionError": "Error de conexión. Intenta de nuevo."
+    }
+  },
+  "dashboard": {
+    "welcome": "¡Bienvenido, {{name}}!",
+    "summary": "Aquí tienes un resumen de tu sistema de climatización",
+    "totalRegistered": "Total registrados",
+    "totalInstalled": "Aires instalados",
+    "totalWorks": "Total de trabajos",
+    "products": "Productos",
+    "inStock": "En inventario",
+    "approved": "Aprobadas",
+    "rejected": "Rechazadas",
+    "approvalRate": "Tasa Aprobación",
+    "totalValue": "Valor Total",
+    "quotesDistribution": "Distribución de Cotizaciones",
+    "quotesLast6Months": "Cotizaciones Últimos 6 Meses",
+    "ordersStatus": "Estado de Órdenes",
+    "criticalAlert": "órdenes críticas",
+    "attentionRequired": "Requieren atención inmediata",
+    "recentOrders": "Órdenes Recientes",
+    "noOrders": "No hay órdenes registradas",
+    "quickAccess": "Accesos Rápidos",
+    "quickNewOrder": "Nueva Orden",
+    "create": "Crear OT",
+    "quickNewClient": "Nuevo Cliente",
+    "register": "Registrar",
+    "viewStock": "Ver Stock",
+    "quickNewQuote": "Cotización",
+    "new": "Nueva"
   },
   "clients": {
     "title": "Clientes",
     "add": "Agregar Cliente",
     "edit": "Editar Cliente",
-    "delete": "Eliminar Cliente",
-    "name": "Nombre",
-    "rut": "RUT",
-    "email": "Correo",
-    "phone": "Teléfono",
-    "address": "Dirección",
-    "actions": "Acciones"
+    "deleteConfirm": "¿Estás seguro de eliminar este cliente?",
+    "searchPlaceholder": "Buscar por nombre, RUT o email...",
+    "table": {
+      "name": "Nombre",
+      "rut": "RUT",
+      "email": "Email",
+      "phone": "Teléfono",
+      "address": "Dirección",
+      "actions": "Acciones",
+      "empty": "No hay clientes registrados"
+    },
+    "form": {
+      "name": "Nombre",
+      "rut": "RUT",
+      "email": "Email",
+      "phone": "Teléfono",
+      "address": "Dirección",
+      "cancel": "Cancelar",
+      "update": "Actualizar",
+      "create": "Crear"
+    },
+    "messages": {
+      "loadError": "Error al cargar clientes",
+      "saveError": "Error al guardar cliente",
+      "deleteError": "Error al eliminar cliente",
+      "createSuccess": "Cliente creado exitosamente",
+      "updateSuccess": "Cliente actualizado exitosamente",
+      "deleteSuccess": "Cliente eliminado exitosamente",
+      "invalidRut": "RUT inválido"
+    }
   },
   "equipment": {
     "title": "Equipos",
     "add": "Agregar Equipo",
     "edit": "Editar Equipo",
-    "delete": "Eliminar Equipo",
-    "type": "Tipo",
-    "brand": "Marca",
-    "model": "Modelo",
-    "serialNumber": "Número de Serie",
-    "capacity": "Capacidad (BTU)",
-    "gasType": "Tipo de Gas",
-    "year": "Año",
-    "client": "Cliente",
-    "actions": "Acciones"
+    "searchPlaceholder": "Buscar por marca, modelo, serie o cliente...",
+    "table": {
+      "type": "Tipo",
+      "brandModel": "Marca/Modelo",
+      "serialNumber": "N° Serie",
+      "capacity": "Capacidad",
+      "client": "Cliente",
+      "actions": "Acciones",
+      "empty": "No hay equipos registrados"
+    },
+    "form": {
+      "type": "Tipo",
+      "client": "Cliente",
+      "brand": "Marca",
+      "model": "Modelo",
+      "serialNumber": "N° Serie",
+      "year": "Año",
+      "capacity": "Capacidad",
+      "gasType": "Tipo de Gas"
+    },
+    "messages": {
+      "loadError": "Error al cargar datos",
+      "saveError": "Error al guardar equipo",
+      "updateSuccess": "Equipo actualizado exitosamente",
+      "createSuccess": "Equipo creado exitosamente",
+      "deleteConfirm": "¿Estás seguro de eliminar este equipo?",
+      "deleteSuccess": "Equipo eliminado exitosamente",
+      "deleteError": "Error al eliminar equipo"
+    }
   },
   "workOrders": {
     "title": "Órdenes de Trabajo",
-    "add": "Crear Orden",
-    "edit": "Editar Orden",
-    "delete": "Eliminar Orden",
-    "type": "Tipo",
-    "date": "Fecha",
-    "description": "Descripción",
-    "notes": "Notas",
-    "status": "Estado",
-    "client": "Cliente",
-    "equipment": "Equipo",
-    "technician": "Técnico",
-    "actions": "Acciones",
-    "types": {
-      "installation": "Instalación",
-      "maintenance": "Mantenimiento",
-      "repair": "Reparación"
+    "add": "Agregar Orden",
+    "edit": "Editar Orden de Trabajo",
+    "searchPlaceholder": "Buscar por cliente, técnico o tipo...",
+    "table": {
+      "date": "Fecha",
+      "client": "Cliente",
+      "type": "Tipo",
+      "urgency": "Urgencia",
+      "technician": "Técnico",
+      "status": "Estado",
+      "actions": "Acciones",
+      "empty": "No hay órdenes de trabajo registradas"
+    },
+    "actions": {
+      "complete": "Completar orden",
+      "viewAnalysis": "Ver análisis de IA"
     },
     "statuses": {
       "pending": "Pendiente",
-      "inProgress": "En Progreso",
-      "completed": "Completada"
+      "inProgress": "En Proceso",
+      "completed": "Completado"
+    },
+    "types": {
+      "installation": "Instalación",
+      "maintenance": "Mantención",
+      "repair": "Reparación"
+    },
+    "urgencies": {
+      "low": "Baja",
+      "medium": "Media",
+      "critical": "Crítica"
+    },
+    "form": {
+      "client": "Cliente",
+      "equipmentOptional": "Equipo (Opcional)",
+      "type": "Tipo",
+      "status": "Estado",
+      "date": "Fecha",
+      "technician": "Técnico",
+      "technicianPlaceholder": "Nombre del técnico",
+      "notes": "Notas / Descripción del Problema",
+      "notesPlaceholder": "Describe detalladamente el problema o trabajo a realizar...",
+      "analyzeAI": "Analizar Urgencia con IA",
+      "analyzing": "Analizando..."
+    },
+    "ai": {
+      "title": "Análisis de IA",
+      "critical": "URGENCIA CRÍTICA",
+      "medium": "URGENCIA MEDIA",
+      "low": "URGENCIA BAJA",
+      "reasons": "Razones",
+      "recommendation": "Acción Recomendada",
+      "responseTime": "Tiempo de Respuesta",
+      "close": "Cerrar"
+    },
+    "messages": {
+      "loadError": "Error al cargar datos",
+      "saveError": "Error al guardar orden de trabajo",
+      "deleteError": "Error al eliminar orden de trabajo",
+      "createSuccess": "Orden de trabajo creada exitosamente",
+      "updateSuccess": "Orden de trabajo actualizada exitosamente",
+      "deleteSuccess": "Orden de trabajo eliminada exitosamente",
+      "deleteConfirm": "¿Estás seguro de eliminar esta orden de trabajo?",
+      "completeConfirm": "¿Marcar orden #{{id}} como completada?",
+      "completeSuccess": "Orden marcada como completada",
+      "completeError": "Error al completar orden",
+      "alreadyCompleted": "Esta orden ya está completada",
+      "analysisSuccess": "Análisis completado con IA",
+      "analysisError": "Error al analizar urgencia. Verifique que la API de Gemini esté configurada.",
+      "missingDescription": "Por favor escribe una descripción del problema para analizar",
+      "missingType": "Por favor selecciona el tipo de trabajo",
+      "noAnalysis": "Esta orden no tiene análisis de IA"
     }
   },
-  "dashboard": {
-    "title": "Panel de Control",
-    "totalClients": "Total de Clientes",
-    "totalEquipment": "Total de Equipos",
-    "monthOrders": "Órdenes del Mes",
-    "completedOrders": "Órdenes Completadas",
-    "recentOrders": "Órdenes Recientes",
-    "statistics": "Estadísticas"
+  "inventory": {
+    "title": "Inventario",
+    "subtitle": "Gestión de productos y stock",
+    "add": "Agregar Producto",
+    "edit": "Editar Producto",
+    "searchPlaceholder": "Buscar por marca, modelo, serie o tipo...",
+    "showing": "Mostrando {{count}} de {{total}} productos",
+    "stats": {
+      "total": "Total",
+      "available": "Disponibles",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Agotados",
+      "totalValue": "Valor Total"
+    },
+    "table": {
+      "type": "Tipo",
+      "brandModel": "Marca/Modelo",
+      "capacity": "Capacidad",
+      "stock": "Stock",
+      "purchasePrice": "P. Compra",
+      "salePrice": "P. Cliente",
+      "status": "Estado",
+      "actions": "Acciones",
+      "empty": "No hay productos en el inventario",
+      "noResults": "No se encontraron productos"
+    },
+    "status": {
+      "available": "Disponible",
+      "reserved": "Reservado",
+      "sold": "Vendido",
+      "outOfStock": "Agotado",
+      "lowStock": "Stock Bajo"
+    },
+    "form": {
+      "type": "Tipo",
+      "brand": "Marca",
+      "model": "Modelo",
+      "serialNumber": "Número de Serie",
+      "capacityBTU": "Capacidad BTU",
+      "stock": "Stock",
+      "minStock": "Stock Mínimo",
+      "purchasePrice": "Precio Compra",
+      "salePrice": "Precio Cliente",
+      "installationPrice": "Precio Instalación",
+      "status": "Estado",
+      "location": "Ubicación",
+      "provider": "Proveedor",
+      "features": "Características",
+      "featuresPlaceholder": "Características técnicas...",
+      "locationPlaceholder": "Ej: Bodega A-12"
+    },
+    "messages": {
+      "loadError": "Error al cargar inventario",
+      "saveError": "Error al guardar producto",
+      "deleteError": "Error al eliminar producto",
+      "createSuccess": "Producto agregado al inventario",
+      "updateSuccess": "Producto actualizado exitosamente",
+      "deleteSuccess": "Producto eliminado del inventario",
+      "deleteConfirm": "¿Estás seguro de eliminar este producto?"
+    }
+  },
+  "stockPanel": {
+    "title": "Panel de Stock",
+    "subtitle": "Monitoreo y gestión de inventario",
+    "viewFullInventory": "Ver Inventario Completo",
+    "last10": "Últimos 10",
+    "alerts": "{{count}} alertas",
+    "movementReason": "Cotización #{{id}} aprobada - {{client}}",
+    "viewAllOut": "Ver todos los productos agotados",
+    "sections": {
+      "lowStock": "Productos con Stock Bajo",
+      "recentMovements": "Movimientos Recientes",
+      "outOfStock": "Productos Agotados"
+    },
+    "stats": {
+      "total": "Total",
+      "available": "Disponibles",
+      "lowStock": "Stock Bajo",
+      "outOfStock": "Agotados",
+      "totalValue": "Valor Total"
+    },
+    "actions": {
+      "restock": "Reponer",
+      "confirmRestock": "Confirmar Reposición"
+    },
+    "modal": {
+      "title": "Reponer Stock",
+      "currentStock": "Stock actual",
+      "amountToAdd": "Cantidad a agregar",
+      "newStock": "Nuevo stock",
+      "placeholder": "Ej: 5"
+    },
+    "empty": {
+      "noResults": "No se encontraron productos",
+      "lowStock": "¡Excelente! No hay productos con stock bajo",
+      "movements": "No hay movimientos registrados"
+    },
+    "messages": {
+      "loadError": "Error al cargar datos",
+      "invalidAmount": "La cantidad debe ser mayor a 0",
+      "updateSuccess": "Stock actualizado: +{{amount}} unidades",
+      "updateError": "Error al actualizar stock"
+    }
+  },
+  "quotes": {
+    "title": "Cotizaciones",
+    "subtitle": "Gestión de presupuestos y servicios",
+    "add": "Nueva Cotización",
+    "edit": "Editar Cotización",
+    "searchPlaceholder": "Buscar por cliente o equipo...",
+    "filters": {
+      "all": "Todos",
+      "clear": "Limpiar filtros"
+    },
+    "table": {
+      "equipment": "Equipo",
+      "price": "Precio",
+      "discount": "Desc.",
+      "noResults": "No se encontraron cotizaciones con estos filtros",
+      "empty": "No hay cotizaciones registradas"
+    },
+    "form": {
+      "serviceType": "Tipo de Servicio",
+      "client": "Cliente",
+      "product": "Producto (Inventario)",
+      "equipment": "Equipo del Cliente",
+      "selectClientFirst": "Primero seleccione un cliente...",
+      "noClientEquipment": "Este cliente no tiene equipos",
+      "priceEquipment": "Precio Equipo",
+      "priceMaintenance": "Precio Mantención",
+      "priceRepair": "Precio Reparación",
+      "priceInstallation": "Costo Instalación",
+      "priceMaterial": "Costo Material",
+      "discount": "Descuento",
+      "address": "Dirección de Instalación",
+      "addressPlaceholder": "Calle, número, comuna",
+      "notes": "Notas",
+      "notesPlaceholder": "Detalles adicionales..."
+    },
+    "actions": {
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "viewPdf": "Ver PDF"
+    },
+    "approval": {
+      "title": "Aprobar Cotización",
+      "confirm": "¿Confirmas la aprobación de esta cotización?",
+      "systemActions": "El sistema automáticamente",
+      "actionCreateEquipment": "Creará el equipo para el cliente",
+      "actionReduceStock": "Reducirá el stock del producto",
+      "actionUseEquipment": "Usará el equipo existente del cliente",
+      "actionCreateOrder": "Generará una orden de trabajo",
+      "actionMarkApproved": "Marcará la cotización como aprobada"
+    },
+    "messages": {
+      "loadError": "Error al cargar datos",
+      "noEquipment": "Este cliente no tiene equipos registrados",
+      "saveError": "Error al guardar cotización",
+      "updateSuccess": "Cotización actualizada exitosamente",
+      "createSuccess": "Cotización creada exitosamente",
+      "deleteSuccess": "Cotización eliminada exitosamente",
+      "deleteError": "Error al eliminar cotización",
+      "deleteConfirm": "¿Estás seguro de eliminar esta cotización?",
+      "approving": "Aprobando cotización...",
+      "approvalSuccess": {
+        "title": "¡Cotización aprobada exitosamente!",
+        "installation": "✅ Equipo creado",
+        "maintenance": "✅ Equipo asignado",
+        "repair": "✅ Equipo asignado"
+      },
+      "approvalError": "Error al aprobar cotización",
+      "rejectReason": "Motivo del rechazo (opcional):",
+      "rejectSuccess": "Cotización rechazada",
+      "rejectError": "Error al rechazar cotización"
+    }
+  },
+  "calendar": {
+    "title": "Calendario de Órdenes",
+    "subtitle": "Visualización de órdenes de trabajo programadas",
+    "legend": "Leyenda",
+    "orderDetail": "Orden de Trabajo #{{id}}",
+    "dateTime": "Fecha y Hora",
+    "time": "Hora",
+    "noAddress": "Sin dirección registrada",
+    "viewAll": "Ver Todas las Órdenes",
+    "views": {
+      "allDay": "Todo el día",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "today": "Hoy",
+      "month": "Mes",
+      "week": "Semana",
+      "day": "Día",
+      "agenda": "Agenda",
+      "date": "Fecha",
+      "time": "Hora",
+      "event": "Evento",
+      "noEvents": "No hay órdenes en este rango",
+      "showMore": "+ Ver más ({{count}})"
+    },
+    "messages": {
+      "loadError": "Error al cargar órdenes de trabajo"
+    }
   },
   "weather": {
     "title": "Consultar Clima",
@@ -101,6 +434,7 @@
     "result": "Resultado"
   },
   "common": {
+    "dateFormat": "es-CL",
     "save": "Guardar",
     "cancel": "Cancelar",
     "delete": "Eliminar",
@@ -109,10 +443,12 @@
     "search": "Buscar",
     "filter": "Filtrar",
     "loading": "Cargando...",
+    "select": "Seleccionar",
     "error": "Error",
     "success": "Éxito",
     "confirmDelete": "¿Estás seguro de eliminar este elemento?",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "close": "Cerrar"
   }
 }

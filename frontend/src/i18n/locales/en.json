@@ -8,99 +8,223 @@
     "clients": "Clients",
     "equipment": "Equipment",
     "workOrders": "Work Orders",
+    "inventory": "Inventory",
+    "quotes": "Quotes",
     "calendar": "Calendar",
-    "weather": "Weather",
-    "settings": "Settings",
-    "logout": "Logout"
+    "stockPanel": "Stock Panel",
+    "logout": "Log Out"
   },
   "auth": {
-    "login": "Login",
+    "login": "Log In",
     "register": "Register",
     "email": "Email",
     "password": "Password",
     "name": "Name",
-    "loginWithGoogle": "Sign in with Google",
+    "loginWithGoogle": "Log in with Google",
     "dontHaveAccount": "Don't have an account?",
     "alreadyHaveAccount": "Already have an account?",
     "signUp": "Sign Up",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "form": {
+      "fullName": "Full Name",
+      "namePlaceholder": "Your full name",
+      "username": "Username",
+      "usernamePlaceholder": "username",
+      "confirmPassword": "Confirm Password",
+      "confirmPlaceholder": "Confirm your password",
+      "authorizedOnly": "Only authorized emails can register"
+    },
+    "messages": {
+      "passwordsDoNotMatch": "Passwords do not match",
+      "emailNotAuthorized": "Your email is not authorized to register. Only authorized personnel can create an account.",
+      "weakPassword": "Weak password",
+      "registrationError": "Registration error",
+      "connectionError": "Connection error. Please try again."
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}!",
+    "summary": "Here's a summary of your HVAC system",
+    "totalRegistered": "Total Registered",
+    "totalInstalled": "HVAC Units Installed",
+    "totalWorks": "Total Work Orders",
+    "products": "Products",
+    "inStock": "In Stock",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "approvalRate": "Approval Rate",
+    "totalValue": "Total Value",
+    "quotesDistribution": "Quote Distribution",
+    "quotesLast6Months": "Quotes Last 6 Months",
+    "ordersStatus": "Work Order Status",
+    "criticalAlert": "Critical Work Orders",
+    "attentionRequired": "Require immediate attention",
+    "recentOrders": "Recent Work Orders",
+    "noOrders": "No work orders registered",
+    "quickAccess": "Quick Access",
+    "quickNewOrder": "New Work Order",
+    "create": "Create WO",
+    "quickNewClient": "New Client",
+    "register": "Register",
+    "viewStock": "View Stock",
+    "quickNewQuote": "Quote",
+    "new": "New"
   },
   "clients": {
     "title": "Clients",
     "add": "Add Client",
     "edit": "Edit Client",
-    "delete": "Delete Client",
-    "name": "Name",
-    "rut": "RUT",
-    "email": "Email",
-    "phone": "Phone",
-    "address": "Address",
-    "actions": "Actions"
+    "deleteConfirm": "Are you sure you want to delete this client?",
+    "searchPlaceholder": "Search by name, National ID, or email...",
+    "table": {
+      "name": "Name",
+      "rut": "National ID",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "actions": "Actions",
+      "empty": "No clients registered"
+    },
+    "form": {
+      "name": "Name",
+      "rut": "National ID",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "cancel": "Cancel",
+      "update": "Update",
+      "create": "Create"
+    },
+    "messages": {
+      "loadError": "Error loading clients",
+      "saveError": "Error saving client",
+      "deleteError": "Error deleting client",
+      "createSuccess": "Client created successfully",
+      "updateSuccess": "Client updated successfully",
+      "deleteSuccess": "Client deleted successfully",
+      "invalidRut": "Invalid National ID"
+    }
   },
   "equipment": {
     "title": "Equipment",
     "add": "Add Equipment",
     "edit": "Edit Equipment",
-    "delete": "Delete Equipment",
-    "type": "Type",
-    "brand": "Brand",
-    "model": "Model",
-    "serialNumber": "Serial Number",
-    "capacity": "Capacity (BTU)",
-    "gasType": "Gas Type",
-    "year": "Year",
-    "client": "Client",
-    "actions": "Actions"
+    "searchPlaceholder": "Search by brand, model, serial number, or client...",
+    "table": {
+      "type": "Type",
+      "brandModel": "Brand/Model",
+      "serialNumber": "Serial Number",
+      "capacity": "Capacity",
+      "client": "Client",
+      "actions": "Actions",
+      "empty": "No equipment registered"
+    },
+    "form": {
+      "type": "Type",
+      "client": "Client",
+      "brand": "Brand",
+      "model": "Model",
+      "serialNumber": "Serial Number",
+      "year": "Year",
+      "capacity": "Capacity",
+      "gasType": "Refrigerant Type"
+    },
+    "messages": {
+      "loadError": "Error loading data",
+      "saveError": "Error saving equipment",
+      "updateSuccess": "Equipment updated successfully",
+      "createSuccess": "Equipment created successfully",
+      "deleteConfirm": "Are you sure you want to delete this equipment?",
+      "deleteSuccess": "Equipment deleted successfully",
+      "deleteError": "Error deleting equipment"
+    }
   },
   "workOrders": {
     "title": "Work Orders",
-    "add": "Create Order",
-    "edit": "Edit Order",
-    "delete": "Delete Order",
-    "type": "Type",
-    "date": "Date",
-    "description": "Description",
-    "notes": "Notes",
-    "status": "Status",
-    "client": "Client",
-    "equipment": "Equipment",
-    "technician": "Technician",
-    "actions": "Actions",
-    "types": {
-      "installation": "Installation",
-      "maintenance": "Maintenance",
-      "repair": "Repair"
+    "add": "Add Work Order",
+    "edit": "Edit Work Order",
+    "searchPlaceholder": "Search by client, technician, or type...",
+    "table": {
+      "date": "Date",
+      "client": "Client",
+      "type": "Type",
+      "urgency": "Urgency",
+      "technician": "Technician",
+      "status": "Status",
+      "actions": "Actions",
+      "empty": "No work orders registered"
+    },
+    "actions": {
+      "complete": "Complete Work Order",
+      "viewAnalysis": "View AI Analysis"
     },
     "statuses": {
       "pending": "Pending",
       "inProgress": "In Progress",
       "completed": "Completed"
+    },
+    "types": {
+      "installation": "Installation",
+      "maintenance": "Maintenance",
+      "repair": "Repair"
+    },
+    "urgencies": {
+      "low": "Low",
+      "medium": "Medium",
+      "critical": "Critical"
+    },
+    "form": {
+      "client": "Client",
+      "equipmentOptional": "Equipment (Optional)",
+      "type": "Type",
+      "status": "Status",
+      "date": "Date",
+      "technician": "Technician",
+      "technicianPlaceholder": "Technician's Name",
+      "notes": "Notes / Problem Description",
+      "notesPlaceholder": "Describe the problem or work to be done in detail...",
+      "analyzeAI": "Analyze Urgency with AI",
+      "analyzing": "Analyzing..."
+    },
+    "ai": {
+      "title": "AI Analysis",
+      "critical": "CRITICAL URGENCY",
+      "medium": "MEDIUM URGENCY",
+      "low": "LOW URGENCY",
+      "reasons": "Reasons",
+      "recommendation": "Recommended Action",
+      "responseTime": "Response Time",
+      "close": "Close"
+    },
+    "messages": {
+      "loadError": "Error loading data",
+      "saveError": "Error saving work order",
+      "deleteError": "Error deleting work order",
+      "createSuccess": "Work order created successfully",
+      "updateSuccess": "Work order updated successfully",
+      "deleteSuccess": "Work order deleted successfully",
+      "deleteConfirm": "Are you sure you want to delete this work order?",
+      "completeConfirm": "Mark work order #{{id}} as completed?",
+      "completeSuccess": "Work order marked as completed",
+      "completeError": "Error completing work order",
+      "alreadyCompleted": "This work order is already completed",
+      "analysisSuccess": "AI analysis completed successfully",
+      "analysisError": "Error analyzing urgency. Please ensure the Gemini API is configured.",
+      "missingDescription": "Please enter a problem description to analyze",
+      "missingType": "Please select the work type",
+      "noAnalysis": "This work order has no AI analysis"
     }
   },
-  "dashboard": {
-    "title": "Dashboard",
-    "totalClients": "Total Clients",
-    "totalEquipment": "Total Equipment",
-    "monthOrders": "Monthly Orders",
-    "completedOrders": "Completed Orders",
-    "recentOrders": "Recent Orders",
-    "statistics": "Statistics"
-  },
   "weather": {
-    "title": "Weather Lookup",
+    "title": "Weather Forecast",
     "searchCity": "Search city",
     "search": "Search",
     "temperature": "Temperature",
     "humidity": "Humidity",
     "condition": "Condition"
   },
-  "ai": {
-    "title": "Generate Report with AI",
-    "prompt": "Describe the maintenance performed",
-    "generate": "Generate Report",
-    "result": "Result"
-  },
   "common": {
+    "dateFormat": "en-US",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -109,10 +233,222 @@
     "search": "Search",
     "filter": "Filter",
     "loading": "Loading...",
+    "select": "Select",
     "error": "Error",
     "success": "Success",
     "confirmDelete": "Are you sure you want to delete this item?",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "close": "Close"
+  },
+  "inventory": {
+    "title": "Inventory",
+    "subtitle": "Product and Stock Management",
+    "add": "Add Product",
+    "edit": "Edit Product",
+    "searchPlaceholder": "Search by brand, model, series, or type...",
+    "showing": "Showing {{count}} of {{total}} products",
+    "stats": {
+      "total": "Total",
+      "available": "Available",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "totalValue": "Total Value"
+    },
+    "table": {
+      "type": "Type",
+      "brandModel": "Brand/Model",
+      "capacity": "Capacity",
+      "stock": "Stock",
+      "purchasePrice": "Purchase Price",
+      "salePrice": "Sale Price",
+      "status": "Status",
+      "actions": "Actions",
+      "empty": "No products in inventory",
+      "noResults": "No products found"
+    },
+    "status": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "sold": "Sold",
+      "outOfStock": "Out of Stock",
+      "lowStock": "Low Stock"
+    },
+    "form": {
+      "type": "Type",
+      "brand": "Brand",
+      "model": "Model",
+      "serialNumber": "Serial Number",
+      "capacityBTU": "Capacity BTU",
+      "stock": "Stock",
+      "minStock": "Minimum Stock",
+      "purchasePrice": "Purchase Price",
+      "salePrice": "Sale Price",
+      "installationPrice": "Installation Price",
+      "status": "Status",
+      "location": "Location",
+      "provider": "Supplier",
+      "features": "Features",
+      "featuresPlaceholder": "Technical features...",
+      "locationPlaceholder": "e.g., Warehouse A-12"
+    },
+    "messages": {
+      "loadError": "Error loading inventory",
+      "saveError": "Error saving product",
+      "deleteError": "Error deleting product",
+      "createSuccess": "Product added to inventory",
+      "updateSuccess": "Product updated successfully",
+      "deleteSuccess": "Product deleted from inventory",
+      "deleteConfirm": "Are you sure you want to delete this product?"
+    }
+  },
+  "quotes": {
+    "title": "Quotes",
+    "subtitle": "Quote and service management",
+    "add": "New Quote",
+    "edit": "Edit Quote",
+    "searchPlaceholder": "Search by client or equipment...",
+    "filters": {
+      "all": "All",
+      "clear": "Clear filters"
+    },
+    "table": {
+      "equipment": "Equipment",
+      "price": "Price",
+      "discount": "Disc.",
+      "noResults": "No quotes found with these filters",
+      "empty": "No quotes registered"
+    },
+    "form": {
+      "serviceType": "Service Type",
+      "client": "Client",
+      "product": "Product (Inventory)",
+      "equipment": "Client Equipment",
+      "selectClientFirst": "Select a client first...",
+      "noClientEquipment": "This client has no equipment",
+      "priceEquipment": "Equipment Price",
+      "priceMaintenance": "Maintenance Price",
+      "priceRepair": "Repair Price",
+      "priceInstallation": "Installation Cost",
+      "priceMaterial": "Material Cost",
+      "discount": "Discount",
+      "address": "Installation Address",
+      "addressPlaceholder": "Street, number, district",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional details..."
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "viewPdf": "View PDF"
+    },
+    "approval": {
+      "title": "Approve Quote",
+      "confirm": "Do you confirm the approval of this quote?",
+      "systemActions": "The system will automatically",
+      "actionCreateEquipment": "Create the equipment for the client",
+      "actionReduceStock": "Reduce product stock",
+      "actionUseEquipment": "Use existing client equipment",
+      "actionCreateOrder": "Generate a work order",
+      "actionMarkApproved": "Mark the quote as approved"
+    },
+    "messages": {
+      "loadError": "Error loading data",
+      "noEquipment": "This client has no registered equipment",
+      "saveError": "Error saving quote",
+      "updateSuccess": "Quote updated successfully",
+      "createSuccess": "Quote created successfully",
+      "deleteSuccess": "Quote deleted successfully",
+      "deleteError": "Error deleting quote",
+      "deleteConfirm": "Are you sure you want to delete this quote?",
+      "approving": "Approving quote...",
+      "approvalSuccess": {
+        "title": "Quote approved successfully!",
+        "installation": "✅ Equipment created",
+        "maintenance": "✅ Equipment assigned",
+        "repair": "✅ Equipment assigned"
+      },
+      "approvalError": "Error approving quote",
+      "rejectReason": "Reason for rejection (optional):",
+      "rejectSuccess": "Quote rejected",
+      "rejectError": "Error rejecting quote"
+    }
+  },
+  "stockPanel": {
+    "title": "Stock Panel",
+    "subtitle": "Inventory Monitoring and Management",
+    "viewFullInventory": "View Full Inventory",
+    "last10": "Last 10",
+    "alerts": "{{count}} alerts",
+    "movementReason": "Quote #{{id}} approved - {{client}}",
+    "viewAllOut": "View All Out of Stock Products",
+    "sections": {
+      "lowStock": "Low Stock Products",
+      "recentMovements": "Recent Movements",
+      "outOfStock": "Out of Stock Products"
+    },
+    "stats": {
+      "total": "Total",
+      "available": "Available",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "totalValue": "Total Value"
+    },
+    "actions": {
+      "restock": "Restock",
+      "confirmRestock": "Confirm Restock"
+    },
+    "modal": {
+      "title": "Restock Inventory",
+      "currentStock": "Current Stock",
+      "amountToAdd": "Amount to Add",
+      "newStock": "New Stock",
+      "placeholder": "Ex: 5"
+    },
+    "empty": {
+      "noResults": "No products found",
+      "lowStock": "Excellent! No low stock products",
+      "movements": "No movements recorded"
+    },
+    "messages": {
+      "loadError": "Error loading data",
+      "invalidAmount": "Amount must be greater than 0",
+      "updateSuccess": "Stock updated: +{{amount}} units",
+      "updateError": "Error updating stock"
+    }
+  },
+  "ai": {
+    "title": "Generate Report with AI",
+    "prompt": "Describe the maintenance performed",
+    "generate": "Generate Report",
+    "result": "Result"
+  },
+  "calendar": {
+    "title": "Work Order Calendar",
+    "subtitle": "View of Scheduled Work Orders",
+    "legend": "Legend",
+    "orderDetail": "Work Order #{{id}}",
+    "dateTime": "Date and Time",
+    "time": "Time",
+    "noAddress": "No registered address",
+    "viewAll": "View All Work Orders",
+    "views": {
+      "allDay": "All Day",
+      "previous": "Previous",
+      "next": "Next",
+      "today": "Today",
+      "month": "Month",
+      "week": "Week",
+      "day": "Day",
+      "agenda": "Agenda",
+      "date": "Date",
+      "time": "Time",
+      "event": "Event",
+      "noEvents": "No work orders in this range",
+      "showMore": "+ Show more ({{count}})"
+    },
+    "messages": {
+      "loadError": "Error loading work orders"
+    }
   }
 }
