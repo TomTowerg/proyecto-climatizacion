@@ -39,7 +39,7 @@ function Clientes() {
       setClientes(data)
     } catch (error) {
       console.error('Error al cargar clientes:', error)
-      toast.error('Error al cargar clientes')
+      toast.error(t('clients.messages.loadError'))
     } finally {
       setLoading(false)
     }
@@ -50,24 +50,24 @@ function Clientes() {
 
     // Validar RUT
     if (!validarRut(formData.rut)) {
-      toast.error('RUT inválido')
+      toast.error(t('clients.messages.invalidRut'))
       return
     }
 
     try {
       if (editingCliente) {
         await updateCliente(editingCliente.id, formData)
-        toast.success('Cliente actualizado exitosamente')
+        toast.success(t('clients.messages.updateSuccess'))
       } else {
         await createCliente(formData)
-        toast.success('Cliente creado exitosamente')
+        toast.success(t('clients.messages.createSuccess'))
       }
       
       fetchClientes()
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || 'Error al guardar cliente'
+      const errorMessage = error.response?.data?.error || t('clients.messages.saveError')
       toast.error(errorMessage)
     }
   }
@@ -85,17 +85,17 @@ function Clientes() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este cliente?')) {
+    if (!window.confirm(t('clients.deleteConfirm'))) {
       return
     }
 
     try {
       await deleteCliente(id)
-      toast.success('Cliente eliminado exitosamente')
+      toast.success(t('clients.messages.deleteSuccess'))
       fetchClientes()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || 'Error al eliminar cliente'
+      const errorMessage = error.response?.data?.error || t('clients.messages.deleteError')
       toast.error(errorMessage)
     }
   }
@@ -157,7 +157,7 @@ function Clientes() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por nombre, RUT o email..."
+              placeholder={t('clients.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
@@ -171,19 +171,19 @@ function Clientes() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nombre
+                    {t('clients.table.name')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    RUT
+                    {t('clients.table.rut')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    {t('clients.table.email')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Teléfono
+                    {t('clients.table.phone')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
+                    {t('clients.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -191,7 +191,7 @@ function Clientes() {
                 {filteredClientes.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                      No hay clientes registrados
+                      {t('clients.table.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -239,13 +239,13 @@ function Clientes() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h2 className="text-2xl font-bold mb-4">
-              {editingCliente ? 'Editar Cliente' : 'Agregar Cliente'}
+              {editingCliente ? t('clients.edit') : t('clients.add')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
+                  {t('clients.form.name')} *
                 </label>
                 <input
                   type="text"
@@ -258,7 +258,7 @@ function Clientes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  RUT *
+                  {t('clients.form.rut')} *
                 </label>
                 <input
                   type="text"
@@ -272,7 +272,7 @@ function Clientes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
+                  {t('clients.form.email')} *
                 </label>
                 <input
                   type="email"
@@ -285,7 +285,7 @@ function Clientes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono *
+                  {t('clients.form.phone')} *
                 </label>
                 <input
                   type="tel"
@@ -298,7 +298,7 @@ function Clientes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección *
+                  {t('clients.form.address')} *
                 </label>
                 <textarea
                   value={formData.direccion}
@@ -315,13 +315,13 @@ function Clientes() {
                   onClick={handleCloseModal}
                   className="flex-1 btn-secondary"
                 >
-                  Cancelar
+                  {t('clients.form.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 btn-primary"
                 >
-                  {editingCliente ? 'Actualizar' : 'Crear'}
+                  {editingCliente ? t('clients.form.update') : t('clients.form.create')}
                 </button>
               </div>
             </form>

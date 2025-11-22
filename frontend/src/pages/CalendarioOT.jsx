@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay, addHours } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { Calendar, Clock, MapPin, User, AlertCircle, X, CheckCircle, TrendingUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -24,6 +25,7 @@ const localizer = dateFnsLocalizer({
 })
 
 function CalendarioOT() {
+  const { t } = useTranslation() // 2. INICIALIZAR
   const navigate = useNavigate()
   const [ordenes, setOrdenes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +48,7 @@ function CalendarioOT() {
       setOrdenes(data)
     } catch (error) {
       console.error('Error al cargar órdenes:', error)
-      toast.error('Error al cargar órdenes de trabajo')
+      toast.error(t('calendar.messages.loadError'))
     } finally {
       setLoading(false)
     }
@@ -129,21 +131,21 @@ function CalendarioOT() {
     }
   }
 
-  // Mensajes en español
+  // Mensajes dinámicos para el calendario
   const messages = {
-    allDay: 'Todo el día',
-    previous: 'Anterior',
-    next: 'Siguiente',
-    today: 'Hoy',
-    month: 'Mes',
-    week: 'Semana',
-    day: 'Día',
-    agenda: 'Agenda',
-    date: 'Fecha',
-    time: 'Hora',
-    event: 'Evento',
-    noEventsInRange: 'No hay órdenes en este rango',
-    showMore: total => `+ Ver más (${total})`
+    allDay: t('calendar.views.allDay'),
+    previous: t('calendar.views.previous'),
+    next: t('calendar.views.next'),
+    today: t('calendar.views.today'),
+    month: t('calendar.views.month'),
+    week: t('calendar.views.week'),
+    day: t('calendar.views.day'),
+    agenda: t('calendar.views.agenda'),
+    date: t('calendar.views.date'),
+    time: t('calendar.views.time'),
+    event: t('calendar.views.event'),
+    noEventsInRange: t('calendar.views.noEvents'),
+    showMore: total => `+ ${t('calendar.views.showMore', { count: total })}`
   }
 
   // Estadísticas rápidas
@@ -174,56 +176,56 @@ function CalendarioOT() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Calendar className="text-blue-600" size={32} />
-            Calendario de Órdenes
+            {t('calendar.title')}
           </h1>
           <p className="text-gray-600 mt-1">
-            Visualización de órdenes de trabajo programadas
+            {t('calendar.subtitle')}
           </p>
         </div>
 
         {/* Estadísticas Rápidas */}
         <div className="grid grid-cols-5 gap-4 mb-6">
           <div className="card">
-            <p className="text-sm text-gray-600">Total</p>
+            <p className="text-sm text-gray-600">{t('inventory.stats.total')}</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Pendientes</p>
+            <p className="text-sm text-gray-600">{t('workOrders.statuses.pending')}</p>
             <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">En Proceso</p>
+            <p className="text-sm text-gray-600">{t('workOrders.statuses.inProgress')}</p>
             <p className="text-2xl font-bold text-blue-600">{stats.enProceso}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Completadas</p>
+            <p className="text-sm text-gray-600">{t('workOrders.statuses.completed')}</p>
             <p className="text-2xl font-bold text-green-600">{stats.completadas}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Críticas</p>
+            <p className="text-sm text-gray-600">{t('workOrders.urgencies.critical')}</p>
             <p className="text-2xl font-bold text-red-600">{stats.criticas}</p>
           </div>
         </div>
 
         {/* Leyenda */}
         <div className="card mb-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Leyenda:</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('calendar.legend')}:</h3>
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-yellow-500"></div>
-              <span className="text-gray-700">Pendiente</span>
+              <span className="text-gray-700">{t('workOrders.statuses.pending')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-blue-500"></div>
-              <span className="text-gray-700">En Proceso</span>
+              <span className="text-gray-700">{t('workOrders.statuses.inProgress')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-green-500"></div>
-              <span className="text-gray-700">Completada</span>
+              <span className="text-gray-700">{t('workOrders.statuses.completed')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-red-500"></div>
-              <span className="text-gray-700">Urgencia Crítica</span>
+              <span className="text-gray-700">{t('workOrders.urgencies.critical')}</span>
             </div>
           </div>
         </div>
@@ -257,7 +259,7 @@ function CalendarioOT() {
               <div className="flex items-center gap-3">
                 {getEstadoIcon(selectedEvento.estado)}
                 <h2 className="text-2xl font-bold text-gray-900">
-                  Orden de Trabajo #{selectedEvento.id}
+                  {t('calendar.orderDetail', { id: selectedEvento.id })}
                 </h2>
               </div>
               <button
@@ -273,7 +275,7 @@ function CalendarioOT() {
               <div className="flex items-start gap-3">
                 <User className="text-blue-600 flex-shrink-0 mt-1" size={20} />
                 <div>
-                  <p className="text-sm text-gray-600">Cliente</p>
+                  <p className="text-sm text-gray-600">{t('workOrders.form.client')}</p>
                   <p className="font-semibold text-gray-900">{selectedEvento.cliente?.nombre}</p>
                   <p className="text-sm text-gray-600">{selectedEvento.cliente?.email}</p>
                   <p className="text-sm text-gray-600">{selectedEvento.cliente?.telefono}</p>
@@ -284,9 +286,9 @@ function CalendarioOT() {
               <div className="flex items-start gap-3">
                 <Clock className="text-purple-600 flex-shrink-0 mt-1" size={20} />
                 <div>
-                  <p className="text-sm text-gray-600">Fecha y Hora</p>
+                  <p className="text-sm text-gray-600">{t('calendar.dateTime')}</p>
                   <p className="font-semibold text-gray-900">
-                    {new Date(selectedEvento.fecha).toLocaleDateString('es-CL', { 
+                    {new Date(selectedEvento.fecha).toLocaleDateString(t('common.dateFormat'), { 
                       weekday: 'long', 
                       year: 'numeric', 
                       month: 'long', 
@@ -294,7 +296,7 @@ function CalendarioOT() {
                     })}
                   </p>
                   {selectedEvento.horaProgramada && (
-                    <p className="text-sm text-gray-600">Hora: {selectedEvento.horaProgramada}</p>
+                    <p className="text-sm text-gray-600">{t('calendar.time')}: {selectedEvento.horaProgramada}</p>
                   )}
                 </div>
               </div>
@@ -303,32 +305,32 @@ function CalendarioOT() {
               <div className="flex items-start gap-3">
                 <MapPin className="text-red-600 flex-shrink-0 mt-1" size={20} />
                 <div>
-                  <p className="text-sm text-gray-600">Dirección</p>
-                  <p className="font-semibold text-gray-900">{selectedEvento.direccion}</p>
+                  <p className="text-sm text-gray-600">{t('clients.form.address')}</p>
+                  <p className="font-semibold text-gray-900">{selectedEvento.direccion || t('calendar.noAddress')}</p>
                 </div>
               </div>
 
               {/* Detalles */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
-                  <p className="text-sm text-gray-600">Tipo de Servicio</p>
+                  <p className="text-sm text-gray-600">{t('workOrders.form.type')}</p>
                   <p className="font-semibold text-gray-900 capitalize">{selectedEvento.tipo}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Urgencia</p>
+                  <p className="text-sm text-gray-600">{t('workOrders.table.urgency')}</p>
                   <p className="font-semibold text-gray-900">
                     {getUrgenciaIcon(selectedEvento.urgencia)} {selectedEvento.urgencia}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Estado</p>
+                  <p className="text-sm text-gray-600">{t('workOrders.form.status')}</p>
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getEstadoColor(selectedEvento.estado)}`}>
                     {selectedEvento.estado.replace('_', ' ')}
                   </span>
                 </div>
                 {selectedEvento.tecnicoAsignado && (
                   <div>
-                    <p className="text-sm text-gray-600">Técnico</p>
+                    <p className="text-sm text-gray-600">{t('workOrders.form.technician')}</p>
                     <p className="font-semibold text-gray-900">{selectedEvento.tecnicoAsignado}</p>
                   </div>
                 )}
@@ -337,7 +339,7 @@ function CalendarioOT() {
               {/* Descripción */}
               {selectedEvento.descripcion && (
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600 mb-1">Descripción</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('workOrders.form.notes')}</p>
                   <p className="text-gray-900">{selectedEvento.descripcion}</p>
                 </div>
               )}
@@ -345,7 +347,7 @@ function CalendarioOT() {
               {/* Equipo */}
               {selectedEvento.equipo && (
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600 mb-1">Equipo</p>
+                  <p className="text-sm text-gray-600 mb-1">{t('quotes.form.equipment')}</p>
                   <p className="text-gray-900">
                     {selectedEvento.equipo.marca} {selectedEvento.equipo.modelo} - {selectedEvento.equipo.capacidad}
                   </p>
@@ -361,13 +363,13 @@ function CalendarioOT() {
                   }}
                   className="flex-1 btn-primary"
                 >
-                  Ver Todas las Órdenes
+                  {t('calendar.viewAll')}
                 </button>
                 <button
                   onClick={() => setShowModal(false)}
                   className="flex-1 btn-secondary"
                 >
-                  Cerrar
+                  {t('common.close')}
                 </button>
               </div>
             </div>
