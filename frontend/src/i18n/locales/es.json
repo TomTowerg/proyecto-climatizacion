@@ -4,7 +4,7 @@
     "welcome": "Bienvenido"
   },
   "nav": {
-    "dashboard": "Dashboard", 
+    "dashboard": "Dashboard",
     "clients": "Clientes",
     "equipment": "Equipos",
     "workOrders": "Órdenes",
@@ -68,7 +68,13 @@
     "register": "Registrar",
     "viewStock": "Ver Stock",
     "quickNewQuote": "Cotización",
-    "new": "Nueva"
+    "new": "Nueva",
+    "indicators": {
+      "dollar": "Dólar (USD)",
+      "uf": "UF (Hoy)",
+      "euro": "Euro (EUR)",
+      "utm": "UTM (Mes)"
+    }
   },
   "clients": {
     "title": "Clientes",
