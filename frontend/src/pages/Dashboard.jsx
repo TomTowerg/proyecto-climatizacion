@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next' // 1. IMPORTAR
+import { useTranslation } from 'react-i18next'
 import { 
   Users, 
   Wind, 
@@ -19,6 +19,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
+// ⭐ 1. IMPORTAR EL COMPONENTE DE INDICADORES
+import EconomicIndicators from '../components/EconomicIndicators'
 import { isAuthenticated } from '../services/authService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
@@ -27,7 +29,7 @@ import { getCotizaciones, getEstadisticas } from '../services/cotizacionService'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 function Dashboard() {
-  const { t } = useTranslation() // 2. INICIALIZAR
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -119,7 +121,7 @@ function Dashboard() {
 
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error)
-      toast.error(t('common.error')) // Usando traducción para error
+      toast.error(t('common.error'))
     } finally {
       setLoading(false)
     }
@@ -195,7 +197,7 @@ function Dashboard() {
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header con Bienvenida TRADUCIDA */}
+        {/* Header con Bienvenida */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
              👋 {t('dashboard.welcome', { name: userName })}
@@ -204,6 +206,9 @@ function Dashboard() {
             {t('dashboard.summary')}
           </p>
         </div>
+
+        {/* ⭐ 2. INSERTAR EL WIDGET AQUÍ */}
+        <EconomicIndicators />
 
         {/* Estadísticas Principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
