@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -15,16 +16,17 @@ import {
 } from '../services/cotizacionService'
 import { getClientes } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
-import { getEquiposByCliente } from '../services/equipoService' // NUEVO
+import { getEquiposByCliente } from '../services/equipoService'
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
+  const { t } = useTranslation() // 2. INICIALIZAR
   const navigate = useNavigate()
   const [cotizaciones, setCotizaciones] = useState([])
   const [clientes, setClientes] = useState([])
   const [inventario, setInventario] = useState([])
   const [inventarioDisponible, setInventarioDisponible] = useState([])
-  const [equiposCliente, setEquiposCliente] = useState([]) // NUEVO
+  const [equiposCliente, setEquiposCliente] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -42,8 +44,8 @@ function Cotizaciones() {
   const [formData, setFormData] = useState({
     tipo: 'instalacion',
     clienteId: '',
-    inventarioId: '', // Para instalación
-    equipoId: '', // Para mantención/reparación ⭐ NUEVO
+    inventarioId: '',
+    equipoId: '',
     precioOfertado: '',
     costoInstalacion: '50000',
     costoMaterial: '20000',
@@ -62,35 +64,33 @@ function Cotizaciones() {
     fetchData()
   }, [navigate])
 
-  //  NUEVO: Actualizar campos según tipo de servicio
   useEffect(() => {
     if (formData.tipo === 'instalacion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: prev.costoInstalacion || '50000',
         costoMaterial: prev.costoMaterial || '20000',
-        equipoId: '' // Limpiar equipoId
+        equipoId: ''
       }))
     } else if (formData.tipo === 'mantencion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: '0',
         costoMaterial: '10000',
-        inventarioId: '', // Limpiar inventarioId
-        precioOfertado: '50000' // Precio base para mantención
+        inventarioId: '',
+        precioOfertado: '50000'
       }))
     } else if (formData.tipo === 'reparacion') {
       setFormData(prev => ({
         ...prev,
         costoInstalacion: '0',
         costoMaterial: prev.costoMaterial || '15000',
-        inventarioId: '', // Limpiar inventarioId
-        precioOfertado: '60000' // Precio base para reparación
+        inventarioId: '',
+        precioOfertado: '60000'
       }))
     }
   }, [formData.tipo])
 
-  // ⭐ NUEVO: Cargar equipos cuando cambia el cliente (para mantención/reparación)
   useEffect(() => {
     if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion')) {
       fetchEquiposCliente(formData.clienteId)
@@ -115,20 +115,19 @@ function Cotizaciones() {
       setInventarioDisponible(disponible)
     } catch (error) {
       console.error('Error al cargar datos:', error)
-      toast.error('Error al cargar datos')
+      toast.error(t('quotes.messages.loadError'))
     } finally {
       setLoading(false)
     }
   }
 
-  //  NUEVO: Obtener equipos del cliente
   const fetchEquiposCliente = async (clienteId) => {
     try {
       const equipos = await getEquiposByCliente(clienteId)
       setEquiposCliente(equipos)
       
       if (equipos.length === 0) {
-        toast.info('Este cliente no tiene equipos registrados')
+        toast.info(t('quotes.messages.noEquipment'))
       }
     } catch (error) {
       console.error('Error al cargar equipos del cliente:', error)
@@ -163,7 +162,6 @@ function Cotizaciones() {
         direccionInstalacion: formData.direccionInstalacion
       }
 
-      //  Agregar inventarioId o equipoId según el tipo
       if (formData.tipo === 'instalacion') {
         dataToSend.inventarioId = parseInt(formData.inventarioId)
       } else {
@@ -175,17 +173,17 @@ function Cotizaciones() {
           ...dataToSend,
           estado: formData.estado
         })
-        toast.success('Cotización actualizada exitosamente')
+        toast.success(t('quotes.messages.updateSuccess'))
       } else {
         await createCotizacion(dataToSend)
-        toast.success('Cotización creada exitosamente')
+        toast.success(t('quotes.messages.createSuccess'))
       }
       
       fetchData()
       handleCloseModal()
     } catch (error) {
       console.error('Error completo:', error)
-      const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Error al guardar cotización'
+      const errorMessage = error.response?.data?.error || error.response?.data?.details || t('quotes.messages.saveError')
       toast.error(errorMessage)
     }
   }
@@ -210,17 +208,17 @@ function Cotizaciones() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta cotización?')) {
+    if (!window.confirm(t('quotes.messages.deleteConfirm'))) {
       return
     }
 
     try {
       await deleteCotizacion(id)
-      toast.success('Cotización eliminada exitosamente')
+      toast.success(t('quotes.messages.deleteSuccess'))
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || 'Error al eliminar cotización'
+      const errorMessage = error.response?.data?.error || t('quotes.messages.deleteError')
       toast.error(errorMessage)
     }
   }
@@ -236,24 +234,23 @@ function Cotizaciones() {
     try {
       setApproving(true)
       
-      const loadingToast = toast.loading('Aprobando cotización...')
+      const loadingToast = toast.loading(t('quotes.messages.approving'))
       
       const resultado = await aprobarCotizacion(cotizacionToApprove.id)
       
       toast.dismiss(loadingToast)
       
-      // ⭐ Mensaje diferente según el tipo
       const mensajesTipo = {
-        instalacion: '✅ Equipo creado',
-        mantencion: '✅ Equipo asignado',
-        reparacion: '✅ Equipo asignado'
+        instalacion: t('quotes.messages.approvalSuccess.installation'),
+        mantencion: t('quotes.messages.approvalSuccess.maintenance'),
+        reparacion: t('quotes.messages.approvalSuccess.repair')
       }
       
       toast.success(
         <div>
-          <p className="font-bold">¡Cotización aprobada exitosamente!</p>
+          <p className="font-bold">{t('quotes.messages.approvalSuccess.title')}</p>
           <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id}</p>
-          <p className="text-sm">✅ Orden de trabajo: #{resultado.ordenTrabajo?.id}</p>
+          <p className="text-sm">✅ {t('nav.workOrders')}: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
       )
@@ -263,7 +260,7 @@ function Cotizaciones() {
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.detalle || error.response?.data?.error || 'Error al aprobar cotización'
+      const errorMessage = error.response?.data?.detalle || error.response?.data?.error || t('quotes.messages.approvalError')
       toast.error(errorMessage)
     } finally {
       setApproving(false)
@@ -271,16 +268,16 @@ function Cotizaciones() {
   }
 
   const handleRechazar = async (cotizacion) => {
-    const motivo = window.prompt('Motivo del rechazo (opcional):')
+    const motivo = window.prompt(t('quotes.messages.rejectReason'))
     if (motivo === null) return
 
     try {
       await rechazarCotizacion(cotizacion.id, motivo)
-      toast.success('Cotización rechazada')
+      toast.success(t('quotes.messages.rejectSuccess'))
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      toast.error('Error al rechazar cotización')
+      toast.error(t('quotes.messages.rejectError'))
     }
   }
 
@@ -292,12 +289,12 @@ function Cotizaciones() {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingCotizacion(null)
-    setEquiposCliente([]) // Limpiar equipos
+    setEquiposCliente([])
     setFormData({
       tipo: 'instalacion',
       clienteId: '',
       inventarioId: '',
-      equipoId: '', // NUEVO
+      equipoId: '',
       precioOfertado: '',
       costoInstalacion: '50000',
       costoMaterial: '20000',
@@ -326,7 +323,6 @@ function Cotizaciones() {
     }
   }
 
-  // NUEVO: Handler para cambio de equipo
   const handleEquipoChange = (equipoId) => {
     setFormData({
       ...formData,
@@ -345,9 +341,9 @@ function Cotizaciones() {
       rechazada: 'bg-red-100 text-red-800'
     }
     const labels = {
-      pendiente: 'Pendiente',
-      aprobada: 'Aprobada',
-      rechazada: 'Rechazada'
+      pendiente: t('workOrders.statuses.pending'),
+      aprobada: t('dashboard.approved'),
+      rechazada: t('dashboard.rejected')
     }
     return (
       <span className={`badge-compacto ${badges[estado]}`}>
@@ -363,9 +359,9 @@ function Cotizaciones() {
       reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: '🔧 Instalación',
-      mantencion: '⚙️ Mantención',
-      reparacion: '🔨 Reparación'
+      instalacion: `🔧 ${t('workOrders.types.installation')}`,
+      mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
+      reparacion: `🔨 ${t('workOrders.types.repair')}`
     }
     return (
       <span className={`badge-compacto ${badges[tipo]}`}>
@@ -379,8 +375,8 @@ function Cotizaciones() {
       cot.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cot.inventario?.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cot.inventario?.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cot.equipo?.marca.toLowerCase().includes(searchTerm.toLowerCase()) || // ⭐ NUEVO
-      cot.equipo?.modelo.toLowerCase().includes(searchTerm.toLowerCase()) // ⭐ NUEVO
+      cot.equipo?.marca.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      cot.equipo?.modelo.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesEstado = !filters.estado || cot.estado === filters.estado
     const matchesTipo = !filters.tipo || cot.tipo === filters.tipo
@@ -414,10 +410,10 @@ function Cotizaciones() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Cotizaciones
+              {t('quotes.title')}
             </h1>
             <p className="text-gray-600 mt-1">
-              Gestión de presupuestos y servicios
+              {t('quotes.subtitle')}
             </p>
           </div>
           <button
@@ -425,26 +421,26 @@ function Cotizaciones() {
             className="flex items-center gap-2 btn-primary"
           >
             <Plus size={20} />
-            Nueva Cotización
+            {t('quotes.add')}
           </button>
         </div>
 
         {/* Estadísticas */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="card">
-            <p className="text-sm text-gray-600">Total</p>
+            <p className="text-sm text-gray-600">{t('inventory.stats.total')}</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Pendientes</p>
+            <p className="text-sm text-gray-600">{t('workOrders.statuses.pending')}</p>
             <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Aprobadas</p>
+            <p className="text-sm text-gray-600">{t('dashboard.approved')}</p>
             <p className="text-2xl font-bold text-green-600">{stats.aprobadas}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">Rechazadas</p>
+            <p className="text-sm text-gray-600">{t('dashboard.rejected')}</p>
             <p className="text-2xl font-bold text-red-600">{stats.rechazadas}</p>
           </div>
         </div>
@@ -455,7 +451,7 @@ function Cotizaciones() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por cliente o equipo..."
+              placeholder={t('quotes.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
@@ -467,7 +463,7 @@ function Cotizaciones() {
               }`}
             >
               <Filter size={18} />
-              Filtros
+              {t('common.filter')}
             </button>
           </div>
 
@@ -476,33 +472,33 @@ function Cotizaciones() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
+                    {t('workOrders.form.status')}
                   </label>
                   <select
                     value={filters.estado}
                     onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
-                    <option value="">Todos</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="aprobada">Aprobada</option>
-                    <option value="rechazada">Rechazada</option>
+                    <option value="">{t('quotes.filters.all')}</option>
+                    <option value="pendiente">{t('workOrders.statuses.pending')}</option>
+                    <option value="aprobada">{t('dashboard.approved')}</option>
+                    <option value="rechazada">{t('dashboard.rejected')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Servicio
+                    {t('workOrders.form.type')}
                   </label>
                   <select
                     value={filters.tipo}
                     onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   >
-                    <option value="">Todos</option>
-                    <option value="instalacion">Instalación</option>
-                    <option value="mantencion">Mantención</option>
-                    <option value="reparacion">Reparación</option>
+                    <option value="">{t('quotes.filters.all')}</option>
+                    <option value="instalacion">{t('workOrders.types.installation')}</option>
+                    <option value="mantencion">{t('workOrders.types.maintenance')}</option>
+                    <option value="reparacion">{t('workOrders.types.repair')}</option>
                   </select>
                 </div>
 
@@ -512,7 +508,7 @@ function Cotizaciones() {
                     className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 px-3 py-2"
                   >
                     <X size={16} />
-                    Limpiar filtros
+                    {t('quotes.filters.clear')}
                   </button>
                 </div>
               </div>
@@ -527,25 +523,25 @@ function Cotizaciones() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo-cot">
-                    Tipo
+                    {t('workOrders.table.type')}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-equipo-info">
-                    Equipo
+                    {t('quotes.table.equipment')}
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-precio">
-                    Precio
+                    {t('quotes.table.price')}
                   </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-descuento">
-                    Desc.
+                    {t('quotes.table.discount')}
                   </th>
                   <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-total">
-                    Total
+                    {t('inventory.stats.total')}
                   </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-estado">
-                    Estado
+                    {t('workOrders.table.status')}
                   </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-acciones-cot">
-                    Acciones
+                    {t('workOrders.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -554,15 +550,14 @@ function Cotizaciones() {
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                       {searchTerm || Object.values(filters).some(v => v) ? (
-                        'No se encontraron cotizaciones con estos filtros'
+                        t('quotes.table.noResults')
                       ) : (
-                        'No hay cotizaciones registradas'
+                        t('quotes.table.empty')
                       )}
                     </td>
                   </tr>
                 ) : (
                   filteredCotizaciones.map((cotizacion) => {
-                    // Mostrar inventario para instalación, equipo para mantención/reparación
                     let marca = 'N/A'
                     let modelo = 'N/A'
                     let capacidad = 'N/A'
@@ -590,7 +585,7 @@ function Cotizaciones() {
                             </div>
                             <div className="info-secundaria">
                               {typeof capacidad === 'number' 
-                                ? `${capacidad.toLocaleString('es-CL')} BTU`
+                                ? `${capacidad.toLocaleString(t('common.dateFormat'))} BTU`
                                 : capacidad}
                             </div>
                           </div>
@@ -598,7 +593,7 @@ function Cotizaciones() {
                         
                         <td className="px-3 py-3 col-precio text-right">
                           <span className="text-sm text-gray-900">
-                            ${cotizacion.precioOfertado?.toLocaleString('es-CL')}
+                            ${cotizacion.precioOfertado?.toLocaleString(t('common.dateFormat'))}
                           </span>
                         </td>
                         
@@ -610,7 +605,7 @@ function Cotizaciones() {
                         
                         <td className="px-3 py-3 col-total text-right">
                           <span className="text-sm font-bold text-green-600">
-                            ${cotizacion.precioFinal?.toLocaleString('es-CL')}
+                            ${cotizacion.precioFinal?.toLocaleString(t('common.dateFormat'))}
                           </span>
                         </td>
                         
@@ -624,7 +619,7 @@ function Cotizaciones() {
                               <button
                                 onClick={() => handleVerPDF(cotizacion.id)}
                                 className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
-                                title="Ver PDF"
+                                title={t('quotes.actions.viewPdf')}
                               >
                                 <FileText size={16} />
                               </button>
@@ -635,14 +630,14 @@ function Cotizaciones() {
                                 <button
                                   onClick={() => handleAprobar(cotizacion)}
                                   className="btn-accion-compacto text-green-600 hover:bg-green-50"
-                                  title="Aprobar"
+                                  title={t('quotes.actions.approve')}
                                 >
                                   <CheckCircle size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleRechazar(cotizacion)}
                                   className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                                  title="Rechazar"
+                                  title={t('quotes.actions.reject')}
                                 >
                                   <XCircle size={16} />
                                 </button>
@@ -651,14 +646,14 @@ function Cotizaciones() {
                             <button
                               onClick={() => handleEdit(cotizacion)}
                               className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
-                              title="Editar"
+                              title={t('common.edit')}
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(cotizacion.id)}
                               className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                              title="Eliminar"
+                              title={t('common.delete')}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -674,22 +669,22 @@ function Cotizaciones() {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
-          Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
+          {t('inventory.showing', { count: filteredCotizaciones.length, total: cotizaciones.length })}
         </div>
       </main>
 
-      {/* Modal de Crear/Editar - ACTUALIZADO */}
+      {/* Modal de Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 my-8">
             <h2 className="text-2xl font-bold mb-4">
-              {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
+              {editingCotizacion ? t('quotes.edit') : t('quotes.add')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Tipo de Servicio */}
               <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
+                <h3 className="text-lg font-semibold mb-3">{t('quotes.form.serviceType')}</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {['instalacion', 'mantencion', 'reparacion'].map((tipo) => (
                     <label
@@ -709,9 +704,9 @@ function Cotizaciones() {
                         className="sr-only"
                       />
                       <span className="font-medium">
-                        {tipo === 'instalacion' && '🔧 Instalación'}
-                        {tipo === 'mantencion' && '⚙️ Mantención'}
-                        {tipo === 'reparacion' && '🔨 Reparación'}
+                        {tipo === 'instalacion' && `🔧 ${t('workOrders.types.installation')}`}
+                        {tipo === 'mantencion' && `⚙️ ${t('workOrders.types.maintenance')}`}
+                        {tipo === 'reparacion' && `🔨 ${t('workOrders.types.repair')}`}
                       </span>
                     </label>
                   ))}
@@ -722,7 +717,7 @@ function Cotizaciones() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cliente *
+                    {t('quotes.form.client')} *
                   </label>
                   <select
                     value={formData.clienteId}
@@ -731,7 +726,7 @@ function Cotizaciones() {
                     required
                     disabled={editingCotizacion}
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t('common.select')}...</option>
                     {clientes.map(cliente => (
                       <option key={cliente.id} value={cliente.id}>
                         {cliente.nombre}
@@ -744,7 +739,7 @@ function Cotizaciones() {
                 {formData.tipo === 'instalacion' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Producto (Inventario) *
+                      {t('quotes.form.product')} *
                     </label>
                     <select
                       value={formData.inventarioId}
@@ -753,7 +748,7 @@ function Cotizaciones() {
                       required
                       disabled={editingCotizacion}
                     >
-                      <option value="">Seleccionar...</option>
+                      <option value="">{t('common.select')}...</option>
                       {inventarioDisponible.map(item => (
                         <option key={item.id} value={item.id}>
                           {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
@@ -767,7 +762,7 @@ function Cotizaciones() {
                 {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Equipo del Cliente *
+                      {t('quotes.form.equipment')} *
                     </label>
                     <select
                       value={formData.equipoId}
@@ -778,10 +773,10 @@ function Cotizaciones() {
                     >
                       <option value="">
                         {!formData.clienteId 
-                          ? 'Primero seleccione un cliente...' 
+                          ? t('quotes.form.selectClientFirst')
                           : equiposCliente.length === 0
-                          ? 'Este cliente no tiene equipos'
-                          : 'Seleccionar equipo...'}
+                          ? t('quotes.form.noClientEquipment')
+                          : t('common.select')}
                       </option>
                       {equiposCliente.map(equipo => (
                         <option key={equipo.id} value={equipo.id}>
@@ -789,11 +784,6 @@ function Cotizaciones() {
                         </option>
                       ))}
                     </select>
-                    {!formData.clienteId && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Seleccione primero un cliente para ver sus equipos
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -802,9 +792,9 @@ function Cotizaciones() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.tipo === 'instalacion' && 'Precio Equipo *'}
-                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
-                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
+                    {formData.tipo === 'instalacion' && `${t('quotes.form.priceEquipment')} *`}
+                    {formData.tipo === 'mantencion' && `${t('quotes.form.priceMaintenance')} *`}
+                    {formData.tipo === 'reparacion' && `${t('quotes.form.priceRepair')} *`}
                   </label>
                   <input
                     type="number"
@@ -820,7 +810,7 @@ function Cotizaciones() {
                 {formData.tipo === 'instalacion' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Costo Instalación *
+                      {t('quotes.form.priceInstallation')} *
                     </label>
                     <input
                       type="number"
@@ -836,7 +826,7 @@ function Cotizaciones() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Costo Material *
+                    {t('quotes.form.priceMaterial')} *
                   </label>
                   <input
                     type="number"
@@ -851,7 +841,7 @@ function Cotizaciones() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descuento (%)
+                    {t('quotes.form.discount')} (%)
                   </label>
                   <input
                     type="number"
@@ -871,31 +861,31 @@ function Cotizaciones() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>
-                        {formData.tipo === 'instalacion' && 'Equipo:'}
-                        {formData.tipo === 'mantencion' && 'Mantención:'}
-                        {formData.tipo === 'reparacion' && 'Reparación:'}
+                        {formData.tipo === 'instalacion' && t('quotes.form.priceEquipment') + ':'}
+                        {formData.tipo === 'mantencion' && t('quotes.form.priceMaintenance') + ':'}
+                        {formData.tipo === 'reparacion' && t('quotes.form.priceRepair') + ':'}
                       </span>
-                      <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
+                      <span>${parseFloat(formData.precioOfertado || 0).toLocaleString(t('common.dateFormat'))}</span>
                     </div>
                     {formData.tipo === 'instalacion' && (
                       <div className="flex justify-between">
-                        <span>Instalación:</span>
-                        <span>${parseFloat(formData.costoInstalacion || 0).toLocaleString('es-CL')}</span>
+                        <span>{t('quotes.form.priceInstallation')}:</span>
+                        <span>${parseFloat(formData.costoInstalacion || 0).toLocaleString(t('common.dateFormat'))}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span>Material:</span>
-                      <span>${parseFloat(formData.costoMaterial || 0).toLocaleString('es-CL')}</span>
+                      <span>{t('quotes.form.priceMaterial')}:</span>
+                      <span>${parseFloat(formData.costoMaterial || 0).toLocaleString(t('common.dateFormat'))}</span>
                     </div>
                     {formData.descuento > 0 && (
                       <div className="flex justify-between text-red-600">
-                        <span>Descuento ({formData.descuento}%):</span>
-                        <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString('es-CL')}</span>
+                        <span>{t('quotes.form.discount')} ({formData.descuento}%):</span>
+                        <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString(t('common.dateFormat'))}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg font-bold text-green-600 pt-2 border-t">
                       <span>TOTAL:</span>
-                      <span>${calcularTotal().toLocaleString('es-CL')}</span>
+                      <span>${calcularTotal().toLocaleString(t('common.dateFormat'))}</span>
                     </div>
                   </div>
                 </div>
@@ -905,37 +895,37 @@ function Cotizaciones() {
               {formData.tipo === 'instalacion' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Dirección de Instalación
+                    {t('quotes.form.address')}
                   </label>
                   <input
                     type="text"
                     value={formData.direccionInstalacion}
                     onChange={(e) => setFormData({ ...formData, direccionInstalacion: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Calle, número, comuna"
+                    placeholder={t('quotes.form.addressPlaceholder')}
                   />
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas
+                  {t('quotes.form.notes')}
                 </label>
                 <textarea
                   value={formData.notas}
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="3"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Detalles adicionales..."
+                  placeholder={t('quotes.form.notesPlaceholder')}
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="flex-1 btn-primary">
-                  {editingCotizacion ? 'Actualizar' : 'Crear'}
+                  {editingCotizacion ? t('common.save') : t('common.create')}
                 </button>
               </div>
             </form>
@@ -952,13 +942,13 @@ function Cotizaciones() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <h2 className="text-xl font-bold text-gray-900">
-                Aprobar Cotización
+                {t('quotes.approval.title')}
               </h2>
             </div>
 
             <div className="space-y-3 mb-6">
               <p className="text-gray-700">
-                ¿Confirmas la aprobación de esta cotización?
+                {t('quotes.approval.confirm')}
               </p>
               
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
@@ -973,7 +963,7 @@ function Cotizaciones() {
                   {getTipoBadge(cotizacionToApprove.tipo)}
                 </div>
                 <p className="text-lg font-bold text-green-600 pt-2">
-                  ${cotizacionToApprove.precioFinal.toLocaleString('es-CL')}
+                  ${cotizacionToApprove.precioFinal.toLocaleString(t('common.dateFormat'))}
                 </p>
               </div>
 
@@ -981,18 +971,18 @@ function Cotizaciones() {
                 <div className="flex gap-2">
                   <AlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
                   <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">El sistema automáticamente:</p>
+                    <p className="font-medium mb-1">{t('quotes.approval.systemActions')}:</p>
                     <ul className="space-y-1 ml-4 list-disc">
                       {cotizacionToApprove.tipo === 'instalacion' ? (
                         <>
-                          <li>Creará el equipo para el cliente</li>
-                          <li>Reducirá el stock del producto</li>
+                          <li>{t('quotes.approval.actionCreateEquipment')}</li>
+                          <li>{t('quotes.approval.actionReduceStock')}</li>
                         </>
                       ) : (
-                        <li>Usará el equipo existente del cliente</li>
+                        <li>{t('quotes.approval.actionUseEquipment')}</li>
                       )}
-                      <li>Generará una orden de trabajo</li>
-                      <li>Marcará la cotización como aprobada</li>
+                      <li>{t('quotes.approval.actionCreateOrder')}</li>
+                      <li>{t('quotes.approval.actionMarkApproved')}</li>
                     </ul>
                   </div>
                 </div>
@@ -1009,7 +999,7 @@ function Cotizaciones() {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 disabled={approving}
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmarAprobacion}
@@ -1019,12 +1009,12 @@ function Cotizaciones() {
                 {approving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Aprobando...
+                    {t('common.loading')}
                   </>
                 ) : (
                   <>
                     <CheckCircle size={18} />
-                    Confirmar Aprobación
+                    {t('quotes.actions.approve')}
                   </>
                 )}
               </button>

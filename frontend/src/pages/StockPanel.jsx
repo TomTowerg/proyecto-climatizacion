@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { 
   Package, 
   AlertTriangle, 
@@ -7,10 +8,8 @@ import {
   TrendingUp, 
   RefreshCw,
   Search,
-  Filter,
-  X,
-  Plus,
-  ArrowRight
+  ArrowRight,
+  Box
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -19,6 +18,7 @@ import { getInventario, updateInventario } from '../services/inventarioService'
 import { getCotizaciones } from '../services/cotizacionService'
 
 function StockPanel() {
+  const { t } = useTranslation() // 2. INICIALIZAR
   const navigate = useNavigate()
   const [inventario, setInventario] = useState([])
   const [cotizaciones, setCotizaciones] = useState([])
@@ -47,7 +47,7 @@ function StockPanel() {
       setCotizaciones(cotizacionesData)
     } catch (error) {
       console.error('Error al cargar datos:', error)
-      toast.error('Error al cargar datos')
+      toast.error(t('stockPanel.messages.loadError'))
     } finally {
       setLoading(false)
     }
@@ -67,10 +67,12 @@ function StockPanel() {
     .map(c => ({
       id: c.id,
       tipo: 'salida',
-      producto: c.inventario,
+      producto: c.inventario || c.equipo, // Ajuste para manejar ambos casos
       cantidad: 1,
       fecha: c.createdAt,
-      motivo: `Cotización #${c.id} aprobada - ${c.cliente?.nombre}`,
+      // Usamos una clave especial para interpolar en el renderizado
+      motivoKey: 'stockPanel.movementReason', 
+      motivoParams: { id: c.id, client: c.cliente?.nombre },
       destino: c.cliente?.nombre
     }))
 
@@ -95,7 +97,7 @@ function StockPanel() {
     try {
       const cantidad = parseInt(cantidadReponer)
       if (cantidad <= 0) {
-        toast.error('La cantidad debe ser mayor a 0')
+        toast.error(t('stockPanel.messages.invalidAmount'))
         return
       }
 
@@ -106,14 +108,14 @@ function StockPanel() {
         estado: nuevoStock > 0 ? 'disponible' : 'agotado'
       })
 
-      toast.success(`Stock actualizado: +${cantidad} unidades`)
+      toast.success(t('stockPanel.messages.updateSuccess', { amount: cantidad }))
       setShowReponerModal(false)
       setProductoReponer(null)
       setCantidadReponer('')
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      toast.error('Error al actualizar stock')
+      toast.error(t('stockPanel.messages.updateError'))
     }
   }
 
@@ -142,10 +144,10 @@ function StockPanel() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <Package className="text-blue-600" size={32} />
-              Panel de Stock
+              {t('stockPanel.title')}
             </h1>
             <p className="text-gray-600 mt-1">
-              Monitoreo y gestión de inventario
+              {t('stockPanel.subtitle')}
             </p>
           </div>
           <button
@@ -153,7 +155,7 @@ function StockPanel() {
             className="flex items-center gap-2 btn-primary"
           >
             <Package size={20} />
-            Ver Inventario Completo
+            {t('stockPanel.viewFullInventory')}
           </button>
         </div>
 
@@ -165,7 +167,7 @@ function StockPanel() {
                 <Package className="text-blue-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-sm text-gray-600">{t('stockPanel.stats.total')}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
             </div>
@@ -177,7 +179,7 @@ function StockPanel() {
                 <Package className="text-green-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Disponibles</p>
+                <p className="text-sm text-gray-600">{t('stockPanel.stats.available')}</p>
                 <p className="text-2xl font-bold text-green-600">{stats.disponibles}</p>
               </div>
             </div>
@@ -189,7 +191,7 @@ function StockPanel() {
                 <AlertTriangle className="text-orange-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Stock Bajo</p>
+                <p className="text-sm text-gray-600">{t('stockPanel.stats.lowStock')}</p>
                 <p className="text-2xl font-bold text-orange-600">{stats.stockBajo}</p>
               </div>
             </div>
@@ -201,7 +203,7 @@ function StockPanel() {
                 <Package className="text-red-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Agotados</p>
+                <p className="text-sm text-gray-600">{t('stockPanel.stats.outOfStock')}</p>
                 <p className="text-2xl font-bold text-red-600">{stats.agotados}</p>
               </div>
             </div>
@@ -213,7 +215,7 @@ function StockPanel() {
                 <TrendingUp className="text-purple-600" size={20} />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Valor Total</p>
+                <p className="text-sm text-gray-600">{t('stockPanel.stats.totalValue')}</p>
                 <p className="text-xl font-bold text-purple-600">
                   ${(stats.valorInventario / 1000000).toFixed(1)}M
                 </p>
@@ -228,10 +230,10 @@ function StockPanel() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <AlertTriangle className="text-orange-600" size={24} />
-                Productos con Stock Bajo
+                {t('stockPanel.sections.lowStock')}
               </h2>
               <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
-                {stats.stockBajo} alertas
+                {t('stockPanel.alerts', { count: stats.stockBajo })}
               </span>
             </div>
 
@@ -240,7 +242,7 @@ function StockPanel() {
               <Search size={18} className="text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar producto..."
+                placeholder={t('common.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 bg-transparent border-0 focus:ring-0 outline-none text-sm"
@@ -251,11 +253,11 @@ function StockPanel() {
               {filteredProductosStockBajo.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   {searchTerm ? (
-                    'No se encontraron productos'
+                    t('stockPanel.empty.noResults')
                   ) : (
                     <div>
                       <Package size={48} className="mx-auto mb-3 text-gray-400" />
-                      <p>¡Excelente! No hay productos con stock bajo</p>
+                      <p>{t('stockPanel.empty.lowStock')}</p>
                     </div>
                   )}
                 </div>
@@ -277,7 +279,7 @@ function StockPanel() {
                           <span>{item.tipo}</span>
                           <span>•</span>
                           <span className="font-bold text-orange-600">
-                            Stock: {item.stock} {item.stock === 1 ? 'unidad' : 'unidades'}
+                            {t('inventory.table.stock')}: {item.stock}
                           </span>
                         </div>
                       </div>
@@ -286,7 +288,7 @@ function StockPanel() {
                         className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
                       >
                         <RefreshCw size={16} />
-                        Reponer
+                        {t('stockPanel.actions.restock')}
                       </button>
                     </div>
                   </div>
@@ -300,16 +302,16 @@ function StockPanel() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <TrendingDown className="text-blue-600" size={24} />
-                Movimientos Recientes
+                {t('stockPanel.sections.recentMovements')}
               </h2>
-              <span className="text-sm text-gray-600">Últimos 10</span>
+              <span className="text-sm text-gray-600">{t('stockPanel.last10')}</span>
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {movimientosRecientes.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <TrendingDown size={48} className="mx-auto mb-3 text-gray-400" />
-                  <p>No hay movimientos registrados</p>
+                  <p>{t('stockPanel.empty.movements')}</p>
                 </div>
               ) : (
                 movimientosRecientes.map(mov => (
@@ -327,10 +329,12 @@ function StockPanel() {
                             {mov.producto?.marca} {mov.producto?.modelo}
                           </p>
                         </div>
-                        <p className="text-xs text-gray-600 mb-1">{mov.motivo}</p>
+                        <p className="text-xs text-gray-600 mb-1">
+                          {t(mov.motivoKey, mov.motivoParams)}
+                        </p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <span>
-                            {new Date(mov.fecha).toLocaleDateString('es-CL', {
+                            {new Date(mov.fecha).toLocaleDateString(t('common.dateFormat'), {
                               day: '2-digit',
                               month: 'short',
                               hour: '2-digit',
@@ -360,7 +364,7 @@ function StockPanel() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Package className="text-red-600" size={24} />
-                Productos Agotados
+                {t('stockPanel.sections.outOfStock')}
               </h2>
               <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
                 {productosAgotados.length}
@@ -381,7 +385,7 @@ function StockPanel() {
                       <p className="text-sm text-gray-600">{item.tipo}</p>
                     </div>
                     <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
-                      Agotado
+                      {t('inventory.status.outOfStock')}
                     </span>
                   </div>
                   <button
@@ -389,7 +393,7 @@ function StockPanel() {
                     className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     <RefreshCw size={16} />
-                    Reponer Stock
+                    {t('stockPanel.actions.restock')}
                   </button>
                 </div>
               ))}
@@ -401,7 +405,7 @@ function StockPanel() {
                   onClick={() => navigate('/inventario')}
                   className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 mx-auto"
                 >
-                  Ver todos los productos agotados
+                  {t('stockPanel.viewAllOut')}
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -419,7 +423,7 @@ function StockPanel() {
                 <RefreshCw className="text-blue-600" size={24} />
               </div>
               <h2 className="text-xl font-bold text-gray-900">
-                Reponer Stock
+                {t('stockPanel.modal.title')}
               </h2>
             </div>
 
@@ -430,13 +434,13 @@ function StockPanel() {
                 </p>
                 <p className="text-sm text-gray-600">{productoReponer.tipo}</p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Stock actual: <span className="font-bold">{productoReponer.stock} unidades</span>
+                  {t('stockPanel.modal.currentStock')}: <span className="font-bold">{productoReponer.stock}</span>
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad a agregar *
+                  {t('stockPanel.modal.amountToAdd')} *
                 </label>
                 <input
                   type="number"
@@ -444,7 +448,7 @@ function StockPanel() {
                   onChange={(e) => setCantidadReponer(e.target.value)}
                   min="1"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: 5"
+                  placeholder={t('stockPanel.modal.placeholder')}
                   autoFocus
                 />
               </div>
@@ -452,8 +456,8 @@ function StockPanel() {
               {cantidadReponer && (
                 <div className="bg-green-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-600">
-                    Nuevo stock: <span className="font-bold text-green-600">
-                      {productoReponer.stock + parseInt(cantidadReponer || 0)} unidades
+                    {t('stockPanel.modal.newStock')}: <span className="font-bold text-green-600">
+                      {productoReponer.stock + parseInt(cantidadReponer || 0)}
                     </span>
                   </p>
                 </div>
@@ -470,7 +474,7 @@ function StockPanel() {
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmarReposicion}
@@ -478,7 +482,7 @@ function StockPanel() {
                 className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <RefreshCw size={18} />
-                Confirmar Reposición
+                {t('stockPanel.actions.confirmRestock')}
               </button>
             </div>
           </div>

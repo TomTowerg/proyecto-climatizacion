@@ -1,5 +1,5 @@
 // ============================================
-// INDEX.JS CON SEGURIDAD COMPLETA
+// INDEX.JS CON SEGURIDAD COMPLETA + INDICADORES
 // Reemplazar: backend/src/index.js
 // ============================================
 
@@ -20,6 +20,7 @@ import ordenesTrabajoRoutes from './routes/ordenesTrabajo.js'
 import inventarioRoutes from './routes/inventario.js'
 import cotizacionesRoutes from './routes/cotizaciones.js'
 import iaRoutes from './routes/ia.js'
+import indicatorRoutes from './routes/indicators.js' // ⭐ 1. NUEVO IMPORT
 
 dotenv.config()
 
@@ -78,6 +79,7 @@ app.use('/api/ordenes-trabajo', ordenesTrabajoRoutes)
 app.use('/api/inventario', inventarioRoutes)
 app.use('/api/cotizaciones', cotizacionesRoutes)
 app.use('/api/ia', iaRoutes)
+app.use('/api/indicators', indicatorRoutes) // ⭐ 2. NUEVA RUTA AGREGADA
 
 // Ruta 404
 app.use('*', (req, res) => {
@@ -116,6 +118,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor iniciado en puerto ${PORT}`)
   console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`)
   console.log(`🔒 Seguridad: Helmet + XSS + Rate Limiting activos`)
+  console.log(`💰 Módulo Económico: Activo (mindicador.cl)`)
   console.log(`🔐 Cifrado de datos: ${process.env.ENCRYPTION_KEY ? 'Activo' : '⚠️  NO CONFIGURADO'}`)
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 })

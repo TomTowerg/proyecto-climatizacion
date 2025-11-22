@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR ESTO
 import { 
   Home, 
   Users, 
@@ -16,6 +17,7 @@ import {
 import { logout } from '../services/authService'
 
 function Navbar() {
+  const { t } = useTranslation() // 2. INICIALIZAR HOOK
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -29,15 +31,16 @@ function Navbar() {
     return location.pathname === path
   }
 
+  // 3. USAR t() EN LAS ETIQUETAS
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/clientes', label: 'Clientes', icon: Users },
-    { path: '/equipos', label: 'Equipos', icon: Wind },
-    { path: '/ordenes-trabajo', label: 'Órdenes', icon: ClipboardList },
-    { path: '/inventario', label: 'Inventario', icon: Package },
-    { path: '/cotizaciones', label: 'Cotizaciones', icon: FileText },
-    { path: '/calendario', label: 'Calendario', icon: Calendar },
-    { path: '/stock-panel', label: 'Stock Panel', icon: TrendingUp },
+    { path: '/dashboard', label: t('nav.dashboard'), icon: Home },
+    { path: '/clientes', label: t('nav.clients'), icon: Users },
+    { path: '/equipos', label: t('nav.equipment'), icon: Wind },
+    { path: '/ordenes-trabajo', label: t('nav.workOrders'), icon: ClipboardList },
+    { path: '/inventario', label: t('nav.inventory'), icon: Package },
+    { path: '/cotizaciones', label: t('nav.quotes'), icon: FileText },
+    { path: '/calendario', label: t('nav.calendar'), icon: Calendar },
+    { path: '/stock-panel', label: t('nav.stockPanel'), icon: TrendingUp },
   ]
 
   return (
@@ -80,7 +83,7 @@ function Navbar() {
               className="hidden md:flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
               <LogOut size={18} />
-              <span className="text-sm font-medium">Salir</span>
+              <span className="text-sm font-medium">{t('nav.logout')}</span>
             </button>
 
             {/* Mobile menu button */}
@@ -120,7 +123,7 @@ function Navbar() {
                 className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               >
                 <LogOut size={20} />
-                <span className="font-medium">Cerrar Sesión</span>
+                <span className="font-medium">{t('nav.logout')}</span>
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react' 
-import { GoogleOAuthProvider } from '@react-oauth/google'  // ⭐ AGREGADO
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -13,6 +13,8 @@ import Cotizaciones from './pages/Cotizaciones'
 import CalendarioOT from './pages/CalendarioOT'
 import StockPanel from './pages/StockPanel'
 import ChatAsistente from './components/ChatAsistente'
+// ⭐ 1. IMPORTAMOS EL SELECTOR DE IDIOMA
+import LanguageSelector from './components/LanguageSelector' 
 import { isAuthenticated } from './services/authService'
 import './index.css'
 
@@ -47,7 +49,7 @@ function ConditionalChatbot() {
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>  {/* ⭐ AGREGADO */}
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <Router>
         <div className="App">
           <Toaster
@@ -74,6 +76,10 @@ function App() {
               },
             }}
           />
+
+          {/* ⭐ 2. AGREGAMOS EL SELECTOR AQUÍ (GLOBAL) */}
+          {/* Al estar fuera de <Routes>, aparece en todas las páginas */}
+          <LanguageSelector />
 
           <Routes>
             {/* Rutas Públicas */}
@@ -130,7 +136,7 @@ function App() {
               }
             />
             
-            {/*  NUEVAS RUTAS - FASE 2 */}
+            {/* NUEVAS RUTAS - FASE 2 */}
             <Route
               path="/calendario"
               element={
@@ -155,7 +161,7 @@ function App() {
           {/* CHATBOT ASISTENTE - Solo en rutas autenticadas, excluye login/register */}
           <ConditionalChatbot />
 
-          {/* ANALYTICS - AGREGADO */}
+          {/* ANALYTICS */}
           <Analytics />
         </div>
       </Router>

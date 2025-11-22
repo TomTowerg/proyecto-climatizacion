@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, Package, AlertCircle, TrendingUp, TrendingDown, DollarSign, Box } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -7,6 +8,7 @@ import { isAuthenticated } from '../services/authService'
 import { getInventario, createInventario, updateInventario, deleteInventario } from '../services/inventarioService'
 
 function Inventario() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [inventario, setInventario] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +47,7 @@ function Inventario() {
       setInventario(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error al cargar inventario:', error)
-      toast.error('Error al cargar inventario')
+      toast.error(t('inventory.messages.loadError'))
       setInventario([])
     } finally {
       setLoading(false)
@@ -95,17 +97,17 @@ function Inventario() {
 
       if (editingItem) {
         await updateInventario(editingItem.id, dataToSend)
-        toast.success('Producto actualizado exitosamente')
+        toast.success(t('inventory.messages.updateSuccess'))
       } else {
         await createInventario(dataToSend)
-        toast.success('Producto agregado al inventario')
+        toast.success(t('inventory.messages.createSuccess'))
       }
       
       fetchInventario()
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
-      toast.error(error.response?.data?.error || 'Error al guardar producto')
+      toast.error(error.response?.data?.error || t('inventory.messages.saveError'))
     }
   }
 
@@ -131,17 +133,17 @@ function Inventario() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este producto?')) {
+    if (!window.confirm(t('inventory.messages.deleteConfirm'))) {
       return
     }
 
     try {
       await deleteInventario(id)
-      toast.success('Producto eliminado del inventario')
+      toast.success(t('inventory.messages.deleteSuccess'))
       fetchInventario()
     } catch (error) {
       console.error('Error:', error)
-      toast.error('Error al eliminar producto')
+      toast.error(t('inventory.messages.deleteError'))
     }
   }
 
@@ -170,14 +172,14 @@ function Inventario() {
     const stock = parseInt(item.stock) || 0
     const stockMin = parseInt(item.stockMinimo) || 1
     
-    if (stock === 0) return { color: 'text-red-600', bg: 'bg-red-100', icon: AlertCircle, text: 'Agotado' }
-    if (stock <= stockMin) return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: TrendingDown, text: 'Stock Bajo' }
-    return { color: 'text-green-600', bg: 'bg-green-100', icon: TrendingUp, text: 'Disponible' }
+    if (stock === 0) return { color: 'text-red-600', bg: 'bg-red-100', icon: AlertCircle, text: t('inventory.status.outOfStock') }
+    if (stock <= stockMin) return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: TrendingDown, text: t('inventory.status.lowStock') }
+    return { color: 'text-green-600', bg: 'bg-green-100', icon: TrendingUp, text: t('inventory.status.available') }
   }
 
   const formatPrice = (value) => {
     const num = parseFloat(value) || 0
-    return num.toLocaleString('es-CL', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    return num.toLocaleString(t('common.dateFormat'), { minimumFractionDigits: 0, maximumFractionDigits: 0 })
   }
 
   const filteredInventario = inventario.filter(item => {
@@ -209,15 +211,15 @@ function Inventario() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventario</h1>
-            <p className="text-gray-600 mt-1">Gestión de productos y stock</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('inventory.title')}</h1>
+            <p className="text-gray-600 mt-1">{t('inventory.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 btn-primary"
           >
             <Plus size={20} />
-            Agregar Producto
+            {t('inventory.add')}
           </button>
         </div>
 
@@ -226,7 +228,7 @@ function Inventario() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-sm text-gray-600">{t('inventory.stats.total')}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
               <Box className="text-blue-500" size={24} />
@@ -236,7 +238,7 @@ function Inventario() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Disponibles</p>
+                <p className="text-sm text-gray-600">{t('inventory.stats.available')}</p>
                 <p className="text-2xl font-bold text-green-600">{stats.disponibles}</p>
               </div>
               <TrendingUp className="text-green-500" size={24} />
@@ -246,7 +248,7 @@ function Inventario() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Stock Bajo</p>
+                <p className="text-sm text-gray-600">{t('inventory.stats.lowStock')}</p>
                 <p className="text-2xl font-bold text-yellow-600">{stats.stockBajo}</p>
               </div>
               <AlertCircle className="text-yellow-500" size={24} />
@@ -256,7 +258,7 @@ function Inventario() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Agotados</p>
+                <p className="text-sm text-gray-600">{t('inventory.stats.outOfStock')}</p>
                 <p className="text-2xl font-bold text-red-600">{stats.agotados}</p>
               </div>
               <TrendingDown className="text-red-500" size={24} />
@@ -266,7 +268,7 @@ function Inventario() {
           <div className="card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Valor Total</p>
+                <p className="text-sm text-gray-600">{t('inventory.stats.totalValue')}</p>
                 <p className="text-2xl font-bold text-blue-600">${formatPrice(stats.valorTotal)}</p>
               </div>
               <DollarSign className="text-blue-500" size={24} />
@@ -280,7 +282,7 @@ function Inventario() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por marca, modelo, serie o tipo..."
+              placeholder={t('inventory.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
@@ -294,21 +296,21 @@ function Inventario() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Marca/Modelo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacidad</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Compra</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">P. Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.type')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.brandModel')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.capacity')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.stock')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.purchasePrice')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.salePrice')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.status')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('inventory.table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInventario.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                      {searchTerm ? 'No se encontraron productos' : 'No hay productos en el inventario'}
+                      {searchTerm ? t('inventory.table.noResults') : t('inventory.table.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -346,7 +348,7 @@ function Inventario() {
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                             item.estado === 'disponible' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {item.estado || 'N/A'}
+                            {item.estado === 'disponible' ? t('inventory.status.available') : item.estado}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -354,14 +356,14 @@ function Inventario() {
                             <button
                               onClick={() => handleEdit(item)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Editar"
+                              title={t('common.edit')}
                             >
                               <Edit size={18} />
                             </button>
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Eliminar"
+                              title={t('common.delete')}
                             >
                               <Trash2 size={18} />
                             </button>
@@ -377,7 +379,7 @@ function Inventario() {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
-          Mostrando {filteredInventario.length} de {inventario.length} productos
+          {t('inventory.showing', { count: filteredInventario.length, total: inventario.length })}
         </div>
       </main>
 
@@ -386,14 +388,14 @@ function Inventario() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6 my-8">
             <h2 className="text-2xl font-bold mb-4">
-              {editingItem ? 'Editar Producto' : 'Nuevo Producto'}
+              {editingItem ? t('inventory.edit') : t('inventory.add')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo *
+                    {t('inventory.form.type')} *
                   </label>
                   <select
                     value={formData.tipo}
@@ -401,7 +403,7 @@ function Inventario() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     required
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t('common.select')}...</option>
                     <option value="Split">Split</option>
                     <option value="Split Muro">Split Muro</option>
                     <option value="Cassette">Cassette</option>
@@ -412,7 +414,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Marca *
+                    {t('inventory.form.brand')} *
                   </label>
                   <input
                     type="text"
@@ -425,7 +427,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Modelo *
+                    {t('inventory.form.model')} *
                   </label>
                   <input
                     type="text"
@@ -438,7 +440,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número de Serie *
+                    {t('inventory.form.serialNumber')} *
                   </label>
                   <input
                     type="text"
@@ -451,7 +453,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Capacidad BTU *
+                    {t('inventory.form.capacityBTU')} *
                   </label>
                   <input
                     type="number"
@@ -464,7 +466,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Stock *
+                    {t('inventory.form.stock')} *
                   </label>
                   <input
                     type="number"
@@ -478,7 +480,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Stock Mínimo *
+                    {t('inventory.form.minStock')} *
                   </label>
                   <input
                     type="number"
@@ -492,7 +494,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio Compra *
+                    {t('inventory.form.purchasePrice')} *
                   </label>
                   <input
                     type="number"
@@ -507,7 +509,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio Cliente *
+                    {t('inventory.form.salePrice')} *
                   </label>
                   <input
                     type="number"
@@ -522,7 +524,7 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Precio Instalación
+                    {t('inventory.form.installationPrice')}
                   </label>
                   <input
                     type="number"
@@ -536,35 +538,35 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
+                    {t('inventory.form.status')}
                   </label>
                   <select
                     value={formData.estado}
                     onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="disponible">Disponible</option>
-                    <option value="reservado">Reservado</option>
-                    <option value="vendido">Vendido</option>
+                    <option value="disponible">{t('inventory.status.available')}</option>
+                    <option value="reservado">{t('inventory.status.reserved')}</option>
+                    <option value="vendido">{t('inventory.status.sold')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ubicación
+                    {t('inventory.form.location')}
                   </label>
                   <input
                     type="text"
                     value={formData.ubicacion}
                     onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Ej: Bodega A-12"
+                    placeholder={t('inventory.form.locationPlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Proveedor
+                    {t('inventory.form.provider')}
                   </label>
                   <input
                     type="text"
@@ -577,23 +579,23 @@ function Inventario() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Características
+                  {t('inventory.form.features')}
                 </label>
                 <textarea
                   value={formData.caracteristicas}
                   onChange={(e) => setFormData({ ...formData, caracteristicas: e.target.value })}
                   rows="3"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Características técnicas..."
+                  placeholder={t('inventory.form.featuresPlaceholder')}
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="flex-1 btn-primary">
-                  {editingItem ? 'Actualizar' : 'Crear'}
+                  {editingItem ? t('common.save') : t('common.create')}
                 </button>
               </div>
             </form>
