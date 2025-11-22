@@ -48,7 +48,7 @@ function Equipos() {
       setClientes(clientesData)
     } catch (error) {
       console.error('Error al cargar datos:', error)
-      toast.error('Error al cargar datos')
+      toast.error(t('equipment.messages.loadError'))
     } finally {
       setLoading(false)
     }
@@ -60,17 +60,17 @@ function Equipos() {
     try {
       if (editingEquipo) {
         await updateEquipo(editingEquipo.id, formData)
-        toast.success('Equipo actualizado exitosamente')
+        toast.success(t('equipment.messages.updateSuccess'))
       } else {
         await createEquipo(formData)
-        toast.success('Equipo creado exitosamente')
+        toast.success(t('equipment.messages.createSuccess'))
       }
       
       fetchData()
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || 'Error al guardar equipo'
+      const errorMessage = error.response?.data?.error || t('equipment.messages.saveError')
       toast.error(errorMessage)
     }
   }
@@ -91,17 +91,17 @@ function Equipos() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este equipo?')) {
+    if (!window.confirm(t('equipment.messages.deleteConfirm'))) {
       return
     }
 
     try {
       await deleteEquipo(id)
-      toast.success('Equipo eliminado exitosamente')
+      toast.success(t('equipment.messages.deleteSuccess'))
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || 'Error al eliminar equipo'
+      const errorMessage = error.response?.data?.error || t('equipment.messages.deleteError')
       toast.error(errorMessage)
     }
   }
@@ -162,7 +162,7 @@ function Equipos() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por marca, modelo, serie o cliente..."
+              placeholder={t('equipment.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
@@ -176,22 +176,22 @@ function Equipos() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo">
-                    Tipo
+                    {t('equipment.table.type')}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-marca-modelo">
-                    Marca/Modelo
+                    {t('equipment.table.brandModel')}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-numero-serie">
-                    N° Serie
+                    {t('equipment.table.serialNumber')}
                   </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-capacidad">
-                    Capacidad
+                    {t('equipment.table.capacity')}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-cliente">
-                    Cliente
+                    {t('equipment.table.client')}
                   </th>
                   <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-acciones">
-                    Acciones
+                    {t('equipment.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -199,7 +199,7 @@ function Equipos() {
                 {filteredEquipos.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                      No hay equipos registrados
+                      {t('equipment.table.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -249,14 +249,14 @@ function Equipos() {
                           <button
                             onClick={() => handleEdit(equipo)}
                             className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
-                            title="Editar"
+                            title={t('common.edit')}
                           >
                             <Edit size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(equipo.id)}
                             className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                            title="Eliminar"
+                            title={t('common.delete')}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -276,14 +276,14 @@ function Equipos() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
-              {editingEquipo ? 'Editar Equipo' : 'Agregar Equipo'}
+              {editingEquipo ? t('equipment.edit') : t('equipment.add')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo *
+                    {t('equipment.form.type')} *
                   </label>
                   <select
                     value={formData.tipo}
@@ -291,7 +291,7 @@ function Equipos() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t('common.select')}...</option>
                     <option value="Split Muro">Split Muro</option>
                     <option value="Split">Split</option>
                     <option value="Cassette">Cassette</option>
@@ -303,7 +303,7 @@ function Equipos() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cliente *
+                    {t('equipment.form.client')} *
                   </label>
                   <select
                     value={formData.clienteId}
@@ -311,7 +311,7 @@ function Equipos() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t('common.select')}...</option>
                     {clientes.map(cliente => (
                       <option key={cliente.id} value={cliente.id}>
                         {cliente.nombre}
@@ -324,7 +324,7 @@ function Equipos() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Marca *
+                    {t('equipment.form.brand')} *
                   </label>
                   <input
                     type="text"
@@ -337,7 +337,7 @@ function Equipos() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Modelo *
+                    {t('equipment.form.model')} *
                   </label>
                   <input
                     type="text"
@@ -352,7 +352,7 @@ function Equipos() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    N° Serie *
+                    {t('equipment.form.serialNumber')} *
                   </label>
                   <input
                     type="text"
@@ -365,7 +365,7 @@ function Equipos() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Año *
+                    {t('equipment.form.year')} *
                   </label>
                   <input
                     type="number"
@@ -382,7 +382,7 @@ function Equipos() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Capacidad *
+                    {t('equipment.form.capacity')} *
                   </label>
                   <input
                     type="text"
@@ -396,7 +396,7 @@ function Equipos() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tipo de Gas *
+                    {t('equipment.form.gasType')} *
                   </label>
                   <select
                     value={formData.tipoGas}
@@ -404,7 +404,7 @@ function Equipos() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Seleccionar...</option>
+                    <option value="">{t('common.select')}...</option>
                     <option value="R410A">R410A</option>
                     <option value="R32">R32</option>
                     <option value="R22">R22</option>
@@ -419,13 +419,13 @@ function Equipos() {
                   onClick={handleCloseModal}
                   className="flex-1 btn-secondary"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 btn-primary"
                 >
-                  {editingEquipo ? 'Actualizar' : 'Crear'}
+                  {editingEquipo ? t('common.save') : t('common.save')}
                 </button>
               </div>
             </form>
