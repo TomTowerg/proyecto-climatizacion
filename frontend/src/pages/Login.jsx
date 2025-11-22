@@ -1,8 +1,3 @@
-// ============================================
-// LOGIN.JSX CON GOOGLE SIGN-IN CORRECTO
-// Ubicación: frontend/src/pages/Login.jsx
-// ============================================
-
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -36,7 +31,7 @@ function Login() {
     }
   }
 
-  // ⭐ LOGIN CON GOOGLE (CORRECTO)
+  // ⭐ LOGIN CON GOOGLE
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setLoading(true)
@@ -84,6 +79,9 @@ function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+      
+      {/* El LanguageSelector ya no está aquí, se carga en App.jsx */}
+
       <div className="card max-w-md w-full mx-4">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
           {t('app.title')}
@@ -126,7 +124,6 @@ function Login() {
             {loading ? t('common.loading') : t('auth.login')}
           </button>
 
-          {/* ⭐ BOTÓN DE GOOGLE (CORRECTO) */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
@@ -141,7 +138,7 @@ function Login() {
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="signin_with"
-              locale="es"
+              locale={t('auth.loginWithGoogle') === "Iniciar sesión con Google" ? "es" : "en"} 
               theme="outline"
               size="large"
               width="100%"
