@@ -68,7 +68,13 @@
     "register": "Register",
     "viewStock": "View Stock",
     "quickNewQuote": "Quote",
-    "new": "New"
+    "new": "New",
+    "indicators": {
+      "dollar": "Dollar (USD)",
+      "uf": "UF (Today)",
+      "euro": "Euro (EUR)",
+      "utm": "UTM (Month)"
+    }
   },
   "clients": {
     "title": "Clients",
@@ -451,4 +457,4 @@
       "loadError": "Error loading work orders"
     }
   }
-}
+} 

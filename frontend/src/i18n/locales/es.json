@@ -4,7 +4,7 @@
     "welcome": "Bienvenido"
   },
   "nav": {
-    "dashboard": "Dashboard",
+    "dashboard": "Dashboard", 
     "clients": "Clientes",
     "equipment": "Equipos",
     "workOrders": "Órdenes",
