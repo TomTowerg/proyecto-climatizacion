@@ -12,7 +12,8 @@
     "prisma:studio": "prisma studio",
     "start:prod": "npx prisma migrate deploy && node src/index.js",
     "build": "npx prisma generate",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "translate": "node scripts/translate.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
