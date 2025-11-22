@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { 
   Users, 
   Wind, 
@@ -26,6 +27,7 @@ import { getCotizaciones, getEstadisticas } from '../services/cotizacionService'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 function Dashboard() {
+  const { t } = useTranslation() // 2. INICIALIZAR
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -49,7 +51,6 @@ function Dashboard() {
       return
     }
     
-    // Obtener nombre del usuario desde localStorage
     try {
       const userStr = localStorage.getItem('user')
       if (userStr) {
@@ -67,14 +68,12 @@ function Dashboard() {
     try {
       setLoading(true)
       
-      // Cargar datos principales
       const [clientes, equipos, ordenes] = await Promise.all([
         getClientes(),
         getEquipos(),
         getOrdenesTrabajo()
       ])
 
-      // Intentar cargar productos (opcional)
       let productos = []
       try {
         const inventarioModule = await import('../services/inventarioService')
@@ -86,7 +85,6 @@ function Dashboard() {
         productos = []
       }
 
-      // ⭐ Cargar estadísticas de cotizaciones y todas las cotizaciones
       try {
         const [cotizacionStatsData, cotizacionesData] = await Promise.all([
           getEstadisticas(),
@@ -98,7 +96,6 @@ function Dashboard() {
         console.log('Estadísticas de cotizaciones no disponibles')
       }
 
-      // Calcular estadísticas
       const ordenesPendientes = ordenes.filter(o => o.estado === 'pendiente').length
       const ordenesEnProceso = ordenes.filter(o => o.estado === 'en_proceso').length
       const ordenesCompletadas = ordenes.filter(o => o.estado === 'completado').length
@@ -115,7 +112,6 @@ function Dashboard() {
         urgenciasCriticas
       })
 
-      // Ordenar por fecha y tomar las 5 más recientes
       const recientes = ordenes
         .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
         .slice(0, 5)
@@ -123,7 +119,7 @@ function Dashboard() {
 
     } catch (error) {
       console.error('Error al cargar datos del dashboard:', error)
-      toast.error('Error al cargar datos')
+      toast.error(t('common.error')) // Usando traducción para error
     } finally {
       setLoading(false)
     }
@@ -147,14 +143,12 @@ function Dashboard() {
     return info[estado] || info.pendiente
   }
 
-  // Datos para gráfico de cotizaciones (Pie Chart)
   const cotizacionesChartData = cotizacionStats ? [
-    { name: 'Pendientes', value: cotizacionStats.pendientes, color: '#EAB308' },
-    { name: 'Aprobadas', value: cotizacionStats.aprobadas, color: '#22C55E' },
-    { name: 'Rechazadas', value: cotizacionStats.rechazadas, color: '#EF4444' }
+    { name: t('workOrders.statuses.pending'), value: cotizacionStats.pendientes, color: '#EAB308' },
+    { name: t('dashboard.approved'), value: cotizacionStats.aprobadas, color: '#22C55E' },
+    { name: t('dashboard.rejected'), value: cotizacionStats.rechazadas, color: '#EF4444' }
   ].filter(item => item.value > 0) : []
 
-  // Datos para gráfico de cotizaciones por mes (últimos 6 meses)
   const getCotizacionesPorMes = () => {
     if (!cotizaciones || cotizaciones.length === 0) return []
 
@@ -201,13 +195,13 @@ function Dashboard() {
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header con Bienvenida */}
+        {/* Header con Bienvenida TRADUCIDA */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            👋 ¡Bienvenido{userName ? `, ${userName}` : ''}!
+             👋 {t('dashboard.welcome', { name: userName })}
           </h1>
           <p className="text-gray-600">
-            Aquí tienes un resumen de tu sistema de climatización
+            {t('dashboard.summary')}
           </p>
         </div>
 
@@ -217,9 +211,9 @@ function Dashboard() {
           <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/clientes')}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Clientes</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.clients')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.clientes}</p>
-                <p className="text-xs text-gray-500 mt-1">Total registrados</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalRegistered')}</p>
               </div>
               <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
                 <Users className="text-blue-600" size={28} />
@@ -231,9 +225,9 @@ function Dashboard() {
           <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/equipos')}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Equipos</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.equipment')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.equipos}</p>
-                <p className="text-xs text-gray-500 mt-1">Aires registrados</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalInstalled')}</p>
               </div>
               <div className="w-14 h-14 bg-cyan-100 rounded-full flex items-center justify-center">
                 <Wind className="text-cyan-600" size={28} />
@@ -245,9 +239,9 @@ function Dashboard() {
           <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/ordenes-trabajo')}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Órdenes</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.workOrders')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.ordenes}</p>
-                <p className="text-xs text-gray-500 mt-1">Total de trabajos</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalWorks')}</p>
               </div>
               <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
                 <ClipboardList className="text-purple-600" size={28} />
@@ -259,9 +253,9 @@ function Dashboard() {
           <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/inventario')}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Productos</p>
+                <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.products')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.productos}</p>
-                <p className="text-xs text-gray-500 mt-1">En inventario</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.inStock')}</p>
               </div>
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                 <Package className="text-green-600" size={28} />
@@ -270,13 +264,13 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* ⭐ Estadísticas de Cotizaciones con Métricas */}
+        {/* Estadísticas de Cotizaciones */}
         {cotizacionStats && (
           <div className="card mb-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/cotizaciones')}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <FileText className="text-indigo-600" size={24} />
-                Cotizaciones
+                {t('nav.quotes')}
               </h2>
               <ArrowRight className="text-gray-400" size={20} />
             </div>
@@ -291,19 +285,19 @@ function Dashboard() {
               {/* Pendientes */}
               <div className="text-center">
                 <p className="text-2xl font-bold text-yellow-600">{cotizacionStats.pendientes}</p>
-                <p className="text-xs text-gray-600 mt-1">Pendientes</p>
+                <p className="text-xs text-gray-600 mt-1">{t('workOrders.statuses.pending')}</p>
               </div>
 
               {/* Aprobadas */}
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">{cotizacionStats.aprobadas}</p>
-                <p className="text-xs text-gray-600 mt-1">Aprobadas</p>
+                <p className="text-xs text-gray-600 mt-1">{t('dashboard.approved')}</p>
               </div>
 
               {/* Tasa */}
               <div className="text-center">
                 <p className="text-2xl font-bold text-blue-600">{cotizacionStats.tasaAprobacion}%</p>
-                <p className="text-xs text-gray-600 mt-1">Tasa Aprobación</p>
+                <p className="text-xs text-gray-600 mt-1">{t('dashboard.approvalRate')}</p>
               </div>
 
               {/* Valor */}
@@ -314,20 +308,19 @@ function Dashboard() {
                     {(cotizacionStats.valorTotalAprobadas / 1000000).toFixed(1)}M
                   </p>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Valor Total</p>
+                <p className="text-xs text-gray-600 mt-1">{t('dashboard.totalValue')}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* ⭐ Gráficos */}
+        {/* Gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Estados de Cotizaciones */}
           {cotizacionesChartData.length > 0 && (
             <div className="card">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="text-indigo-600" size={20} />
-                Distribución de Cotizaciones
+                {t('dashboard.quotesDistribution')}
               </h3>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -352,12 +345,11 @@ function Dashboard() {
             </div>
           )}
 
-          {/* Gráfico de Cotizaciones Mensuales */}
           {cotizacionesMensuales.length > 0 && (
             <div className="card">
               <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="text-blue-600" size={20} />
-                Cotizaciones Últimos 6 Meses
+                {t('dashboard.quotesLast6Months')}
               </h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={cotizacionesMensuales}>
@@ -366,8 +358,8 @@ function Dashboard() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="aprobadas" fill="#22C55E" name="Aprobadas" />
-                  <Bar dataKey="pendientes" fill="#EAB308" name="Pendientes" />
+                  <Bar dataKey="aprobadas" fill="#22C55E" name={t('dashboard.approved')} />
+                  <Bar dataKey="pendientes" fill="#EAB308" name={t('workOrders.statuses.pending')} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -379,7 +371,7 @@ function Dashboard() {
           <div className="card">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <TrendingUp className="text-blue-600" size={24} />
-              Estado de Órdenes
+              {t('dashboard.ordersStatus')}
             </h2>
             
             <div className="space-y-4">
@@ -388,7 +380,7 @@ function Dashboard() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Clock className="text-yellow-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">Pendientes</span>
+                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.pending')}</span>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesPendientes}</span>
                 </div>
@@ -405,7 +397,7 @@ function Dashboard() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="text-blue-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">En Proceso</span>
+                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.inProgress')}</span>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesEnProceso}</span>
                 </div>
@@ -422,7 +414,7 @@ function Dashboard() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="text-green-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">Completadas</span>
+                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.completed')}</span>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesCompletadas}</span>
                 </div>
@@ -441,10 +433,10 @@ function Dashboard() {
                 <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
                 <div>
                   <p className="text-sm font-medium text-red-900">
-                    ⚠️ {stats.urgenciasCriticas} {stats.urgenciasCriticas === 1 ? 'orden crítica' : 'órdenes críticas'}
+                    ⚠️ {stats.urgenciasCriticas} {t('dashboard.criticalAlert', { count: stats.urgenciasCriticas })}
                   </p>
                   <p className="text-xs text-red-700 mt-1">
-                    {stats.urgenciasCriticas === 1 ? 'Requiere' : 'Requieren'} atención inmediata
+                    {t('dashboard.attentionRequired')}
                   </p>
                 </div>
               </div>
@@ -455,13 +447,13 @@ function Dashboard() {
           <div className="card">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Calendar className="text-purple-600" size={24} />
-              Órdenes Recientes
+              {t('dashboard.recentOrders')}
             </h2>
             
             {ordenesRecientes.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <ClipboardList size={48} className="mx-auto mb-3 text-gray-400" />
-                <p>No hay órdenes registradas</p>
+                <p>{t('dashboard.noOrders')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -486,12 +478,13 @@ function Dashboard() {
                           <div className="flex items-center gap-3 text-xs text-gray-600">
                             <span className="flex items-center gap-1">
                               <EstadoIcon size={12} className={getEstadoInfo(orden.estado).color} />
+                              {/* Traducir estados dinámicamente sería ideal, por ahora uso reemplazo básico */}
                               {orden.estado.replace('_', ' ')}
                             </span>
                             <span>•</span>
                             <span>{orden.tipo}</span>
                             <span>•</span>
-                            <span>{new Date(orden.fecha).toLocaleDateString('es-CL')}</span>
+                            <span>{new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}</span>
                           </div>
                         </div>
                         <ArrowRight className="text-gray-400" size={18} />
@@ -506,7 +499,7 @@ function Dashboard() {
 
         {/* Accesos Rápidos */}
         <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">⚡ Accesos Rápidos</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">⚡ {t('dashboard.quickAccess')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => navigate('/ordenes-trabajo')}
@@ -517,8 +510,8 @@ function Dashboard() {
                   <Plus className="text-white" size={20} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">Nueva Orden</p>
-                  <p className="text-xs text-gray-600">Crear OT</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewOrder')}</p>
+                  <p className="text-xs text-gray-600">{t('dashboard.create')}</p>
                 </div>
               </div>
             </button>
@@ -532,8 +525,8 @@ function Dashboard() {
                   <Plus className="text-white" size={20} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">Nuevo Cliente</p>
-                  <p className="text-xs text-gray-600">Registrar</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewClient')}</p>
+                  <p className="text-xs text-gray-600">{t('dashboard.register')}</p>
                 </div>
               </div>
             </button>
@@ -547,8 +540,8 @@ function Dashboard() {
                   <Package className="text-white" size={20} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">Inventario</p>
-                  <p className="text-xs text-gray-600">Ver stock</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('nav.inventory')}</p>
+                  <p className="text-xs text-gray-600">{t('dashboard.viewStock')}</p>
                 </div>
               </div>
             </button>
@@ -562,8 +555,8 @@ function Dashboard() {
                   <Plus className="text-white" size={20} />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900 text-sm">Cotización</p>
-                  <p className="text-xs text-gray-600">Nueva</p>
+                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewQuote')}</p>
+                  <p className="text-xs text-gray-600">{t('dashboard.new')}</p>
                 </div>
               </div>
             </button>
