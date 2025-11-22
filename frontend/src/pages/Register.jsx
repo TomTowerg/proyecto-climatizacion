@@ -1,13 +1,10 @@
-// ============================================
-// REGISTER.JSX - CON VALIDACIÓN DE CONTRASEÑA
-// Ubicación: frontend/src/pages/Register.jsx
-// ============================================
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import PasswordInput from '../components/PasswordInput'
 
 const Register = () => {
+  const { t } = useTranslation() // 2. INICIALIZAR
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
@@ -25,7 +22,7 @@ const Register = () => {
 
     // Validar que las contraseñas coincidan
     if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden')
+      setError(t('auth.messages.passwordsDoNotMatch'))
       return
     }
 
@@ -50,15 +47,15 @@ const Register = () => {
       if (!response.ok) {
         // Manejo de errores del backend
         if (response.status === 403) {
-          setError('Tu email no está autorizado para registrarse. Solo el personal autorizado puede crear una cuenta.')
+          setError(t('auth.messages.emailNotAuthorized'))
         } else if (response.status === 400) {
           if (data.error === 'Contraseña débil') {
-            setError(`Contraseña débil: ${data.details.join(', ')}`)
+            setError(`${t('auth.messages.weakPassword')}: ${data.details.join(', ')}`)
           } else {
-            setError(data.error || 'Error al registrarse')
+            setError(data.error || t('auth.messages.registrationError'))
           }
         } else {
-          setError(data.error || 'Error al registrarse')
+          setError(data.error || t('auth.messages.registrationError'))
         }
         return
       }
@@ -72,7 +69,7 @@ const Register = () => {
 
     } catch (err) {
       console.error('Error en registro:', err)
-      setError('Error de conexión. Intenta de nuevo.')
+      setError(t('auth.messages.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -83,10 +80,10 @@ const Register = () => {
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900">
-            Registrarse
+            {t('auth.register')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sistema de Gestión de Climatización
+            {t('app.title')}
           </p>
         </div>
 
@@ -100,7 +97,7 @@ const Register = () => {
           {/* Nombre Completo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre Completo
+              {t('auth.form.fullName')}
             </label>
             <input
               type="text"
@@ -108,14 +105,14 @@ const Register = () => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Tu nombre completo"
+              placeholder={t('auth.form.namePlaceholder')}
             />
           </div>
 
           {/* Correo Electrónico */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Correo Electrónico
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -126,14 +123,14 @@ const Register = () => {
               placeholder="tu@email.com"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Solo emails autorizados pueden registrarse
+              {t('auth.form.authorizedOnly')}
             </p>
           </div>
 
           {/* Usuario */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Usuario
+              {t('auth.form.username')}
             </label>
             <input
               type="text"
@@ -141,7 +138,7 @@ const Register = () => {
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="nombreusuario"
+              placeholder={t('auth.form.usernamePlaceholder')}
             />
           </div>
 
@@ -149,13 +146,13 @@ const Register = () => {
           <PasswordInput
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            label="Contraseña"
+            label={t('auth.password')}
           />
 
           {/* Confirmar Contraseña */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmar Contraseña
+              {t('auth.form.confirmPassword')}
             </label>
             <input
               type="password"
@@ -163,11 +160,11 @@ const Register = () => {
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Confirma tu contraseña"
+              placeholder={t('auth.form.confirmPlaceholder')}
             />
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
               <p className="mt-1 text-xs text-red-600">
-                Las contraseñas no coinciden
+                {t('auth.messages.passwordsDoNotMatch')}
               </p>
             )}
           </div>
@@ -178,19 +175,19 @@ const Register = () => {
             disabled={loading || formData.password !== formData.confirmPassword}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Registrando...' : 'Registrarse'}
+            {loading ? t('common.loading') : t('auth.register')}
           </button>
         </form>
 
         {/* Link a Login */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            ¿Ya tienes cuenta?{' '}
+            {t('auth.alreadyHaveAccount')}{' '}
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/')}
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Iniciar Sesión
+              {t('auth.login')}
             </button>
           </p>
         </div>
