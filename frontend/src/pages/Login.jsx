@@ -5,6 +5,8 @@ import { GoogleLogin } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import toast from 'react-hot-toast'
 import { login } from '../services/authService'
+// ⭐ 1. IMPORTAR EL COMPONENTE
+import LanguageSelector from '../components/LanguageSelector'
 
 function Login() {
   const { t } = useTranslation()
@@ -78,9 +80,13 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 relative">
       
-      {/* El LanguageSelector ya no está aquí, se carga en App.jsx */}
+      {/* ⭐ 2. INSERTAR EL SELECTOR AQUÍ */}
+      {/* Posicionado absoluto respecto al contenedor del login */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSelector />
+      </div>
 
       <div className="card max-w-md w-full mx-4">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
