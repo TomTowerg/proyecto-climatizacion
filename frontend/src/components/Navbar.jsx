@@ -3,11 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
   Home, Users, Wind, ClipboardList, Package, FileText, Calendar, TrendingUp, 
-  LogOut, Menu, X, MoreVertical, Globe, Check
+  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown // Agregados los Chevrons
 } from 'lucide-react'
 import { logout } from '../services/authService'
-// Ya no necesitamos importar LanguageSelector aquí para el desktop, 
-// implementaremos la lógica integrada para que quede mejor en el menú.
 import LanguageSelector from './LanguageSelector' 
 
 function Navbar() {
@@ -19,7 +17,9 @@ function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false)
   
-  // Ref para cerrar el menú al hacer clic fuera
+  // ⭐ NUEVO ESTADO: Para el submenú de idiomas dentro del menú de escritorio
+  const [languageSubmenuOpen, setLanguageSubmenuOpen] = useState(false)
+  
   const desktopMenuRef = useRef(null)
 
   const handleLogout = () => {
@@ -30,7 +30,8 @@ function Navbar() {
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
     localStorage.setItem('language', lng)
-    setDesktopMenuOpen(false) // Cerrar menú al seleccionar
+    // Opcional: cerrar todo el menú al elegir
+    // setDesktopMenuOpen(false) 
   }
 
   const isActive = (path) => location.pathname === path
@@ -40,6 +41,7 @@ function Navbar() {
     const handleClickOutside = (event) => {
       if (desktopMenuRef.current && !desktopMenuRef.current.contains(event.target)) {
         setDesktopMenuOpen(false)
+        setLanguageSubmenuOpen(false) // Reiniciar submenú al cerrar
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -69,7 +71,7 @@ function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation (Links Centrales) */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar mx-4">
             {navItems.map((item) => {
               const Icon = item.icon
@@ -100,48 +102,58 @@ function Navbar() {
                 className={`p-2 rounded-full transition-colors ${
                   desktopMenuOpen ? 'bg-gray-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
                 }`}
-                title="Menú de usuario"
               >
                 <MoreVertical size={24} />
               </button>
 
-              {/* Dropdown del Menú Desktop */}
+              {/* Dropdown Principal */}
               {desktopMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 ring-1 ring-black ring-opacity-5 transform origin-top-right animate-fade-in-up">
-                  <div className="p-2">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                      Idioma / Language
-                    </div>
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-gray-100 ring-1 ring-black ring-opacity-5 transform origin-top-right animate-fade-in-up overflow-hidden">
+                  <div className="py-1">
                     
+                    {/* Opción: Cambiar Idioma (Desplegable) */}
                     <button
-                      onClick={() => changeLanguage('es')}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
-                        i18n.language === 'es' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                      onClick={() => setLanguageSubmenuOpen(!languageSubmenuOpen)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span>🇪🇸</span> Español
+                        <Globe size={18} className="text-gray-500" />
+                        <span>Idioma / Language</span>
                       </div>
-                      {i18n.language === 'es' && <Check size={16} />}
+                      {/* Icono que rota si está abierto */}
+                      {languageSubmenuOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
 
-                    <button
-                      onClick={() => changeLanguage('en')}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
-                        i18n.language === 'en' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>🇺🇸</span> English
+                    {/* ⭐ SUBMENÚ DE IDIOMAS (Se muestra si languageSubmenuOpen es true) */}
+                    {languageSubmenuOpen && (
+                      <div className="bg-gray-50 border-t border-b border-gray-100">
+                        <button
+                          onClick={() => changeLanguage('es')}
+                          className={`w-full flex items-center justify-between px-8 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                            i18n.language === 'es' ? 'text-blue-600 font-medium' : 'text-gray-600'
+                          }`}
+                        >
+                          <span>Español</span>
+                          {i18n.language === 'es' && <Check size={14} />}
+                        </button>
+                        <button
+                          onClick={() => changeLanguage('en')}
+                          className={`w-full flex items-center justify-between px-8 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                            i18n.language === 'en' ? 'text-blue-600 font-medium' : 'text-gray-600'
+                          }`}
+                        >
+                          <span>English</span>
+                          {i18n.language === 'en' && <Check size={14} />}
+                        </button>
                       </div>
-                      {i18n.language === 'en' && <Check size={16} />}
-                    </button>
+                    )}
 
-                    <div className="h-px bg-gray-100 my-2"></div>
+                    <div className="h-px bg-gray-100 my-1"></div>
 
+                    {/* Botón Cerrar Sesión */}
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <LogOut size={18} />
                       {t('nav.logout')}
@@ -185,10 +197,8 @@ function Navbar() {
               })}
             </div>
 
-            {/* Footer del Menú Móvil */}
             <div className="border-t border-gray-100 pt-4 pb-2 px-4">
               <div className="flex items-center justify-between">
-                {/* Usamos el componente LanguageSelector existente para móvil que ya funcionaba bien */}
                 <LanguageSelector />
                 
                 <button
