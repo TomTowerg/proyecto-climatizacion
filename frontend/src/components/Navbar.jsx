@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
   Home, Users, Wind, ClipboardList, Package, FileText, Calendar, TrendingUp, 
-  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown // Agregados los Chevrons
+  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown 
 } from 'lucide-react'
 import { logout } from '../services/authService'
 import LanguageSelector from './LanguageSelector' 
@@ -17,7 +17,7 @@ function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false)
   
-  // ⭐ NUEVO ESTADO: Para el submenú de idiomas dentro del menú de escritorio
+  // Estado para el submenú de idiomas
   const [languageSubmenuOpen, setLanguageSubmenuOpen] = useState(false)
   
   const desktopMenuRef = useRef(null)
@@ -30,18 +30,17 @@ function Navbar() {
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng)
     localStorage.setItem('language', lng)
-    // Opcional: cerrar todo el menú al elegir
-    // setDesktopMenuOpen(false) 
+    // Opcional: cerrar el menú al seleccionar
+    // setDesktopMenuOpen(false)
   }
 
   const isActive = (path) => location.pathname === path
 
-  // Cerrar menú desktop si hago clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (desktopMenuRef.current && !desktopMenuRef.current.contains(event.target)) {
         setDesktopMenuOpen(false)
-        setLanguageSubmenuOpen(false) // Reiniciar submenú al cerrar
+        setLanguageSubmenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -102,6 +101,7 @@ function Navbar() {
                 className={`p-2 rounded-full transition-colors ${
                   desktopMenuOpen ? 'bg-gray-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
                 }`}
+                title="Menú de usuario"
               >
                 <MoreVertical size={24} />
               </button>
@@ -111,20 +111,22 @@ function Navbar() {
                 <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-gray-100 ring-1 ring-black ring-opacity-5 transform origin-top-right animate-fade-in-up overflow-hidden">
                   <div className="py-1">
                     
-                    {/* Opción: Cambiar Idioma (Desplegable) */}
+                    {/* Opción: Cambiar Idioma (Texto Dinámico) */}
                     <button
                       onClick={() => setLanguageSubmenuOpen(!languageSubmenuOpen)}
                       className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <Globe size={18} className="text-gray-500" />
-                        <span>Idioma / Language</span>
+                        {/* ⭐ CAMBIO AQUÍ: Texto dinámico según idioma actual */}
+                        <span>
+                          {i18n.language === 'es' ? 'Idioma' : 'Language'}
+                        </span>
                       </div>
-                      {/* Icono que rota si está abierto */}
                       {languageSubmenuOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
 
-                    {/* ⭐ SUBMENÚ DE IDIOMAS (Se muestra si languageSubmenuOpen es true) */}
+                    {/* Submenú de Idiomas */}
                     {languageSubmenuOpen && (
                       <div className="bg-gray-50 border-t border-b border-gray-100">
                         <button
