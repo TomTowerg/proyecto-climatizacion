@@ -1,256 +1,259 @@
-# 🌡️ Sistema de Gestión de Climatización
+# 🌡️ KMTS Powertech - Sistema de Gestión HVAC
 
-Aplicación web full-stack para la gestión interna de una empresa de climatización en Chile.
-gestion de climatizacion 
+<div align="center">
 
-## 🚀 Tecnologías Utilizadas
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?logo=postgresql)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+**Sistema integral de gestión para empresas de climatización**
+
+[Demo en Vivo](https://proyecto-climatizacion-p629.vercel.app)
+
+</div>
+
+---
+
+## 📋 Tabla de Contenidos
+
+- [Descripción](#-descripción)
+- [Características](#-características)
+- [Tecnologías](#-tecnologías)
+- [Instalación](#-instalación)
+- [Uso](#-uso)
+- [Licencia](#-licencia)
+
+---
+
+## 📖 Descripción
+
+**KMTS Powertech** es un sistema de gestión empresarial diseñado específicamente para empresas de climatización y HVAC (Heating, Ventilation, and Air Conditioning). Permite administrar clientes, equipos, órdenes de trabajo, inventario y cotizaciones de manera integrada y eficiente.
+
+### 🎯 Objetivo del Proyecto
+
+Sistema desarrollado con estándares de producción empresarial, demostrando competencias en desarrollo Full-Stack moderno con énfasis en seguridad y experiencia de usuario.
+
+---
+
+## ✨ Características
+
+### 🔐 Autenticación y Seguridad
+- Autenticación segura con JWT
+- Integración OAuth 2.0 con Google
+- Cifrado de datos sensibles
+- Protección contra ataques comunes
+- Validación de RUT chileno
+
+### 👥 Gestión de Clientes
+- CRUD completo de clientes
+- Protección de datos sensibles
+- Búsqueda avanzada
+- Historial de equipos y servicios
+
+### 🔧 Gestión de Equipos
+- Registro de equipos HVAC
+- Información técnica completa
+- Trazabilidad de instalaciones
+
+### 📋 Órdenes de Trabajo
+- Tipos: Instalación, Mantención, Reparación
+- Gestión de estados y urgencias
+- **Análisis inteligente con IA**
+- Asignación de técnicos
+- Integración con calendario
+
+### 📦 Inventario
+- Control de stock en tiempo real
+- Alertas automáticas
+- Gestión de precios
+- Historial de movimientos
+
+### 💰 Cotizaciones
+- Generación de cotizaciones
+- Creación rápida de clientes
+- Cálculo automático con descuentos
+- Generación de PDF
+- Flujo de aprobación automatizado
+
+### 📅 Calendario
+- Vistas: mensual, semanal, diaria
+- Codificación por colores
+- Navegación intuitiva
+
+### 📊 Dashboard
+- Estadísticas en tiempo real
+- Gráficos interactivos
+- Indicadores económicos chilenos
+- Alertas y accesos rápidos
+
+### 🌍 Multilenguaje
+- 🇪🇸 Español
+- 🇺🇸 English
+- 🇧🇷 Português
+- 🇫🇷 Français
+- 🇩🇪 Deutsch
+- 🇮🇹 Italiano
+- 🇨🇳 中文
+
+### 🤖 Inteligencia Artificial
+- Análisis automático de urgencia
+- Recomendaciones inteligentes
+- Asistente virtual integrado
+
+---
+
+## 🛠 Tecnologías
 
 ### Frontend
-- **React 18** con Vite
-- **React Router** para navegación
-- **Tailwind CSS** para estilos
-- **react-i18next** para multilenguaje (ES/EN)
-- **react-big-calendar** para calendario de OT
-- **recharts** para gráficos
-- **Lucide React** para íconos
+- React 18 con Vite
+- Tailwind CSS
+- React Router
+- Internacionalización (i18next)
+- Gráficos interactivos
 
 ### Backend
-- **Node.js** con Express
-- **Prisma** como ORM
-- **SQLite** como base de datos
-- **bcrypt** para encriptación de contraseñas
-- **JWT** para autenticación
-- **Passport.js** para OAuth con Google
+- Node.js con Express
+- PostgreSQL con Prisma ORM
+- Autenticación JWT
+- Integración con Google AI
 
-### APIs Externas
-- **OpenWeather API** - Consultar clima
-- **OpenAI API / Gemini** - Inteligencia Artificial
+### Infraestructura
+- Vercel (Frontend)
+- Railway (Backend + BD)
+- GitHub (Control de versiones)
 
-## 📋 Requisitos Previos
+---
 
-- **Node.js** 18.x o superior
-- **npm** o **yarn**
-- **Git**
+## 🚀 Instalación
 
-## 🛠️ Instalación
+### Prerrequisitos
 
-### 1. Clonar el repositorio
+- Node.js 18 o superior
+- PostgreSQL 15 o superior
+- Cuenta de Google Cloud (para OAuth)
+
+### Clonar el Repositorio
 
 ```bash
-git clone <tu-repositorio>
+git clone https://github.com/TomTowerg/proyecto-climatizacion.git
 cd proyecto-climatizacion
 ```
 
-### 2. Configurar el Backend
+### Instalar Dependencias
+
+```bash
+# Backend
+cd backend
+npm install
+
+# Frontend
+cd ../frontend
+npm install
+```
+
+### Configurar Variables de Entorno
+
+Copia los archivos de ejemplo y configura tus valores:
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+
+# Frontend
+cp frontend/.env.example frontend/.env
+```
+
+### Inicializar Base de Datos
 
 ```bash
 cd backend
+npx prisma generate
+npx prisma migrate dev
+```
 
-# Instalar dependencias
-npm install
+### Ejecutar en Desarrollo
 
-# Copiar archivo de variables de entorno
-cp .env.example .env
+```bash
+# Terminal 1 - Backend
+cd backend
+npm run dev
 
-# Editar .env con tus credenciales
-nano .env  # o usa tu editor favorito
-
-# Generar cliente de Prisma
-npm run prisma:generate
-
-# Crear la base de datos y ejecutar migraciones
-npm run prisma:migrate
-
-# Iniciar servidor de desarrollo
+# Terminal 2 - Frontend
+cd frontend
 npm run dev
 ```
 
-El servidor estará corriendo en `http://localhost:5000`
+Acceder a: `http://localhost:5173`
 
-### 3. Configurar el Frontend
+---
 
-```bash
-cd ../frontend
+## 📱 Uso
 
-# Instalar dependencias
-npm install
+### Acceso al Sistema
 
-# Copiar archivo de variables de entorno
-cp .env.example .env
+1. Accede a la aplicación
+2. Inicia sesión con tu cuenta o con Google
+3. Navega por los módulos desde el menú
 
-# Editar .env con tus API keys
-nano .env
+### Módulos Principales
 
-# Iniciar aplicación de desarrollo
-npm run dev
-```
+| Módulo | Función |
+|--------|---------|
+| Dashboard | Vista general y estadísticas |
+| Clientes | Gestión de clientes |
+| Equipos | Registro de equipos HVAC |
+| Órdenes | Gestión de trabajos |
+| Inventario | Control de stock |
+| Cotizaciones | Generación de presupuestos |
+| Calendario | Vista de agenda |
 
-La aplicación estará corriendo en `http://localhost:3000`
+### Cambiar Idioma
 
-## 🔑 Configuración de APIs
+Utiliza el selector de idioma en la barra de navegación para cambiar entre los 7 idiomas disponibles.
 
-### Google OAuth
+---
 
-1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
-2. Crea un nuevo proyecto
-3. Habilita la API de Google+
-4. Crea credenciales OAuth 2.0
-5. Agrega `http://localhost:5000/api/auth/google/callback` como URI de redirección
-6. Copia el Client ID y Client Secret a tu `.env`
 
-### OpenWeather API
+## 🔒 Seguridad
 
-1. Regístrate en [OpenWeather](https://openweathermap.org/api)
-2. Obtén tu API Key gratuita
-3. Agrégala a tu `.env` del frontend
+Este sistema implementa múltiples capas de seguridad:
 
-### OpenAI API (o Gemini)
+- Autenticación robusta
+- Cifrado de datos sensibles
+- Protección contra ataques comunes
+- Rate limiting
+- Validación de datos
 
-1. Regístrate en [OpenAI](https://platform.openai.com/) o [Google AI Studio](https://makersuite.google.com/)
-2. Genera tu API Key
-3. Agrégala a tu `.env` del frontend
+---
 
-## 📁 Estructura del Proyecto
+## 🤝 Contribución
 
-```
-proyecto-climatizacion/
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # Componentes reutilizables
-│   │   ├── pages/           # Páginas de la aplicación
-│   │   ├── services/        # Servicios y llamadas API
-│   │   ├── locales/         # Archivos de idioma (ES/EN)
-│   │   ├── utils/           # Utilidades y helpers
-│   │   └── styles/          # Estilos globales
-│   ├── package.json
-│   └── vite.config.js
-├── backend/
-│   ├── src/
-│   │   ├── routes/          # Rutas de la API
-│   │   ├── controllers/     # Controladores
-│   │   ├── middleware/      # Middlewares
-│   │   └── utils/           # Utilidades
-│   ├── prisma/
-│   │   └── schema.prisma    # Esquema de base de datos
-│   └── package.json
-└── README.md
-```
+1. Fork el repositorio
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abrir Pull Request
 
-## 🎯 Funcionalidades
-
-### ✅ Implementadas en Setup Inicial
-
-- [x] Estructura base de frontend y backend
-- [x] Configuración de Prisma con SQLite
-- [x] Sistema de multilenguaje (ES/EN)
-- [x] Páginas de Login y Dashboard
-- [x] Modelos de datos (User, Cliente, Equipo, OrdenTrabajo)
-- [x] Validador de RUT chileno
-
-### 🚧 Por Implementar (Días 2-9)
-
-- [ ] Autenticación local (bcrypt + JWT)
-- [ ] Autenticación con Google OAuth
-- [ ] CRUD de Clientes
-- [ ] CRUD de Equipos
-- [ ] CRUD de Órdenes de Trabajo
-- [ ] Calendario interactivo
-- [ ] Integración con API de Clima
-- [ ] Integración con API de IA
-- [ ] Dashboard con estadísticas
-- [ ] Diseño responsive completo
-- [ ] Despliegue en Vercel
-
-## 🚀 Scripts Disponibles
-
-### Frontend
-
-```bash
-npm run dev      # Iniciar servidor de desarrollo
-npm run build    # Compilar para producción
-npm run preview  # Vista previa de build de producción
-```
-
-### Backend
-
-```bash
-npm run dev              # Iniciar servidor con nodemon
-npm run start            # Iniciar servidor en producción
-npm run prisma:generate  # Generar cliente de Prisma
-npm run prisma:migrate   # Ejecutar migraciones
-npm run prisma:studio    # Abrir Prisma Studio
-```
-
-## 📝 Commits y Control de Versiones
-
-### Estructura de Commits
-
-Cada commit debe seguir el formato:
-
-```
-tipo(módulo): descripción breve
-
-Descripción más detallada si es necesario
-```
-
-**Tipos de commits:**
-- `feat`: Nueva funcionalidad
-- `fix`: Corrección de bugs
-- `docs`: Cambios en documentación
-- `style`: Cambios de formato (no afectan lógica)
-- `refactor`: Refactorización de código
-- `test`: Agregar o modificar tests
-- `chore`: Tareas de mantenimiento
-
-**Ejemplo:**
-```
-feat(auth): implementar login con Google OAuth
-
-- Agregar passport-google-oauth20
-- Configurar estrategia de Google
-- Crear ruta /api/auth/google/callback
-```
-
-## 🌐 Despliegue
-
-### Frontend en Vercel
-
-1. Sube tu código a GitHub
-2. Ve a [Vercel](https://vercel.com)
-3. Importa tu repositorio
-4. Configura las variables de entorno
-5. Despliega
-
-### Backend (Opciones)
-
-- **Render**: Plan gratuito con PostgreSQL
-- **Railway**: Fácil despliegue con base de datos
-- **Heroku**: Opción clásica
-
-## 👥 Equipo
-
-- Miembro 1: [Nombre] - [Rol]
-- Miembro 2: [Nombre] - [Rol]
-- Miembro 3: [Nombre] - [Rol]
+---
 
 ## 📄 Licencia
 
-MIT
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-# 🔐 Seguridad
-
-### Características de Seguridad Implementadas
-
-- **Cifrado de Datos Personales**: AES-256-GCM para RUT, email, teléfono y dirección
-- **Rate Limiting**: Protección contra ataques de fuerza bruta
-- **Headers de Seguridad**: Helmet con 12+ headers protectores
-- **Autenticación JWT**: Tokens seguros con expiración
-- **Contraseñas**: bcrypt con 12 rounds
-- **Cumplimiento Legal**: Ley 19.628 Chile
-
-### Variables de Entorno Requeridas
-```env
-DATABASE_URL=postgresql://...
-ENCRYPTION_KEY=clave_de_32_caracteres_minimo
-JWT_SECRET=tu_jwt_secret
 ---
+
+## 👨‍💻 Autor
+
+**KMTS Powertech**
+
+Proyecto de gestión HVAC desarrollado con ❤️
+
+---
+
+<div align="center">
+
+**[⬆ Volver arriba](#-kmts-powertech---sistema-de-gestión-hvac)**
+
+</div>
