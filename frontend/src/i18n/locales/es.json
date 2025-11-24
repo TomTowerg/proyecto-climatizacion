@@ -158,6 +158,7 @@
       "technician": "Técnico",
       "status": "Estado",
       "actions": "Acciones",
+       "unassigned": "Por asignar",
       "empty": "No hay órdenes de trabajo registradas"
     },
     "actions": {

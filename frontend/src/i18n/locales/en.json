@@ -158,6 +158,7 @@
       "technician": "Technician",
       "status": "Status",
       "actions": "Actions",
+      "unassigned": "Unassigned",
       "empty": "No work orders registered"
     },
     "actions": {
