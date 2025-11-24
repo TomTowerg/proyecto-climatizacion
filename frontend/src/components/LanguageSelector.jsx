@@ -11,6 +11,7 @@ const LanguageSelector = () => {
     i18n.changeLanguage(lng);
     localStorage.setItem('language', lng);
     setIsOpen(false);
+    window.location.reload();  // ⭐ FORZAR RECARGA PARA APLICAR CAMBIOS
   };
 
   // Cerrar menú si se hace clic fuera
