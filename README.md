@@ -90,12 +90,12 @@ Sistema desarrollado con estándares de producción empresarial, demostrando com
 
 ### 🌍 Multilenguaje
 - 🇪🇸 Español
-- 🇺🇸 English
-- 🇧🇷 Português
-- 🇫🇷 Français
-- 🇩🇪 Deutsch
-- 🇮🇹 Italiano
-- 🇨🇳 中文
+- 🇺🇸 English 
+- 🇧🇷 Português (Proximante)
+- 🇫🇷 Français (Proximante)
+- 🇩🇪 Deutsch (Proximante)
+- 🇮🇹 Italiano (Proximante)
+- 🇨🇳 中文 (Proximante)
 
 ### 🤖 Inteligencia Artificial
 - Análisis automático de urgencia
@@ -247,8 +247,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 👨‍💻 Autor
 
 **KMTS Powertech**
-
-Proyecto de gestión HVAC desarrollado con ❤️
 
 ---
 
