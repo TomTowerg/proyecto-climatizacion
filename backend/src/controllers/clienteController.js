@@ -185,12 +185,13 @@ export const deleteCliente = async (req, res) => {
   try {
     const { id } = req.params
 
-    // Verificar si tiene equipos asociados
+    // Verificar que el cliente existe
     const cliente = await prisma.cliente.findUnique({
       where: { id: parseInt(id) },
       include: {
         equipos: true,
-        ordenesTrabajos: true
+        ordenesTrabajos: true,
+        cotizaciones: true
       }
     })
 
@@ -198,17 +199,49 @@ export const deleteCliente = async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    if (cliente.equipos.length > 0 || cliente.ordenesTrabajos.length > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar el cliente porque tiene equipos u órdenes de trabajo asociadas' 
-      })
-    }
+    // ⭐ MODIFICADO: Eliminar en cascada automáticamente
+    // Útil para limpiar datos de prueba
+    const numEquipos = cliente.equipos?.length || 0
+    const numOrdenes = cliente.ordenesTrabajos?.length || 0
+    const numCotizaciones = cliente.cotizaciones?.length || 0
 
-    await prisma.cliente.delete({
-      where: { id: parseInt(id) }
+    // Eliminar todo en una transacción
+    await prisma.$transaction(async (tx) => {
+      // 1. Eliminar cotizaciones del cliente
+      if (numCotizaciones > 0) {
+        await tx.cotizacion.deleteMany({
+          where: { clienteId: parseInt(id) }
+        })
+      }
+      
+      // 2. Eliminar órdenes de trabajo del cliente
+      if (numOrdenes > 0) {
+        await tx.ordenTrabajo.deleteMany({
+          where: { clienteId: parseInt(id) }
+        })
+      }
+      
+      // 3. Eliminar equipos del cliente
+      if (numEquipos > 0) {
+        await tx.equipo.deleteMany({
+          where: { clienteId: parseInt(id) }
+        })
+      }
+      
+      // 4. Finalmente eliminar el cliente
+      await tx.cliente.delete({
+        where: { id: parseInt(id) }
+      })
     })
 
-    res.json({ message: 'Cliente eliminado exitosamente' })
+    res.json({ 
+      message: 'Cliente eliminado exitosamente',
+      eliminados: {
+        equipos: numEquipos,
+        ordenesTrabajo: numOrdenes,
+        cotizaciones: numCotizaciones
+      }
+    })
   } catch (error) {
     console.error('Error al eliminar cliente:', error)
     res.status(500).json({ 

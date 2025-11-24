@@ -571,6 +571,9 @@ function Cotizaciones() {
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo-cot">
                     {t('workOrders.table.type')}
                   </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    {t('quotes.form.client')}
+                  </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-equipo-info">
                     {t('quotes.table.equipment')}
                   </th>
@@ -594,7 +597,7 @@ function Cotizaciones() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredCotizaciones.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                       {searchTerm || Object.values(filters).some(v => v) ? (
                         t('quotes.table.noResults')
                       ) : (
@@ -622,6 +625,13 @@ function Cotizaciones() {
                       <tr key={cotizacion.id} className="hover:bg-gray-50">
                         <td className="px-3 py-3 col-tipo-cot">
                           {getTipoBadge(cotizacion.tipo)}
+                        </td>
+                        
+                        {/* ⭐ NUEVO: Columna Cliente */}
+                        <td className="px-3 py-3">
+                          <div className="text-sm font-medium text-gray-900 truncate max-w-[150px]" title={cotizacion.cliente?.nombre}>
+                            {cotizacion.cliente?.nombre || 'Sin cliente'}
+                          </div>
                         </td>
                         
                         <td className="px-3 py-3 col-equipo-info">

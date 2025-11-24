@@ -333,12 +333,8 @@ export const deleteCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    if (existingCotizacion.estado === 'aprobada') {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar una cotización aprobada' 
-      })
-    }
-
+    // ⭐ MODIFICADO: Permitir eliminar cualquier cotización (incluso aprobadas)
+    // Útil para limpiar datos de prueba
     await prisma.cotizacion.delete({
       where: { id: parseInt(id) }
     })
@@ -349,7 +345,19 @@ export const deleteCotizacion = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al eliminar cotización:', error)
-    res.status(500).json({ error: 'Error al eliminar cotización' })
+    
+    // Error de restricción de clave foránea
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar porque tiene registros relacionados (equipo u orden creada)',
+        sugerencia: 'Elimine primero el equipo y la orden de trabajo asociados'
+      })
+    }
+    
+    res.status(500).json({ 
+      error: 'Error al eliminar cotización',
+      detalle: error.message 
+    })
   }
 }
 
