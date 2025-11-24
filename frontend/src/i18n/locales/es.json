@@ -455,6 +455,10 @@
     "confirmDelete": "¿Estás seguro de eliminar este elemento?",
     "yes": "Sí",
     "no": "No",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "add": "Agregar"
+
   }
 }

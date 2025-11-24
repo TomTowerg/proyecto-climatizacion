@@ -245,7 +245,10 @@
     "confirmDelete": "Are you sure you want to delete this item?",
     "yes": "Yes",
     "no": "No",
-    "close": "Close"
+    "close": "Close",
+    "create": "Create",
+    "update": "Update",
+    "add": "Add"
   },
   "inventory": {
     "title": "Inventory",

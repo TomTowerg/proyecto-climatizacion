@@ -183,6 +183,9 @@ function Clientes() {
                     {t('clients.table.phone')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('clients.table.address')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('clients.table.actions')}
                   </th>
                 </tr>
@@ -190,7 +193,7 @@ function Clientes() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredClientes.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                       {t('clients.table.empty')}
                     </td>
                   </tr>
@@ -208,6 +211,11 @@ function Clientes() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                         {cliente.telefono}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        <div className="max-w-xs truncate" title={cliente.direccion}>
+                          {cliente.direccion || '-'}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">

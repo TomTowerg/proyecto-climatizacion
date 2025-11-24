@@ -45,6 +45,7 @@ function OrdenesTrabajo() {
   }, [navigate])
 
   useEffect(() => {
+    // Filtrar equipos cuando cambia el cliente
     if (formData.clienteId) {
       const equiposDelCliente = equipos.filter(
         eq => eq.clienteId === parseInt(formData.clienteId)
@@ -68,7 +69,7 @@ function OrdenesTrabajo() {
       setEquipos(equiposData)
     } catch (error) {
       console.error('Error al cargar datos:', error)
-      toast.error(t('workOrders.messages.loadError'))
+      toast.error('Error al cargar datos')
     } finally {
       setLoading(false)
     }
@@ -76,12 +77,12 @@ function OrdenesTrabajo() {
 
   const handleAnalizarUrgencia = async () => {
     if (!formData.notas || formData.notas.trim() === '') {
-      toast.error(t('workOrders.messages.missingDescription'))
+      toast.error('Por favor escribe una descripción del problema para analizar')
       return
     }
 
     if (!formData.tipo) {
-      toast.error(t('workOrders.messages.missingType'))
+      toast.error('Por favor selecciona el tipo de trabajo')
       return
     }
 
@@ -89,14 +90,23 @@ function OrdenesTrabajo() {
     try {
       const clienteNombre = clientes.find(c => c.id === parseInt(formData.clienteId))?.nombre || 'No especificado'
       
+      console.log('📝 Datos enviados al análisis:', {
+        notas: formData.notas,
+        tipo: formData.tipo,
+        cliente: clienteNombre
+      })
+
       const analisis = await analizarUrgencia(
         formData.notas,
         formData.tipo,
         clienteNombre
       )
 
+      console.log('✅ Análisis recibido:', analisis)
+
       setAnalisisIA(analisis)
       
+      // Mapear el nivel a nuestro formato
       const urgenciaMap = {
         'CRÍTICA': 'critica',
         'CRITICA': 'critica',
@@ -106,15 +116,17 @@ function OrdenesTrabajo() {
       
       const urgenciaCalculada = urgenciaMap[analisis.nivel?.toUpperCase()] || 'media'
       
+      console.log('🎯 Urgencia asignada:', urgenciaCalculada)
+      
       setFormData({
         ...formData,
         urgencia: urgenciaCalculada
       })
 
-      toast.success(t('workOrders.messages.analysisSuccess'))
+      toast.success('✨ Análisis completado con IA')
     } catch (error) {
       console.error('❌ Error al analizar:', error)
-      toast.error(t('workOrders.messages.analysisError'))
+      toast.error('Error al analizar urgencia. Verifique que la API de Gemini esté configurada.')
     } finally {
       setAnalizando(false)
     }
@@ -122,21 +134,21 @@ function OrdenesTrabajo() {
 
   const handleCompletar = async (orden) => {
     if (orden.estado === 'completado') {
-      toast.error(t('workOrders.messages.alreadyCompleted'))
+      toast.error('Esta orden ya está completada')
       return
     }
 
-    if (!window.confirm(t('workOrders.messages.completeConfirm', { id: orden.id }))) {
+    if (!window.confirm(`¿Marcar orden #${orden.id} como completada?`)) {
       return
     }
 
     try {
       await completarOrden(orden.id)
-      toast.success(t('workOrders.messages.completeSuccess'))
+      toast.success('✅ Orden marcada como completada')
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      toast.error(t('workOrders.messages.completeError'))
+      toast.error('Error al completar orden')
     }
   }
 
@@ -150,19 +162,21 @@ function OrdenesTrabajo() {
         analisisIA: analisisIA
       }
 
+      console.log('📤 Enviando orden:', dataToSend)
+
       if (editingOrden) {
         await updateOrdenTrabajo(editingOrden.id, dataToSend)
-        toast.success(t('workOrders.messages.updateSuccess'))
+        toast.success('Orden de trabajo actualizada exitosamente')
       } else {
         await createOrdenTrabajo(dataToSend)
-        toast.success(t('workOrders.messages.createSuccess'))
+        toast.success('Orden de trabajo creada exitosamente')
       }
       
       fetchData()
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || t('workOrders.messages.saveError')
+      const errorMessage = error.response?.data?.error || 'Error al guardar orden de trabajo'
       toast.error(errorMessage)
     }
   }
@@ -180,6 +194,7 @@ function OrdenesTrabajo() {
       urgencia: orden.urgencia || 'media'
     })
     
+    // Parsear análisis IA si existe
     if (orden.analisisIA) {
       try {
         const analisis = typeof orden.analisisIA === 'string' 
@@ -195,17 +210,17 @@ function OrdenesTrabajo() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm(t('workOrders.messages.deleteConfirm'))) {
+    if (!window.confirm('¿Estás seguro de eliminar esta orden de trabajo?')) {
       return
     }
 
     try {
       await deleteOrdenTrabajo(id)
-      toast.success(t('workOrders.messages.deleteSuccess'))
+      toast.success('Orden de trabajo eliminada exitosamente')
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || t('workOrders.messages.deleteError')
+      const errorMessage = error.response?.data?.error || 'Error al eliminar orden de trabajo'
       toast.error(errorMessage)
     }
   }
@@ -228,7 +243,7 @@ function OrdenesTrabajo() {
 
   const verAnalisisIA = (orden) => {
     if (!orden.analisisIA) {
-      toast.error(t('workOrders.messages.noAnalysis'))
+      toast.error('Esta orden no tiene análisis de IA')
       return
     }
     
@@ -249,11 +264,10 @@ function OrdenesTrabajo() {
       en_proceso: 'bg-blue-100 text-blue-800',
       completado: 'bg-green-100 text-green-800'
     }
-    // Usamos las claves de traducción
     const labels = {
-      pendiente: t('workOrders.statuses.pending'),
-      en_proceso: t('workOrders.statuses.inProgress'),
-      completado: t('workOrders.statuses.completed')
+      pendiente: 'Pendiente',
+      en_proceso: 'En Proceso',
+      completado: 'Completado'
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[estado]}`}>
@@ -270,10 +284,10 @@ function OrdenesTrabajo() {
       reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: `🔧 ${t('workOrders.types.installation')}`,
-      mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
-      mantenimiento: `⚙️ ${t('workOrders.types.maintenance')}`,
-      reparacion: `🔨 ${t('workOrders.types.repair')}`
+      instalacion: '🔧 Instalación',
+      mantencion: '⚙️ Mantención',
+      mantenimiento: '⚙️ Mantención',
+      reparacion: '🔨 Reparación'
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
@@ -289,9 +303,9 @@ function OrdenesTrabajo() {
       critica: 'bg-red-100 text-red-800'
     }
     const labels = {
-      baja: `🟢 ${t('workOrders.urgencies.low')}`,
-      media: `🟡 ${t('workOrders.urgencies.medium')}`,
-      critica: `🔴 ${t('workOrders.urgencies.critical')}`
+      baja: '🟢 Baja',
+      media: '🟡 Media',
+      critica: '🔴 Crítica'
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[urgencia]}`}>
@@ -340,7 +354,7 @@ function OrdenesTrabajo() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder={t('workOrders.searchPlaceholder')}
+              placeholder="Buscar por cliente, técnico o tipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
@@ -354,25 +368,25 @@ function OrdenesTrabajo() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.date')}
+                    Fecha
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.client')}
+                    Cliente
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.type')}
+                    Tipo
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.urgency')}
+                    Urgencia
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.technician')}
+                    Técnico
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.status')}
+                    Estado
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.actions')}
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -380,7 +394,7 @@ function OrdenesTrabajo() {
                 {filteredOrdenes.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                      {t('workOrders.table.empty')}
+                      No hay órdenes de trabajo registradas
                     </td>
                   </tr>
                 ) : (
@@ -388,7 +402,7 @@ function OrdenesTrabajo() {
                     <tr key={orden.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-900">
-                          {new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}
+                          {new Date(orden.fecha).toLocaleDateString('es-CL')}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -398,6 +412,11 @@ function OrdenesTrabajo() {
                             <span className="font-medium">{orden.equipo.tipo}</span>
                             {' • '}
                             {orden.equipo.marca} {orden.equipo.modelo}
+                            {orden.equipo.capacidad && (
+                              <span className="text-blue-600 ml-1">
+                                ({orden.equipo.capacidad})
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -415,38 +434,42 @@ function OrdenesTrabajo() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2">
+                          {/* Botón Completar (solo para pendientes y en proceso) */}
                           {orden.estado !== 'completado' && (
                             <button
                               onClick={() => handleCompletar(orden)}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title={t('workOrders.actions.complete')}
+                              title="Completar orden"
                             >
                               <CheckCircle size={18} />
                             </button>
                           )}
                           
+                          {/* Botón Ver Análisis IA */}
                           {orden.analisisIA && (
                             <button
                               onClick={() => verAnalisisIA(orden)}
                               className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                              title={t('workOrders.actions.viewAnalysis')}
+                              title="Ver análisis de IA"
                             >
                               <Eye size={18} />
                             </button>
                           )}
                           
+                          {/* Botón Editar */}
                           <button
                             onClick={() => handleEdit(orden)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title={t('common.edit')}
+                            title="Editar"
                           >
                             <Edit size={18} />
                           </button>
                           
+                          {/* Botón Eliminar */}
                           <button
                             onClick={() => handleDelete(orden.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title={t('common.delete')}
+                            title="Eliminar"
                           >
                             <Trash2 size={18} />
                           </button>
@@ -466,14 +489,14 @@ function OrdenesTrabajo() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
-              {editingOrden ? t('workOrders.edit') : t('workOrders.add')}
+              {editingOrden ? 'Editar Orden de Trabajo' : 'Crear Orden de Trabajo'}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.client')} *
+                    Cliente *
                   </label>
                   <select
                     value={formData.clienteId}
@@ -481,7 +504,7 @@ function OrdenesTrabajo() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">{t('common.select')}...</option>
+                    <option value="">Seleccionar...</option>
                     {clientes.map(cliente => (
                       <option key={cliente.id} value={cliente.id}>
                         {cliente.nombre}
@@ -492,7 +515,7 @@ function OrdenesTrabajo() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.equipmentOptional')}
+                    Equipo (Opcional)
                   </label>
                   <select
                     value={formData.equipoId}
@@ -500,10 +523,10 @@ function OrdenesTrabajo() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     disabled={!formData.clienteId}
                   >
-                    <option value="">{t('common.select')}...</option>
+                    <option value="">Seleccionar...</option>
                     {equiposFiltrados.map(equipo => (
                       <option key={equipo.id} value={equipo.id}>
-                        {equipo.tipo} - {equipo.marca} {equipo.modelo}
+                        {equipo.tipo} - {equipo.marca} {equipo.modelo} ({equipo.numeroSerie})
                       </option>
                     ))}
                   </select>
@@ -513,7 +536,7 @@ function OrdenesTrabajo() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.type')} *
+                    Tipo *
                   </label>
                   <select
                     value={formData.tipo}
@@ -521,16 +544,16 @@ function OrdenesTrabajo() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">{t('common.select')}...</option>
-                    <option value="instalacion">🔧 {t('workOrders.types.installation')}</option>
-                    <option value="mantencion">⚙️ {t('workOrders.types.maintenance')}</option>
-                    <option value="reparacion">🔨 {t('workOrders.types.repair')}</option>
+                    <option value="">Seleccionar...</option>
+                    <option value="instalacion">🔧 Instalación</option>
+                    <option value="mantencion">⚙️ Mantención</option>
+                    <option value="reparacion">🔨 Reparación</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.status')} *
+                    Estado *
                   </label>
                   <select
                     value={formData.estado}
@@ -538,9 +561,9 @@ function OrdenesTrabajo() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="pendiente">{t('workOrders.statuses.pending')}</option>
-                    <option value="en_proceso">{t('workOrders.statuses.inProgress')}</option>
-                    <option value="completado">{t('workOrders.statuses.completed')}</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="completado">Completado</option>
                   </select>
                 </div>
               </div>
@@ -548,7 +571,7 @@ function OrdenesTrabajo() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.date')} *
+                    Fecha *
                   </label>
                   <input
                     type="date"
@@ -561,14 +584,14 @@ function OrdenesTrabajo() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.technician')} *
+                    Técnico *
                   </label>
                   <input
                     type="text"
                     value={formData.tecnico}
                     onChange={(e) => setFormData({ ...formData, tecnico: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={t('workOrders.form.technicianPlaceholder')}
+                    placeholder="Nombre del técnico"
                     required
                   />
                 </div>
@@ -576,14 +599,14 @@ function OrdenesTrabajo() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('workOrders.form.notes')} *
+                  Notas / Descripción del Problema *
                 </label>
                 <textarea
                   value={formData.notas}
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="4"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder={t('workOrders.form.notesPlaceholder')}
+                  placeholder="Describe detalladamente el problema o trabajo a realizar..."
                   required
                 />
               </div>
@@ -597,7 +620,7 @@ function OrdenesTrabajo() {
                   className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Sparkles size={18} />
-                  {analizando ? t('workOrders.form.analyzing') : t('workOrders.form.analyzeAI')}
+                  {analizando ? 'Analizando...' : '🤖 Analizar Urgencia con IA'}
                 </button>
               </div>
 
@@ -617,15 +640,15 @@ function OrdenesTrabajo() {
                     <div className="flex-1">
                       <h3 className="font-bold text-lg mb-2">
                         {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
-                          ? `⚠️ ${t('workOrders.ai.critical')}` 
+                          ? '⚠️ URGENCIA CRÍTICA' 
                           : analisisIA.nivel === 'MEDIA' 
-                          ? `⚡ ${t('workOrders.ai.medium')}` 
-                          : `✅ ${t('workOrders.ai.low')}`}
+                          ? '⚡ URGENCIA MEDIA' 
+                          : '✅ URGENCIA BAJA'}
                       </h3>
                       
                       <div className="space-y-2 text-sm">
                         <div>
-                          <strong>{t('workOrders.ai.reasons')}:</strong>
+                          <strong>Razones:</strong>
                           <ul className="list-disc list-inside ml-2 mt-1">
                             {analisisIA.razones?.map((razon, idx) => (
                               <li key={idx}>{razon}</li>
@@ -634,12 +657,12 @@ function OrdenesTrabajo() {
                         </div>
                         
                         <div>
-                          <strong>🎯 {t('workOrders.ai.recommendation')}:</strong>
+                          <strong>🎯 Acción Recomendada:</strong>
                           <p className="ml-2 mt-1">{analisisIA.accionRecomendada}</p>
                         </div>
                         
                         <div>
-                          <strong>⏱️ {t('workOrders.ai.responseTime')}:</strong>
+                          <strong>⏱️ Tiempo de Respuesta:</strong>
                           <p className="ml-2 mt-1">{analisisIA.tiempoRespuesta}</p>
                         </div>
                       </div>
@@ -654,13 +677,13 @@ function OrdenesTrabajo() {
                   onClick={handleCloseModal}
                   className="flex-1 btn-secondary"
                 >
-                  {t('common.cancel')}
+                  Cancelar
                 </button>
                 <button
                   type="submit"
                   className="flex-1 btn-primary"
                 >
-                  {editingOrden ? t('common.save') : t('common.create')}
+                  {editingOrden ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
             </form>
@@ -673,7 +696,7 @@ function OrdenesTrabajo() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold">📊 {t('workOrders.ai.title')}</h2>
+              <h2 className="text-2xl font-bold">📊 Análisis de IA</h2>
               <button
                 onClick={() => setShowAnalisisModal(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
@@ -689,34 +712,36 @@ function OrdenesTrabajo() {
                 ? 'bg-yellow-50 border-yellow-200' 
                 : 'bg-green-50 border-green-200'
             }`}>
-              {/* ... Mismo contenido visual que en el formulario, pero en modal de solo lectura ... */}
               <div className="flex items-start gap-3">
                 <div className="text-4xl">
                   {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' ? '🔴' : analisisSeleccionado.nivel === 'MEDIA' ? '🟡' : '🟢'}
                 </div>
                 <div className="flex-1">
-                   <h3 className="font-bold text-xl mb-3">
+                  <h3 className="font-bold text-xl mb-3">
                     {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
-                      ? `⚠️ ${t('workOrders.ai.critical')}` 
+                      ? '⚠️ URGENCIA CRÍTICA' 
                       : analisisSeleccionado.nivel === 'MEDIA' 
-                      ? `⚡ ${t('workOrders.ai.medium')}` 
-                      : `✅ ${t('workOrders.ai.low')}`}
+                      ? '⚡ URGENCIA MEDIA' 
+                      : '✅ URGENCIA BAJA'}
                   </h3>
+                  
                   <div className="space-y-3">
                     <div>
-                      <strong className="text-gray-700">{t('workOrders.ai.reasons')}:</strong>
+                      <strong className="text-gray-700">Razones:</strong>
                       <ul className="list-disc list-inside ml-2 mt-2 space-y-1">
                         {analisisSeleccionado.razones?.map((razon, idx) => (
                           <li key={idx} className="text-gray-600">{razon}</li>
                         ))}
                       </ul>
                     </div>
+                    
                     <div>
-                      <strong className="text-gray-700">🎯 {t('workOrders.ai.recommendation')}:</strong>
+                      <strong className="text-gray-700">🎯 Acción Recomendada:</strong>
                       <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.accionRecomendada}</p>
                     </div>
+                    
                     <div>
-                      <strong className="text-gray-700">⏱️ {t('workOrders.ai.responseTime')}:</strong>
+                      <strong className="text-gray-700">⏱️ Tiempo de Respuesta:</strong>
                       <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.tiempoRespuesta}</p>
                     </div>
                   </div>
@@ -729,7 +754,7 @@ function OrdenesTrabajo() {
                 onClick={() => setShowAnalisisModal(false)}
                 className="btn-primary"
               >
-                {t('workOrders.ai.close')}
+                Cerrar
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next' // 1. IMPORTAR
-import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import VisorPDF from '../components/VisorPDF'
@@ -14,7 +14,7 @@ import {
   aprobarCotizacion,
   rechazarCotizacion
 } from '../services/cotizacionService'
-import { getClientes } from '../services/clienteService'
+import { getClientes, createCliente } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
 import { getEquiposByCliente } from '../services/equipoService'
 import '../styles/tablas-compactas.css'
@@ -36,6 +36,16 @@ function Cotizaciones() {
   const [pdfCotizacionId, setPdfCotizacionId] = useState(null)
   const [cotizacionToApprove, setCotizacionToApprove] = useState(null)
   const [approving, setApproving] = useState(false)
+  // ⭐ NUEVO: Estado para modal de cliente rápido
+  const [showClientModal, setShowClientModal] = useState(false)
+  const [creatingClient, setCreatingClient] = useState(false)
+  const [newClientData, setNewClientData] = useState({
+    nombre: '',
+    rut: '',
+    email: '',
+    telefono: '',
+    direccion: ''
+  })
   const [editingCotizacion, setEditingCotizacion] = useState(null)
   const [filters, setFilters] = useState({
     estado: '',
@@ -284,6 +294,42 @@ function Cotizaciones() {
   const handleVerPDF = (cotizacionId) => {
     setPdfCotizacionId(cotizacionId)
     setShowPDFModal(true)
+  }
+
+  // ⭐ NUEVO: Crear cliente rápido desde cotización
+  const handleCreateQuickClient = async () => {
+    if (!newClientData.nombre.trim()) {
+      toast.error('El nombre del cliente es requerido')
+      return
+    }
+
+    setCreatingClient(true)
+    try {
+      const nuevoCliente = await createCliente(newClientData)
+      
+      // Agregar el nuevo cliente a la lista
+      setClientes(prev => [...prev, nuevoCliente])
+      
+      // Seleccionar automáticamente el nuevo cliente
+      setFormData(prev => ({ ...prev, clienteId: nuevoCliente.id.toString() }))
+      
+      // Cerrar modal y limpiar
+      setShowClientModal(false)
+      setNewClientData({
+        nombre: '',
+        rut: '',
+        email: '',
+        telefono: '',
+        direccion: ''
+      })
+      
+      toast.success(`Cliente "${nuevoCliente.nombre}" creado exitosamente`)
+    } catch (error) {
+      console.error('Error al crear cliente:', error)
+      toast.error(error.response?.data?.error || 'Error al crear cliente')
+    } finally {
+      setCreatingClient(false)
+    }
   }
 
   const handleCloseModal = () => {
@@ -615,15 +661,14 @@ function Cotizaciones() {
                         
                         <td className="px-3 py-3 col-acciones-cot">
                           <div className="flex gap-1 justify-center flex-wrap">
-                            {cotizacion.estado === 'aprobada' && (
-                              <button
-                                onClick={() => handleVerPDF(cotizacion.id)}
-                                className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
-                                title={t('quotes.actions.viewPdf')}
-                              >
-                                <FileText size={16} />
-                              </button>
-                            )}
+                            {/* ⭐ MODIFICADO: PDF visible SIEMPRE (no solo aprobadas) */}
+                            <button
+                              onClick={() => handleVerPDF(cotizacion.id)}
+                              className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
+                              title={t('quotes.actions.viewPdf')}
+                            >
+                              <FileText size={16} />
+                            </button>
                             
                             {cotizacion.estado === 'pendiente' && (
                               <>
@@ -719,20 +764,35 @@ function Cotizaciones() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('quotes.form.client')} *
                   </label>
-                  <select
-                    value={formData.clienteId}
-                    onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={editingCotizacion}
-                  >
-                    <option value="">{t('common.select')}...</option>
-                    {clientes.map(cliente => (
-                      <option key={cliente.id} value={cliente.id}>
-                        {cliente.nombre}
-                      </option>
-                    ))}
-                  </select>
+                  {/* ⭐ MODIFICADO: Flex container con botón + */}
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.clienteId}
+                      onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                      disabled={editingCotizacion}
+                    >
+                      <option value="">{t('common.select')}...</option>
+                      {clientes.map(cliente => (
+                        <option key={cliente.id} value={cliente.id}>
+                          {cliente.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {/* ⭐ NUEVO: Botón crear cliente rápido */}
+                    {!editingCotizacion && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClientModal(true)}
+                        className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
+                        title={t('clients.add')}
+                      >
+                        <UserPlus size={18} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* INSTALACIÓN: Mostrar inventario */}
@@ -1032,6 +1092,133 @@ function Cotizaciones() {
             setPdfCotizacionId(null)
           }}
         />
+      )}
+
+      {/* ⭐ NUEVO: MODAL CREAR CLIENTE RÁPIDO */}
+      {showClientModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <UserPlus className="text-green-500" size={24} />
+                <h2 className="text-xl font-bold text-gray-800">
+                  {t('clients.add')}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowClientModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <div className="p-6 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('clients.form.name')} *
+                </label>
+                <input
+                  type="text"
+                  value={newClientData.nombre}
+                  onChange={(e) => setNewClientData({ ...newClientData, nombre: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="Nombre del cliente"
+                  autoFocus
+                />
+              </div>
+
+              {/* RUT */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('clients.form.rut')}
+                </label>
+                <input
+                  type="text"
+                  value={newClientData.rut}
+                  onChange={(e) => setNewClientData({ ...newClientData, rut: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="12.345.678-9"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('clients.form.email')}
+                </label>
+                <input
+                  type="email"
+                  value={newClientData.email}
+                  onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="cliente@email.com"
+                />
+              </div>
+
+              {/* Teléfono */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('clients.form.phone')}
+                </label>
+                <input
+                  type="text"
+                  value={newClientData.telefono}
+                  onChange={(e) => setNewClientData({ ...newClientData, telefono: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="+56 9 1234 5678"
+                />
+              </div>
+
+              {/* Dirección */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('clients.form.address')}
+                </label>
+                <input
+                  type="text"
+                  value={newClientData.direccion}
+                  onChange={(e) => setNewClientData({ ...newClientData, direccion: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  placeholder="Calle, número, comuna"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex gap-3 p-4 border-t bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowClientModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                disabled={creatingClient}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateQuickClient}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={creatingClient || !newClientData.nombre.trim()}
+              >
+                {creatingClient ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    {t('common.loading')}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={18} />
+                    {t('common.create')}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
