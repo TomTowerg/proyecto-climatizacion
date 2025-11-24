@@ -452,12 +452,8 @@ export const generarPDF = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // Solo generar PDF para cotizaciones aprobadas
-    if (cotizacion.estado !== 'aprobada') {
-      return res.status(400).json({ 
-        error: 'Solo se puede generar PDF de cotizaciones aprobadas' 
-      })
-    }
+    // ⭐ MODIFICADO: Permitir PDF para CUALQUIER estado (pendiente, aprobada, rechazada)
+    // Esto permite que el cliente vea la cotización antes de aprobarla
 
     // Generar PDF usando el servicio existente
     const resultado = await generarPDFCotizacion(cotizacion)
