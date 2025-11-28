@@ -70,13 +70,13 @@ export const generarPDFCotizacion = async (cotizacion) => {
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text('CLIMATIZACIÓN PROFESIONAL', 50, yEmpresa)
+        .text('KMTS POWERTECH SPA', 50, yEmpresa)
         .fontSize(9)
         .font('Helvetica')
-        .text('RUT: 12.345.678-9', 50)
-        .text('Dirección: Av. Principal #123, Santiago', 50)
-        .text('Teléfono: +56 9 1234 5678', 50)
-        .text('Email: contacto@climatizacion.cl', 50)
+        .text('RUT: 78.163.187-6', 50)
+        .text('Dirección: AV.IRARRAZAVAL 5185 OF 503 COMUNA ÑUÑOA #123, Santiago', 50)
+        .text('Teléfono: +56 9 54610454', 50)
+        .text('Email: kmtspowertech@gmail.com', 50)
 
       // ======================
       // DATOS CLIENTE
