@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react' 
 import { GoogleOAuthProvider } from '@react-oauth/google'
+
+// Pages - Admin System
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
@@ -12,15 +14,20 @@ import Inventario from './pages/Inventario'
 import Cotizaciones from './pages/Cotizaciones'
 import CalendarioOT from './pages/CalendarioOT'
 import StockPanel from './pages/StockPanel'
+
+// Landing Page - Public
+import { LandingPage } from './landing/pages'
+
+// Components
 import ChatAsistente from './components/ChatAsistente'
-// YA NO IMPORTAMOS EL SELECTOR AQUÍ
+
 import { isAuthenticated } from './services/authService'
 import './index.css'
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/admin" replace />
   }
   return children
 }
@@ -28,9 +35,14 @@ function ProtectedRoute({ children }) {
 // Componente para manejar el chatbot condicionalmente
 function ConditionalChatbot() {
   const location = useLocation()
-  const publicRoutes = ['/', '/register']
+  // Rutas donde NO mostrar el chatbot
+  const excludedRoutes = ['/', '/admin', '/register', '/landing']
   
-  if (publicRoutes.includes(location.pathname)) return null
+  // No mostrar en landing ni páginas de auth
+  if (excludedRoutes.some(route => location.pathname === route || location.pathname.startsWith('/landing'))) {
+    return null
+  }
+  
   if (!isAuthenticated()) return null
   
   return <ChatAsistente />
@@ -51,12 +63,22 @@ function App() {
             }}
           />
 
-          {/* ELIMINADO: <LanguageSelector /> ya no es global */}
-
           <Routes>
-            <Route path="/" element={<Login />} />
+            {/* ========================================
+                LANDING PAGE - PUBLIC (Página principal)
+                ======================================== */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingPage />} />
+
+            {/* ========================================
+                ADMIN SYSTEM - Authentication
+                ======================================== */}
+            <Route path="/admin" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
+            {/* ========================================
+                ADMIN SYSTEM - Protected Routes
+                ======================================== */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
             <Route path="/equipos" element={<ProtectedRoute><Equipos /></ProtectedRoute>} />
@@ -66,6 +88,7 @@ function App() {
             <Route path="/calendario" element={<ProtectedRoute><CalendarioOT /></ProtectedRoute>} />
             <Route path="/stock-panel" element={<ProtectedRoute><StockPanel /></ProtectedRoute>} />
 
+            {/* Fallback - redirigir a landing */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 

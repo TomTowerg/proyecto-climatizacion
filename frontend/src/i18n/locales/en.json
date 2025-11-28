@@ -460,5 +460,153 @@
     "messages": {
       "loadError": "Error loading work orders"
     }
+  },
+  "landing": {
+    "nav": {
+      "services": "Services",
+      "equipment": "Equipment",
+      "howItWorks": "How It Works",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "adminAccess": "Admin Access"
+    },
+    "hero": {
+      "badge": "HVAC Experts",
+      "titlePart1": "Intelligent",
+      "titleHighlight": "Climate",
+      "titlePart2": "Control for Your Comfort",
+      "description": "Professional air conditioning solutions for homes and businesses. Installation, maintenance, and repair with cutting-edge technology and personalized 24/7 support.",
+      "ctaPrimary": "Request Quote",
+      "ctaSecondary": "View Equipment",
+      "stat1": "Installations",
+      "stat2": "Support",
+      "stat3": "Guaranteed"
+    },
+    "services": {
+      "label": "Our Services",
+      "title": "Complete HVAC Solutions",
+      "description": "We offer comprehensive service for all your air conditioning needs, from installation to ongoing maintenance.",
+      "installation": {
+        "title": "Professional Installation",
+        "description": "Certified installation of air conditioning equipment with the highest quality and safety standards.",
+        "feature1": "Free technical evaluation",
+        "feature2": "Installation in 24-48 hours",
+        "feature3": "Installation warranty"
+      },
+      "maintenance": {
+        "title": "Preventive Maintenance",
+        "description": "Maintenance programs that extend your equipment's lifespan and optimize energy performance.",
+        "feature1": "Deep filter cleaning",
+        "feature2": "Refrigerant gas check",
+        "feature3": "Complete diagnosis"
+      },
+      "repair": {
+        "title": "Express Repair",
+        "description": "Fast technical service to solve any failure. Accurate diagnosis and efficient repair.",
+        "feature1": "Same-day service",
+        "feature2": "Original spare parts",
+        "feature3": "Repair warranty"
+      },
+      "climate": {
+        "title": "Industrial HVAC",
+        "description": "Climate control solutions for offices, commercial premises, and high-demand industries.",
+        "feature1": "Custom projects",
+        "feature2": "Centralized systems",
+        "feature3": "Energy efficiency"
+      },
+      "warranty": {
+        "title": "Extended Warranty",
+        "description": "Additional protection plans for your investment with full coverage and priority service.",
+        "feature1": "Full parts coverage",
+        "feature2": "Priority technical service",
+        "feature3": "No additional costs"
+      },
+      "emergency": {
+        "title": "24/7 Emergency",
+        "description": "Emergency service available 24 hours for when you need it most.",
+        "feature1": "Immediate response",
+        "feature2": "Certified technicians",
+        "feature3": "Full metro coverage"
+      }
+    },
+    "catalog": {
+      "label": "Equipment Catalog",
+      "title": "High Efficiency Equipment",
+      "description": "Discover our selection of air conditioners from top brands, with inverter technology and maximum energy efficiency.",
+      "filterAll": "All",
+      "inStock": "In Stock",
+      "priceLabel": "Tax included",
+      "cta": "Quote",
+      "loadMore": "Load more",
+      "error": "Showing sample catalog"
+    },
+    "howItWorks": {
+      "label": "Simple Process",
+      "title": "How It Works?",
+      "description": "A simple and transparent process to get your air conditioning running as soon as possible.",
+      "step1": {
+        "title": "Initial Contact",
+        "description": "Contact us by phone, email, or web form. We'll respond within 2 hours."
+      },
+      "step2": {
+        "title": "Technical Evaluation",
+        "description": "A technician will visit your location to assess needs and recommend the best solution."
+      },
+      "step3": {
+        "title": "Detailed Quote",
+        "description": "You'll receive a transparent quote with all costs included, no surprises."
+      },
+      "step4": {
+        "title": "Professional Installation",
+        "description": "Our certified team will perform the installation following the highest standards."
+      }
+    },
+    "testimonials": {
+      "label": "Testimonials",
+      "title": "What Our Customers Say",
+      "description": "Customer satisfaction is our best calling card."
+    },
+    "faq": {
+      "label": "Frequently Asked Questions",
+      "title": "Have Questions?",
+      "description": "Find answers to the most common questions about our services."
+    },
+    "contact": {
+      "title": "Contact Us",
+      "description": "We're ready to help with all your climate control needs. Contact us for a no-obligation quote.",
+      "phoneLabel": "Phone",
+      "emailLabel": "Email",
+      "addressLabel": "Address",
+      "hoursLabel": "Hours",
+      "successMessage": "Message sent! We'll contact you soon.",
+      "errorMessage": "Error sending. Please try again.",
+      "form": {
+        "name": "Name",
+        "namePlaceholder": "Your name",
+        "phone": "Phone",
+        "email": "Email",
+        "emailPlaceholder": "your@email.com",
+        "service": "Service of interest",
+        "serviceSelect": "Select a service",
+        "serviceInstall": "Installation",
+        "serviceMaintenance": "Maintenance",
+        "serviceRepair": "Repair",
+        "serviceQuote": "Equipment quote",
+        "serviceOther": "Other",
+        "message": "Message",
+        "messagePlaceholder": "Tell us about your project or need...",
+        "submit": "Send Message",
+        "sending": "Sending...",
+        "sent": "Sent!"
+      }
+    },
+    "footer": {
+      "description": "HVAC experts with years of experience. Professional solutions for homes and businesses throughout the Metropolitan Region.",
+      "quickLinks": "Quick Links",
+      "services": "Services",
+      "contact": "Contact",
+      "rights": "All rights reserved.",
+      "adminAccess": "Admin Access"
+    }
   }
 }

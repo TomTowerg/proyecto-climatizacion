@@ -4,13 +4,21 @@ import {
   getInventarioById, 
   createInventario, 
   updateInventario, 
-  deleteInventario 
+  deleteInventario,
+  getInventarioPublic
 } from '../controllers/inventarioController.js'
 import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Todas las rutas requieren autenticación
+// ========================================
+// RUTA PÚBLICA - Sin autenticación (para landing)
+// ========================================
+router.get('/public', getInventarioPublic)
+
+// ========================================
+// RUTAS PROTEGIDAS - Requieren autenticación
+// ========================================
 router.use(authenticate)
 
 // Rutas de inventario

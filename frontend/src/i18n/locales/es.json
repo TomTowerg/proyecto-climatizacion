@@ -460,6 +460,153 @@
     "create": "Crear",
     "update": "Actualizar",
     "add": "Agregar"
-
+  },
+  "landing": {
+    "nav": {
+      "services": "Servicios",
+      "equipment": "Equipos",
+      "howItWorks": "Cómo Funciona",
+      "faq": "FAQ",
+      "contact": "Contacto",
+      "adminAccess": "Acceso Admin"
+    },
+    "hero": {
+      "badge": "Expertos en Climatización",
+      "titlePart1": "Climatización",
+      "titleHighlight": "Inteligente",
+      "titlePart2": "para tu Confort",
+      "description": "Soluciones profesionales en aire acondicionado para hogares y empresas. Instalación, mantenimiento y reparación con tecnología de última generación y atención personalizada 24/7.",
+      "ctaPrimary": "Solicitar Cotización",
+      "ctaSecondary": "Ver Equipos",
+      "stat1": "Instalaciones",
+      "stat2": "Soporte",
+      "stat3": "Garantizado"
+    },
+    "services": {
+      "label": "Nuestros Servicios",
+      "title": "Soluciones Completas en Climatización",
+      "description": "Ofrecemos un servicio integral para todas tus necesidades de aire acondicionado, desde la instalación hasta el mantenimiento continuo.",
+      "installation": {
+        "title": "Instalación Profesional",
+        "description": "Instalación certificada de equipos de aire acondicionado con los más altos estándares de calidad y seguridad.",
+        "feature1": "Evaluación técnica gratuita",
+        "feature2": "Instalación en 24-48 horas",
+        "feature3": "Garantía de instalación"
+      },
+      "maintenance": {
+        "title": "Mantenimiento Preventivo",
+        "description": "Programas de mantenimiento que extienden la vida útil de tu equipo y optimizan su rendimiento energético.",
+        "feature1": "Limpieza profunda de filtros",
+        "feature2": "Revisión de gas refrigerante",
+        "feature3": "Diagnóstico completo"
+      },
+      "repair": {
+        "title": "Reparación Express",
+        "description": "Servicio técnico rápido para resolver cualquier falla. Diagnóstico preciso y reparación eficiente.",
+        "feature1": "Atención en el mismo día",
+        "feature2": "Repuestos originales",
+        "feature3": "Garantía en reparaciones"
+      },
+      "climate": {
+        "title": "Climatización Industrial",
+        "description": "Soluciones de climatización para oficinas, locales comerciales e industrias con alta demanda.",
+        "feature1": "Proyectos a medida",
+        "feature2": "Sistemas centralizados",
+        "feature3": "Eficiencia energética"
+      },
+      "warranty": {
+        "title": "Garantía Extendida",
+        "description": "Planes de protección adicional para tu inversión con cobertura completa y atención prioritaria.",
+        "feature1": "Cobertura total de piezas",
+        "feature2": "Servicio técnico prioritario",
+        "feature3": "Sin costos adicionales"
+      },
+      "emergency": {
+        "title": "Emergencias 24/7",
+        "description": "Servicio de emergencia disponible las 24 horas para cuando más lo necesitas.",
+        "feature1": "Respuesta inmediata",
+        "feature2": "Técnicos certificados",
+        "feature3": "Cobertura toda la RM"
+      }
+    },
+    "catalog": {
+      "label": "Catálogo de Equipos",
+      "title": "Equipos de Alta Eficiencia",
+      "description": "Descubre nuestra selección de aires acondicionados de las mejores marcas, con tecnología inverter y máxima eficiencia energética.",
+      "filterAll": "Todos",
+      "inStock": "En Stock",
+      "priceLabel": "IVA incluido",
+      "cta": "Cotizar",
+      "loadMore": "Ver más equipos",
+      "error": "Mostrando catálogo de ejemplo"
+    },
+    "howItWorks": {
+      "label": "Proceso Simple",
+      "title": "¿Cómo Funciona?",
+      "description": "Un proceso sencillo y transparente para que tengas tu aire acondicionado funcionando lo antes posible.",
+      "step1": {
+        "title": "Contacto Inicial",
+        "description": "Contáctanos por teléfono, email o formulario web. Te responderemos en menos de 2 horas."
+      },
+      "step2": {
+        "title": "Evaluación Técnica",
+        "description": "Un técnico visitará tu ubicación para evaluar las necesidades y recomendar la mejor solución."
+      },
+      "step3": {
+        "title": "Cotización Detallada",
+        "description": "Recibirás una cotización transparente con todos los costos incluidos, sin sorpresas."
+      },
+      "step4": {
+        "title": "Instalación Profesional",
+        "description": "Nuestro equipo certificado realizará la instalación siguiendo los más altos estándares."
+      }
+    },
+    "testimonials": {
+      "label": "Testimonios",
+      "title": "Lo Que Dicen Nuestros Clientes",
+      "description": "La satisfacción de nuestros clientes es nuestra mejor carta de presentación."
+    },
+    "faq": {
+      "label": "Preguntas Frecuentes",
+      "title": "¿Tienes Dudas?",
+      "description": "Encuentra respuestas a las preguntas más comunes sobre nuestros servicios."
+    },
+    "contact": {
+      "title": "Contáctanos",
+      "description": "Estamos listos para ayudarte con todas tus necesidades de climatización. Contáctanos y recibe una cotización sin compromiso.",
+      "phoneLabel": "Teléfono",
+      "emailLabel": "Email",
+      "addressLabel": "Dirección",
+      "hoursLabel": "Horario",
+      "successMessage": "¡Mensaje enviado! Te contactaremos pronto.",
+      "errorMessage": "Error al enviar. Intenta de nuevo.",
+      "form": {
+        "name": "Nombre",
+        "namePlaceholder": "Tu nombre",
+        "phone": "Teléfono",
+        "email": "Email",
+        "emailPlaceholder": "tu@email.com",
+        "service": "Servicio de interés",
+        "serviceSelect": "Selecciona un servicio",
+        "serviceInstall": "Instalación",
+        "serviceMaintenance": "Mantenimiento",
+        "serviceRepair": "Reparación",
+        "serviceQuote": "Cotización de equipo",
+        "serviceOther": "Otro",
+        "message": "Mensaje",
+        "messagePlaceholder": "Cuéntanos sobre tu proyecto o necesidad...",
+        "submit": "Enviar Mensaje",
+        "sending": "Enviando...",
+        "sent": "¡Enviado!"
+      }
+    },
+    "footer": {
+      "description": "Expertos en climatización con años de experiencia. Soluciones profesionales para hogares y empresas en toda la Región Metropolitana.",
+      "quickLinks": "Enlaces Rápidos",
+      "services": "Servicios",
+      "contact": "Contacto",
+      "rights": "Todos los derechos reservados.",
+      "adminAccess": "Acceso Administrador"
+    }
   }
 }

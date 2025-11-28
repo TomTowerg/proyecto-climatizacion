@@ -1,5 +1,40 @@
 import prisma from '../utils/prisma.js'
 
+// Obtener inventario público (para landing page - sin autenticación)
+export const getInventarioPublic = async (req, res) => {
+  try {
+    const inventario = await prisma.inventario.findMany({
+      where: {
+        stock: { gt: 0 },
+        estado: 'disponible'
+      },
+      select: {
+        id: true,
+        tipo: true,
+        marca: true,
+        modelo: true,
+        capacidad: true,
+        capacidadBTU: true,
+        tipoGas: true,
+        metrosCuadrados: true,
+        precioCliente: true,
+        precioClienteIVA: true,
+        stock: true,
+        estado: true,
+        caracteristicas: true
+      },
+      orderBy: {
+        marca: 'asc'
+      }
+    })
+
+    res.json(inventario)
+  } catch (error) {
+    console.error('Error al obtener inventario público:', error)
+    res.status(500).json({ error: 'Error al obtener catálogo' })
+  }
+}
+
 // Obtener todo el inventario
 export const getInventario = async (req, res) => {
   try {
