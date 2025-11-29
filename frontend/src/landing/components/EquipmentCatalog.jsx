@@ -12,6 +12,15 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Remover /api del final si existe para evitar duplicación
+const getBaseUrl = () => {
+  let url = API_URL;
+  if (url.endsWith('/api')) {
+    url = url.slice(0, -4);
+  }
+  return url;
+};
+
 const EquipmentCatalog = () => {
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState([]);
@@ -27,7 +36,8 @@ const EquipmentCatalog = () => {
   const fetchEquipment = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/inventario/public`);
+      const baseUrl = getBaseUrl();
+      const response = await fetch(`${baseUrl}/api/inventario/public`);
       
       if (!response.ok) {
         throw new Error('Error al cargar equipos');

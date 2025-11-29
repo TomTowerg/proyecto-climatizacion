@@ -104,7 +104,7 @@
 }
 
 .navbar-logo img {
-  height: 50px;
+  height: 80px;
   width: auto;
   filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.3));
   transition: var(--transition-smooth);
