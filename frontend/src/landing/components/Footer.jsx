@@ -106,7 +106,7 @@ const Footer = () => {
             © {currentYear} KMTS Powertech SPA. {t('landing.footer.rights', 'Todos los derechos reservados.')}
           </p>
           <div className="footer-legal">
-            <Link to="/">
+            <Link to="/admin">
               {t('landing.footer.adminAccess', 'Acceso Administrador')}
             </Link>
           </div>

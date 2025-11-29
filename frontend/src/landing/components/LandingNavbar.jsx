@@ -59,7 +59,7 @@ const LandingNavbar = () => {
           <button className="nav-link" onClick={() => scrollToSection('contacto')}>
             {t('landing.nav.contact', 'Contacto')}
           </button>
-          <Link to="/" className="nav-cta">
+          <Link to="/admin" className="nav-cta">
             {t('landing.nav.adminAccess', 'Acceso Admin')}
           </Link>
         </div>
