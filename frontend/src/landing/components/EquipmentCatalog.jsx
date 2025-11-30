@@ -84,6 +84,251 @@ const getEquipmentImage = (item) => {
   return images.length > 0 ? images[0] : null;
 };
 
+// Componente SVG para Split Muro
+const SplitSVG = ({ isOn }) => (
+  <>
+    {/* Cuerpo del split */}
+    <rect x="10" y="25" width="180" height="70" rx="10" fill="#e2e8f0"/>
+    <rect x="15" y="30" width="170" height="55" rx="7" fill="#f8fafc"/>
+    
+    {/* Rejillas de ventilación */}
+    <rect x="25" y="37" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="25" y="45" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="25" y="53" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="25" y="61" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="25" y="69" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    
+    {/* LED indicador */}
+    <circle cx="172" cy="42" r="5" fill={isOn ? "#0ea5e9" : "#475569"} className={isOn ? "equipment-led" : ""}/>
+    
+    {/* Display de temperatura */}
+    <rect x="140" y="58" width="32" height="16" rx="3" fill="#0f172a" opacity="0.15"/>
+    <text x="156" y="70" fontFamily="monospace" fontSize="10" fill={isOn ? "#0ea5e9" : "#475569"} textAnchor="middle" className={isOn ? "equipment-temp" : ""}>
+      {isOn ? "24°" : "- -"}
+    </text>
+    
+    {/* Partículas de aire */}
+    {isOn && (
+      <>
+        <circle className="air-particle p1" cx="30" cy="98" r="3" fill="#7dd3fc"/>
+        <circle className="air-particle p2" cx="50" cy="98" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle p3" cx="70" cy="98" r="3" fill="#7dd3fc"/>
+        <circle className="air-particle p4" cx="90" cy="98" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle p5" cx="110" cy="98" r="3" fill="#7dd3fc"/>
+        <circle className="air-particle p6" cx="130" cy="98" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle p7" cx="150" cy="98" r="3" fill="#7dd3fc"/>
+        <circle className="air-particle p8" cx="170" cy="98" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle p9" cx="40" cy="98" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle p10" cx="80" cy="98" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle p11" cx="120" cy="98" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle p12" cx="160" cy="98" r="2.5" fill="#7dd3fc"/>
+      </>
+    )}
+  </>
+);
+
+// Componente SVG para Ventana
+const VentanaSVG = ({ isOn }) => (
+  <>
+    {/* Cuerpo del equipo de ventana */}
+    <rect x="20" y="20" width="160" height="100" rx="8" fill="#e2e8f0"/>
+    <rect x="25" y="25" width="150" height="90" rx="5" fill="#f8fafc"/>
+    
+    {/* Panel izquierdo - rejillas */}
+    <rect x="30" y="30" width="70" height="80" rx="4" fill="#f1f5f9"/>
+    {[0, 1, 2, 3, 4, 5, 6].map(i => (
+      <rect key={`v${i}`} x="35" y={35 + i * 11} width="60" height="6" rx="3" fill="#94a3b8" opacity="0.5"/>
+    ))}
+    
+    {/* Panel derecho - controles */}
+    <rect x="105" y="30" width="65" height="80" rx="4" fill="#e2e8f0"/>
+    
+    {/* Rejillas verticales */}
+    <rect x="115" y="35" width="8" height="70" rx="2" fill="#94a3b8" opacity="0.4"/>
+    <rect x="130" y="35" width="8" height="70" rx="2" fill="#94a3b8" opacity="0.4"/>
+    <rect x="145" y="35" width="8" height="70" rx="2" fill="#94a3b8" opacity="0.4"/>
+    
+    {/* LED indicador */}
+    <circle cx="158" cy="108" r="5" fill={isOn ? "#0ea5e9" : "#475569"} className={isOn ? "equipment-led" : ""}/>
+    
+    {/* Display */}
+    <rect x="110" y="85" width="28" height="14" rx="2" fill="#0f172a" opacity="0.15"/>
+    <text x="124" y="95" fontFamily="monospace" fontSize="8" fill={isOn ? "#0ea5e9" : "#475569"} textAnchor="middle" className={isOn ? "equipment-temp" : ""}>
+      {isOn ? "24°" : "--"}
+    </text>
+    
+    {/* Partículas saliendo hacia la izquierda */}
+    {isOn && (
+      <>
+        <circle className="air-particle-left p1" cx="25" cy="50" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-left p2" cx="25" cy="60" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-left p3" cx="25" cy="70" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-left p4" cx="25" cy="80" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-left p5" cx="25" cy="55" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-left p6" cx="25" cy="65" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-left p7" cx="25" cy="75" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-left p8" cx="25" cy="85" r="2.5" fill="#7dd3fc"/>
+      </>
+    )}
+  </>
+);
+
+// Componente SVG para Cassette (vista inferior)
+const CassetteSVG = ({ isOn }) => (
+  <>
+    {/* Marco exterior */}
+    <rect x="25" y="20" width="150" height="110" rx="10" fill="#e2e8f0"/>
+    <rect x="30" y="25" width="140" height="100" rx="7" fill="#f8fafc"/>
+    
+    {/* Panel central */}
+    <rect x="40" y="35" width="120" height="80" rx="5" fill="#f1f5f9"/>
+    
+    {/* Rejillas en 4 direcciones */}
+    <rect x="70" y="38" width="60" height="8" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="70" y="104" width="60" height="8" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="43" y="55" width="8" height="40" rx="2" fill="#94a3b8" opacity="0.5"/>
+    <rect x="149" y="55" width="8" height="40" rx="2" fill="#94a3b8" opacity="0.5"/>
+    
+    {/* Centro con ventilador */}
+    <circle cx="100" cy="75" r="25" fill="#e2e8f0"/>
+    <circle cx="100" cy="75" r="18" fill="#f8fafc"/>
+    <circle cx="100" cy="75" r="8" fill={isOn ? "#0ea5e9" : "#475569"} className={isOn ? "equipment-led" : ""} opacity="0.8"/>
+    
+    {/* Aspas del ventilador */}
+    <g className={isOn ? "fan-spin" : ""}>
+      <rect x="97" y="60" width="6" height="12" rx="2" fill="#94a3b8" opacity="0.6"/>
+      <rect x="97" y="78" width="6" height="12" rx="2" fill="#94a3b8" opacity="0.6"/>
+      <rect x="85" y="72" width="12" height="6" rx="2" fill="#94a3b8" opacity="0.6"/>
+      <rect x="103" y="72" width="12" height="6" rx="2" fill="#94a3b8" opacity="0.6"/>
+    </g>
+    
+    {/* Display esquina */}
+    <rect x="125" y="95" width="28" height="14" rx="2" fill="#0f172a" opacity="0.15"/>
+    <text x="139" y="105" fontFamily="monospace" fontSize="8" fill={isOn ? "#0ea5e9" : "#475569"} textAnchor="middle" className={isOn ? "equipment-temp" : ""}>
+      {isOn ? "24°" : "--"}
+    </text>
+    
+    {/* Partículas en 4 direcciones */}
+    {isOn && (
+      <>
+        <circle className="air-particle-up p1" cx="85" cy="35" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p2" cx="100" cy="35" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p3" cx="115" cy="35" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-down p4" cx="85" cy="115" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-down p5" cx="100" cy="115" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-down p6" cx="115" cy="115" r="2" fill="#7dd3fc"/>
+      </>
+    )}
+  </>
+);
+
+// Componente SVG para Portátil
+const PortatilSVG = ({ isOn }) => (
+  <>
+    {/* Cuerpo principal vertical */}
+    <rect x="55" y="15" width="90" height="120" rx="12" fill="#e2e8f0"/>
+    <rect x="60" y="20" width="80" height="110" rx="8" fill="#f8fafc"/>
+    
+    {/* Panel superior - salida de aire */}
+    <rect x="65" y="25" width="70" height="35" rx="5" fill="#f1f5f9"/>
+    {[0, 1, 2, 3].map(i => (
+      <rect key={`p${i}`} x="70" y={30 + i * 8} width="60" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    ))}
+    
+    {/* Panel de control central */}
+    <rect x="70" y="65" width="60" height="40" rx="5" fill="#e2e8f0"/>
+    
+    {/* Display */}
+    <rect x="80" y="70" width="40" height="18" rx="3" fill="#0f172a" opacity="0.2"/>
+    <text x="100" y="83" fontFamily="monospace" fontSize="10" fill={isOn ? "#0ea5e9" : "#475569"} textAnchor="middle" className={isOn ? "equipment-temp" : ""}>
+      {isOn ? "24°" : "- -"}
+    </text>
+    
+    {/* Botones */}
+    <circle cx="85" cy="95" r="4" fill={isOn ? "#0ea5e9" : "#475569"} className={isOn ? "equipment-led" : ""}/>
+    <circle cx="100" cy="95" r="4" fill="#94a3b8" opacity="0.5"/>
+    <circle cx="115" cy="95" r="4" fill="#94a3b8" opacity="0.5"/>
+    
+    {/* Ruedas */}
+    <circle cx="75" cy="132" r="6" fill="#64748b"/>
+    <circle cx="125" cy="132" r="6" fill="#64748b"/>
+    
+    {/* Partículas saliendo hacia arriba */}
+    {isOn && (
+      <>
+        <circle className="air-particle-up p1" cx="80" cy="20" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p2" cx="95" cy="20" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p3" cx="110" cy="20" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p4" cx="87" cy="20" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p5" cx="102" cy="20" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p6" cx="118" cy="20" r="2.5" fill="#7dd3fc"/>
+      </>
+    )}
+  </>
+);
+
+// Componente SVG para Piso Cielo
+const PisoCieloSVG = ({ isOn }) => (
+  <>
+    {/* Cuerpo vertical alto */}
+    <rect x="50" y="10" width="100" height="130" rx="8" fill="#e2e8f0"/>
+    <rect x="55" y="15" width="90" height="120" rx="5" fill="#f8fafc"/>
+    
+    {/* Rejilla superior - salida de aire */}
+    <rect x="60" y="20" width="80" height="50" rx="4" fill="#f1f5f9"/>
+    {[0, 1, 2, 3, 4, 5].map(i => (
+      <rect key={`pc${i}`} x="65" y={25 + i * 8} width="70" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+    ))}
+    
+    {/* Panel de control */}
+    <rect x="60" y="75" width="80" height="55" rx="4" fill="#e2e8f0"/>
+    
+    {/* Display grande */}
+    <rect x="70" y="80" width="60" height="25" rx="3" fill="#0f172a" opacity="0.15"/>
+    <text x="100" y="98" fontFamily="monospace" fontSize="14" fill={isOn ? "#0ea5e9" : "#475569"} textAnchor="middle" className={isOn ? "equipment-temp" : ""}>
+      {isOn ? "24°" : "- -"}
+    </text>
+    
+    {/* LED y controles */}
+    <circle cx="80" cy="118" r="5" fill={isOn ? "#0ea5e9" : "#475569"} className={isOn ? "equipment-led" : ""}/>
+    <rect x="95" y="113" width="35" height="10" rx="3" fill="#94a3b8" opacity="0.4"/>
+    
+    {/* Partículas hacia arriba */}
+    {isOn && (
+      <>
+        <circle className="air-particle-up p1" cx="70" cy="15" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p2" cx="85" cy="15" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p3" cx="100" cy="15" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p4" cx="115" cy="15" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p5" cx="130" cy="15" r="2.5" fill="#7dd3fc"/>
+        <circle className="air-particle-up p6" cx="77" cy="15" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p7" cx="92" cy="15" r="2" fill="#7dd3fc"/>
+        <circle className="air-particle-up p8" cx="107" cy="15" r="2.5" fill="#7dd3fc"/>
+      </>
+    )}
+  </>
+);
+
+// Función para renderizar el SVG según el tipo de equipo
+const EquipmentSVGByType = ({ tipo, isOn }) => {
+  const tipoLower = (tipo || 'split').toLowerCase();
+  
+  if (tipoLower.includes('ventana')) {
+    return <VentanaSVG isOn={isOn} />;
+  }
+  if (tipoLower.includes('cassette')) {
+    return <CassetteSVG isOn={isOn} />;
+  }
+  if (tipoLower.includes('portátil') || tipoLower.includes('portatil')) {
+    return <PortatilSVG isOn={isOn} />;
+  }
+  if (tipoLower.includes('piso') || tipoLower.includes('cielo')) {
+    return <PisoCieloSVG isOn={isOn} />;
+  }
+  // Por defecto: Split Muro
+  return <SplitSVG isOn={isOn} />;
+};
+
 const EquipmentCatalog = () => {
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState([]);
@@ -323,7 +568,7 @@ const EquipmentCatalog = () => {
                       <Eye size={18} />
                     </button>
                   )}
-                  {/* SVG animado del equipo con partículas - Click para encender/apagar */}
+                  {/* SVG animado del equipo - Click para encender/apagar */}
                   <svg 
                     viewBox="0 0 200 150" 
                     fill="none" 
@@ -332,54 +577,7 @@ const EquipmentCatalog = () => {
                     onClick={() => togglePower(item.id)}
                     className={`equipment-svg ${isOn(item) ? 'powered-on' : 'powered-off'}`}
                   >
-                    {/* Cuerpo del split */}
-                    <rect x="10" y="25" width="180" height="70" rx="10" fill="#e2e8f0"/>
-                    <rect x="15" y="30" width="170" height="55" rx="7" fill="#f8fafc"/>
-                    
-                    {/* Rejillas de ventilación */}
-                    <rect x="25" y="37" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                    <rect x="25" y="45" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                    <rect x="25" y="53" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                    <rect x="25" y="61" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                    <rect x="25" y="69" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
-                    
-                    {/* LED indicador - cambia según estado */}
-                    <circle 
-                      cx="172" cy="42" r="5" 
-                      fill={isOn(item) ? "#0ea5e9" : "#475569"} 
-                      className={isOn(item) ? "equipment-led" : ""}
-                    />
-                    
-                    {/* Display de temperatura o símbolo apagado */}
-                    <rect x="140" y="58" width="32" height="16" rx="3" fill="#0f172a" opacity="0.15"/>
-                    <text 
-                      x="156" y="70" 
-                      fontFamily="monospace" 
-                      fontSize="10" 
-                      fill={isOn(item) ? "#0ea5e9" : "#475569"} 
-                      textAnchor="middle" 
-                      className={isOn(item) ? "equipment-temp" : ""}
-                    >
-                      {isOn(item) ? "24°" : "- -"}
-                    </text>
-                    
-                    {/* Partículas de aire frío - solo si está encendido */}
-                    {isOn(item) && (
-                      <>
-                        <circle className="air-particle p1" cx="30" cy="98" r="3" fill="#7dd3fc"/>
-                        <circle className="air-particle p2" cx="50" cy="98" r="2.5" fill="#7dd3fc"/>
-                        <circle className="air-particle p3" cx="70" cy="98" r="3" fill="#7dd3fc"/>
-                        <circle className="air-particle p4" cx="90" cy="98" r="2" fill="#7dd3fc"/>
-                        <circle className="air-particle p5" cx="110" cy="98" r="3" fill="#7dd3fc"/>
-                        <circle className="air-particle p6" cx="130" cy="98" r="2.5" fill="#7dd3fc"/>
-                        <circle className="air-particle p7" cx="150" cy="98" r="3" fill="#7dd3fc"/>
-                        <circle className="air-particle p8" cx="170" cy="98" r="2" fill="#7dd3fc"/>
-                        <circle className="air-particle p9" cx="40" cy="98" r="2" fill="#7dd3fc"/>
-                        <circle className="air-particle p10" cx="80" cy="98" r="2.5" fill="#7dd3fc"/>
-                        <circle className="air-particle p11" cx="120" cy="98" r="2" fill="#7dd3fc"/>
-                        <circle className="air-particle p12" cx="160" cy="98" r="2.5" fill="#7dd3fc"/>
-                      </>
-                    )}
+                    <EquipmentSVGByType tipo={item.tipo} isOn={isOn(item)} />
                   </svg>
                 </div>
                 
