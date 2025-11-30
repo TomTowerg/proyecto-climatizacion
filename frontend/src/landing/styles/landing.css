@@ -624,6 +624,24 @@
   line-height: 1.7;
 }
 
+/* Nota de precio en el catálogo */
+.catalog-price-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 50px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.catalog-price-notice .price-notice-icon {
+  font-size: 1rem;
+}
+
 .services-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -896,6 +914,108 @@
   }
 }
 
+/* Partículas hacia la izquierda (Ventana) */
+.air-particle-left {
+  animation: particleLeft 2s linear infinite;
+}
+
+.air-particle-left.p1 { animation-delay: 0s; }
+.air-particle-left.p2 { animation-delay: 0.25s; }
+.air-particle-left.p3 { animation-delay: 0.5s; }
+.air-particle-left.p4 { animation-delay: 0.75s; }
+.air-particle-left.p5 { animation-delay: 1s; }
+.air-particle-left.p6 { animation-delay: 1.25s; }
+.air-particle-left.p7 { animation-delay: 1.5s; }
+.air-particle-left.p8 { animation-delay: 1.75s; }
+
+@keyframes particleLeft {
+  0% { 
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+}
+
+/* Partículas hacia arriba (Portátil, Piso Cielo) */
+.air-particle-up {
+  animation: particleUp 2s linear infinite;
+}
+
+.air-particle-up.p1 { animation-delay: 0s; }
+.air-particle-up.p2 { animation-delay: 0.25s; }
+.air-particle-up.p3 { animation-delay: 0.5s; }
+.air-particle-up.p4 { animation-delay: 0.75s; }
+.air-particle-up.p5 { animation-delay: 1s; }
+.air-particle-up.p6 { animation-delay: 1.25s; }
+.air-particle-up.p7 { animation-delay: 1.5s; }
+.air-particle-up.p8 { animation-delay: 1.75s; }
+
+@keyframes particleUp {
+  0% { 
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+
+/* Partículas hacia abajo (Cassette) */
+.air-particle-down {
+  animation: particleDown 2s linear infinite;
+}
+
+.air-particle-down.p1 { animation-delay: 0s; }
+.air-particle-down.p2 { animation-delay: 0.35s; }
+.air-particle-down.p3 { animation-delay: 0.7s; }
+.air-particle-down.p4 { animation-delay: 1.05s; }
+.air-particle-down.p5 { animation-delay: 1.4s; }
+.air-particle-down.p6 { animation-delay: 1.75s; }
+
+@keyframes particleDown {
+  0% { 
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateY(30px);
+    opacity: 0;
+  }
+}
+
+/* Ventilador girando (Cassette) */
+.fan-spin {
+  animation: fanRotate 2s linear infinite;
+  transform-origin: 100px 75px;
+}
+
+@keyframes fanRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Botón para ver imagen real */
 .view-image-btn {
   position: absolute;
@@ -1113,12 +1233,47 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: var(--eco-green);
-  color: var(--landing-primary);
   padding: 0.35rem 0.75rem;
   border-radius: 50px;
   font-size: 0.75rem;
   font-weight: 700;
+  z-index: 10;
+}
+
+.equipment-badge.in-stock {
+  background: var(--eco-green);
+  color: var(--landing-primary);
+}
+
+.equipment-badge.out-of-stock-badge {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+/* Estado sin stock */
+.equipment-image.out-of-stock {
+  position: relative;
+}
+
+.equipment-image.out-of-stock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.5);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.equipment-image.out-of-stock .equipment-svg {
+  filter: grayscale(100%) brightness(0.7);
+}
+
+.equipment-image.out-of-stock .view-image-btn {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+.equipment-image.out-of-stock .view-image-btn:hover {
+  background: rgba(100, 116, 139, 1);
 }
 
 .equipment-content {
@@ -1178,6 +1333,13 @@
 .equipment-price-label {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.equipment-price-note {
+  font-size: 0.7rem;
+  color: var(--landing-secondary);
+  opacity: 0.8;
+  margin-top: 0.15rem;
 }
 
 .equipment-cta {
@@ -1596,6 +1758,26 @@
   padding: 2.5rem;
 }
 
+/* Nota de precio antes del formulario */
+.contact-form-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+}
+
+.contact-form-notice .notice-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
 .contact-form {
   display: flex;
   flex-direction: column;
@@ -1771,15 +1953,23 @@
   padding-top: 2rem;
   border-top: 1px solid var(--border-glass);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 1rem;
+  text-align: center;
 }
 
 .footer-copyright {
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.footer-price-disclaimer {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  max-width: 600px;
+  line-height: 1.5;
+  opacity: 0.7;
 }
 
 .footer-legal {

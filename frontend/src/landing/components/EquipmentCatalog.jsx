@@ -510,6 +510,10 @@ const EquipmentCatalog = () => {
           <p className="section-description">
             {t('landing.catalog.description', 'Descubre nuestra selección de aires acondicionados de las mejores marcas, con tecnología inverter y máxima eficiencia energética.')}
           </p>
+          <div className="catalog-price-notice">
+            <span className="price-notice-icon">ℹ️</span>
+            <span>{t('landing.catalog.priceNotice', 'Precios incluyen IVA. Instalación se cotiza por separado según requerimientos.')}</span>
+          </div>
         </div>
 
         {/* Filters */}
@@ -609,7 +613,8 @@ const EquipmentCatalog = () => {
                       <div className="equipment-price-value">
                         {formatPrice(item.precioCliente || item.precioClienteIVA)}
                       </div>
-                      <div className="equipment-price-label">{t('landing.catalog.priceLabel', 'IVA incluido')}</div>
+                      <div className="equipment-price-label">{t('landing.catalog.priceLabel', 'Equipo + IVA')}</div>
+                      <div className="equipment-price-note">{t('landing.catalog.priceNote', '*Sin instalación')}</div>
                     </div>
                     <button className="equipment-cta" onClick={scrollToContact}>
                       {t('landing.catalog.cta', 'Cotizar')}

@@ -106,6 +106,9 @@ const Footer = () => {
           <p className="footer-copyright">
             © {currentYear} KMTS Powertech SPA. {t('landing.footer.rights', 'Todos los derechos reservados.')}
           </p>
+          <p className="footer-price-disclaimer">
+            {t('landing.footer.priceDisclaimer', '* Los precios publicados corresponden al valor del equipo con IVA incluido. El servicio de instalación no está incluido y se cotiza de forma independiente.')}
+          </p>
           <div className="footer-legal">
             <Link to="/admin">
               {t('landing.footer.adminAccess', 'Acceso Administrador')}

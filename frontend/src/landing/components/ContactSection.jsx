@@ -216,6 +216,10 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
 
           {/* Contact Form */}
           <div className="contact-form-container animate-on-scroll">
+            <div className="contact-form-notice">
+              <span className="notice-icon">💡</span>
+              <span>{t('landing.contact.priceNotice', 'Los precios de equipos incluyen IVA. El costo de instalación se cotiza según los requerimientos específicos de cada proyecto.')}</span>
+            </div>
             <form className="contact-form" onSubmit={handleSubmit}>
               <div className="form-row">
                 <div className="form-group">
