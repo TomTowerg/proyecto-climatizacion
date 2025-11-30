@@ -142,6 +142,10 @@ const EquipmentCatalog = () => {
   // Equipos visibles
   const visibleEquipment = filteredEquipment.slice(0, visibleCount);
 
+  // Debug - remover después
+  console.log('Equipment loaded:', equipment.length, 'items');
+  console.log('Filtered:', filteredEquipment.length, 'Visible:', visibleEquipment.length);
+
   // Formatear precio
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CL', {
@@ -207,9 +211,9 @@ const EquipmentCatalog = () => {
 
         {/* Equipment Grid */}
         {!loading && (
-          <div className="equipment-grid stagger-children">
-            {visibleEquipment.map((item) => (
-              <div key={item.id} className="equipment-card">
+          <div className="equipment-grid">
+            {visibleEquipment.map((item, index) => (
+              <div key={item.id} className="equipment-card" style={{ animationDelay: `${index * 0.1}s` }}>
                 <div className="equipment-image">
                   {item.stock > 0 && (
                     <span className="equipment-badge">
