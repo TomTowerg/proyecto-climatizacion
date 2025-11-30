@@ -35,7 +35,7 @@ const FAQ = () => {
       questionKey: 'landing.faq.q5.question',
       questionDefault: '¿Cómo sé qué capacidad de equipo necesito?',
       answerKey: 'landing.faq.q5.answer',
-      answerDefault: 'La capacidad depende del tamaño del espacio, orientación, cantidad de ventanas y ocupantes. Como referencia: 9.000 BTU para 15-20m², 12.000 BTU para 20-25m², 18.000 BTU para 25-35m². Ofrecemos evaluación técnica gratuita para recomendarte la mejor opción.'
+      answerDefault: 'La capacidad depende del tamaño del espacio, orientación, cantidad de ventanas y ocupantes. Como referencia: 9.000 BTU para 15-20m², 12.000 BTU para 24-30m², 18.000 BTU para 32-40m², 24.000 BTU para 45-50m². Contáctanos y te ayudamos a elegir la mejor opción para tu espacio.'
     },
     {
       questionKey: 'landing.faq.q6.question',

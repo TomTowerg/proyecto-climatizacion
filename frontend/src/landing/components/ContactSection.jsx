@@ -24,6 +24,10 @@ const ContactSection = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Número de WhatsApp (sin + ni espacios)
+  const whatsappNumber = '56954610454';
+  const businessEmail = 'kmtspowertech@gmail.com';
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -31,34 +35,75 @@ const ContactSection = () => {
     });
   };
 
+  const getServiceLabel = (value) => {
+    const services = {
+      'instalacion': 'Instalación',
+      'mantenimiento': 'Mantenimiento',
+      'reparacion': 'Reparación',
+      'cotizacion': 'Cotización de equipo',
+      'otro': 'Otro'
+    };
+    return services[value] || value;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simular envío (aquí podrías conectar a tu backend)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Aquí iría la llamada real al backend
-      // await fetch(`${API_URL}/api/contacto`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
+      // Construir mensaje para WhatsApp
+      const whatsappMessage = `¡Hola! Me contacto desde la web de KMTS Powertech.
+
+*Datos de contacto:*
+• Nombre: ${formData.nombre}
+• Teléfono: ${formData.telefono}
+• Email: ${formData.email}
+${formData.servicio ? `• Servicio: ${getServiceLabel(formData.servicio)}` : ''}
+
+${formData.mensaje ? `*Mensaje:*\n${formData.mensaje}` : ''}
+
+Quedo atento a su respuesta. ¡Gracias!`;
+
+      // Construir URL de WhatsApp
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
+      // Construir mailto como respaldo
+      const emailSubject = `Contacto Web - ${getServiceLabel(formData.servicio) || 'Consulta General'}`;
+      const emailBody = `Datos de contacto:
+- Nombre: ${formData.nombre}
+- Teléfono: ${formData.telefono}
+- Email: ${formData.email}
+- Servicio: ${getServiceLabel(formData.servicio) || 'No especificado'}
+
+Mensaje:
+${formData.mensaje || 'Sin mensaje adicional'}`;
+
+      const mailtoUrl = `mailto:${businessEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+      // Abrir WhatsApp en nueva pestaña
+      window.open(whatsappUrl, '_blank');
+
+      // Abrir email en paralelo (el usuario puede elegir enviar o no)
+      // Pequeño delay para que no se bloqueen entre sí
+      setTimeout(() => {
+        window.location.href = mailtoUrl;
+      }, 1000);
 
       setSubmitted(true);
-      toast.success(t('landing.contact.successMessage', '¡Mensaje enviado! Te contactaremos pronto.'));
+      toast.success(t('landing.contact.successMessage', '¡Redirigiendo a WhatsApp y Email!'));
       
-      // Reset form
-      setFormData({
-        nombre: '',
-        email: '',
-        telefono: '',
-        servicio: '',
-        mensaje: ''
-      });
+      // Reset form después de un momento
+      setTimeout(() => {
+        setFormData({
+          nombre: '',
+          email: '',
+          telefono: '',
+          servicio: '',
+          mensaje: ''
+        });
+        setSubmitted(false);
+      }, 3000);
 
-      setTimeout(() => setSubmitted(false), 3000);
     } catch (error) {
       toast.error(t('landing.contact.errorMessage', 'Error al enviar. Intenta de nuevo.'));
     } finally {
