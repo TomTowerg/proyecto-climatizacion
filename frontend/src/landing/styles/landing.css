@@ -811,6 +811,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .equipment-image img {
@@ -819,6 +820,289 @@
   object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
   transition: var(--transition-smooth);
+}
+
+/* Animaciones del SVG del equipo */
+.equipment-svg {
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 5;
+}
+
+.equipment-svg:hover {
+  transform: scale(1.02);
+}
+
+.equipment-svg.powered-off {
+  filter: brightness(0.9);
+}
+
+.equipment-led {
+  animation: ledPulse 2s ease-in-out infinite;
+}
+
+@keyframes ledPulse {
+  0%, 100% { 
+    fill: #0ea5e9;
+    filter: drop-shadow(0 0 3px #0ea5e9);
+  }
+  50% { 
+    fill: #7dd3fc;
+    filter: drop-shadow(0 0 8px #0ea5e9);
+  }
+}
+
+.equipment-temp {
+  animation: tempPulse 3s ease-in-out infinite;
+}
+
+@keyframes tempPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Partículas de aire cayendo */
+.air-particle {
+  animation: particleFall 2s linear infinite;
+}
+
+.air-particle.p1 { animation-delay: 0s; }
+.air-particle.p2 { animation-delay: 0.25s; }
+.air-particle.p3 { animation-delay: 0.5s; }
+.air-particle.p4 { animation-delay: 0.75s; }
+.air-particle.p5 { animation-delay: 1s; }
+.air-particle.p6 { animation-delay: 1.25s; }
+.air-particle.p7 { animation-delay: 1.5s; }
+.air-particle.p8 { animation-delay: 1.75s; }
+.air-particle.p9 { animation-delay: 0.15s; }
+.air-particle.p10 { animation-delay: 0.4s; }
+.air-particle.p11 { animation-delay: 0.65s; }
+.air-particle.p12 { animation-delay: 0.9s; }
+
+@keyframes particleFall {
+  0% { 
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% { 
+    transform: translateY(45px);
+    opacity: 0;
+  }
+}
+
+/* Botón para ver imagen real */
+.view-image-btn {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(14, 165, 233, 0.9);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+}
+
+.view-image-btn:hover {
+  background: var(--landing-secondary);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+/* Modal de imagen */
+.image-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.image-modal-content {
+  background: var(--gradient-card);
+  border: 1px solid var(--border-glass);
+  border-radius: 24px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-glass);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  z-index: 10;
+}
+
+.image-modal-close:hover {
+  background: rgba(239, 68, 68, 0.8);
+  border-color: transparent;
+  color: white;
+}
+
+.image-modal-header {
+  padding: 1.5rem 2rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.image-modal-brand {
+  display: block;
+  color: var(--landing-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.image-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.image-modal-capacity {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.image-modal-body {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%);
+  min-height: 300px;
+  position: relative;
+}
+
+.image-modal-body img {
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.2));
+}
+
+/* Flechas de navegación de galería */
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(10, 22, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  z-index: 10;
+}
+
+.gallery-arrow:hover {
+  background: var(--landing-secondary);
+  border-color: var(--landing-secondary);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.gallery-arrow-left {
+  left: 1rem;
+}
+
+.gallery-arrow-right {
+  right: 1rem;
+}
+
+/* Indicadores de imagen (dots) */
+.gallery-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(10, 22, 40, 0.5);
+}
+
+.gallery-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.gallery-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.gallery-dot.active {
+  background: var(--landing-secondary);
+  transform: scale(1.2);
+}
+
+.image-modal-footer {
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border-glass);
+}
+
+.image-modal-footer .equipment-cta {
+  padding: 0.875rem 2.5rem;
 }
 
 .equipment-card:hover .equipment-image img {

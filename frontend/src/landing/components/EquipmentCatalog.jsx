@@ -7,7 +7,11 @@ import {
   Ruler,
   Package,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -21,6 +25,65 @@ const getBaseUrl = () => {
   return url;
 };
 
+// Mapeo de imágenes de equipos disponibles (arrays para múltiples imágenes)
+const equipmentImages = {
+  // ANWO
+  'anwo-ventana-9000': ['/equipos/anwo-ventana-9000.png'],
+  'anwo-split-9000': ['/equipos/anwo-split-9000.png'],
+  'anwo-split-12000': ['/equipos/anwo-split-12000.png'],
+  'anwo-split-18000': ['/equipos/anwo-split-18000.png'],
+  'anwo-split-24000': ['/equipos/anwo-split-24000.png'],
+  // Clark
+  'clark-split-9000': ['/equipos/clark-split-9000.png'],
+  'clark-split-12000': ['/equipos/clark-split-12000.png'],
+  'clark-split-18000': ['/equipos/clark-split-18000.png'],
+  'clark-split-24000': ['/equipos/clark-split-24000.png'],
+  'clark-split-36000': ['/equipos/clark-split-36000.png'],
+  // Hisense
+  'hisense-split-9000': ['/equipos/hisense-split-9000.png'],
+  'hisense-split-12000': ['/equipos/hisense-split-12000.png'],
+  'hisense-split-18000': ['/equipos/hisense-split-18000.png'],
+  'hisense-split-22000': ['/equipos/hisense-split-22000.png'],
+  // Kendal
+  'kendal-split-9000': ['/equipos/kendal-split-9000.png'],
+  'kendal-split-12000': ['/equipos/kendal-split-12000.png'],
+  'kendal-split-18000': ['/equipos/kendal-split-18000.png'],
+  'kendal-split-24000': ['/equipos/kendal-split-24000.png'],
+  // Samsung
+  'samsung-split-9000': ['/equipos/samsung-split-9000.png'],
+  'samsung-split-12000': ['/equipos/samsung-split-12000.png'],
+  'samsung-split-18000': ['/equipos/samsung-split-18000.png'],
+  'samsung-split-24000': ['/equipos/samsung-split-24000.png'],
+  // Vesta
+  'vesta-split-9000': ['/equipos/vesta-split-9000.png'],
+  'vesta-split-12000': ['/equipos/vesta-split-12000.png'],
+  'vesta-split-18000': ['/equipos/vesta-split-18000.png'],
+  'vesta-split-24000': ['/equipos/vesta-split-24000.png'],
+};
+
+// Función para obtener las imágenes del equipo (retorna array)
+const getEquipmentImages = (item) => {
+  const marca = (item.marca || '').toLowerCase().trim();
+  const tipo = (item.tipo || 'split').toLowerCase();
+  const btu = parseInt(item.capacidadBTU) || parseInt(item.capacidad) || 0;
+  
+  let tipoKey = 'split';
+  if (tipo.includes('ventana')) {
+    tipoKey = 'ventana';
+  } else if (tipo.includes('cassette')) {
+    tipoKey = 'cassette';
+  }
+  
+  const imageKey = `${marca}-${tipoKey}-${btu}`;
+  return equipmentImages[imageKey] || [];
+};
+
+// Función legacy para compatibilidad (retorna primera imagen o null)
+const getEquipmentImage = (item) => {
+  const images = getEquipmentImages(item);
+  return images.length > 0 ? images[0] : null;
+};
+
 const EquipmentCatalog = () => {
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState([]);
@@ -28,6 +91,24 @@ const EquipmentCatalog = () => {
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('todos');
   const [visibleCount, setVisibleCount] = useState(6);
+  const [imageModal, setImageModal] = useState({ open: false, item: null, currentIndex: 0 });
+  const [poweredOn, setPoweredOn] = useState({}); // Estado encendido/apagado por equipo
+
+  // Toggle encendido/apagado de un equipo
+  const togglePower = (id) => {
+    setPoweredOn(prev => ({
+      ...prev,
+      [id]: prev[id] === undefined ? false : !prev[id] // Por defecto encendido
+    }));
+  };
+
+  // Verificar si un equipo está encendido (por defecto sí, excepto si no hay stock)
+  const isOn = (item) => {
+    const id = item.id;
+    if (poweredOn[id] !== undefined) return poweredOn[id];
+    // Por defecto apagado si no hay stock
+    return item.stock > 0;
+  };
 
   useEffect(() => {
     fetchEquipment();
@@ -134,27 +215,25 @@ const EquipmentCatalog = () => {
   // Obtener tipos únicos para filtros
   const types = ['todos', ...new Set(equipment.map(e => e.tipo))];
 
-const filteredEquipment = activeFilter === 'todos' 
-  ? equipment 
-  : equipment.filter(e => e.tipo === activeFilter);
+  // Filtrar equipos
+  const filteredEquipment = activeFilter === 'todos' 
+    ? equipment 
+    : equipment.filter(e => e.tipo === activeFilter);
 
-// Ordenar equipos: primero por marca (A-Z), luego por BTU (menor a mayor)
-const sortedEquipment = [...filteredEquipment].sort((a, b) => {
-  // Primero ordenar por marca alfabéticamente
-  const marcaComparison = (a.marca || '').localeCompare(b.marca || '');
-  if (marcaComparison !== 0) return marcaComparison;
-  
-  // Si la marca es igual, ordenar por BTU de menor a mayor
-  const btuA = parseInt(a.capacidadBTU) || parseInt(a.capacidad) || 0;
-  const btuB = parseInt(b.capacidadBTU) || parseInt(b.capacidad) || 0;
-  return btuA - btuB;
-});
+  // Ordenar equipos: primero por marca (A-Z), luego por BTU (menor a mayor)
+  const sortedEquipment = [...filteredEquipment].sort((a, b) => {
+    // Primero ordenar por marca alfabéticamente
+    const marcaComparison = (a.marca || '').localeCompare(b.marca || '');
+    if (marcaComparison !== 0) return marcaComparison;
+    
+    // Si la marca es igual, ordenar por BTU de menor a mayor
+    const btuA = parseInt(a.capacidadBTU) || parseInt(a.capacidad) || 0;
+    const btuB = parseInt(b.capacidadBTU) || parseInt(b.capacidad) || 0;
+    return btuA - btuB;
+  });
 
-const visibleEquipment = sortedEquipment.slice(0, visibleCount);
-
-  // Debug - remover después
-  console.log('Equipment loaded:', equipment.length, 'items');
-  console.log('Filtered:', filteredEquipment.length, 'Visible:', visibleEquipment.length);
+  // Equipos visibles
+  const visibleEquipment = sortedEquipment.slice(0, visibleCount);
 
   // Formatear precio
   const formatPrice = (price) => {
@@ -224,22 +303,83 @@ const visibleEquipment = sortedEquipment.slice(0, visibleCount);
           <div className="equipment-grid">
             {visibleEquipment.map((item, index) => (
               <div key={item.id} className="equipment-card" style={{ animationDelay: `${index * 0.1}s` }}>
-                <div className="equipment-image">
-                  {item.stock > 0 && (
-                    <span className="equipment-badge">
+                <div className={`equipment-image ${item.stock <= 0 ? 'out-of-stock' : ''}`}>
+                  {item.stock > 0 ? (
+                    <span className="equipment-badge in-stock">
                       {t('landing.catalog.inStock', 'En Stock')}
                     </span>
+                  ) : (
+                    <span className="equipment-badge out-of-stock-badge">
+                      {t('landing.catalog.outOfStock', 'Agotado')}
+                    </span>
                   )}
-                  {/* Placeholder SVG para imagen del equipo */}
-                  <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '70%', height: 'auto' }}>
-                    <rect x="10" y="30" width="180" height="70" rx="8" fill="#e2e8f0" />
-                    <rect x="15" y="35" width="170" height="55" rx="5" fill="#f1f5f9" />
-                    {[0, 1, 2, 3, 4].map(i => (
-                      <rect key={i} x="25" y={42 + i * 9} width="150" height="5" rx="2" fill="#94a3b8" opacity="0.5" />
-                    ))}
-                    <circle cx="165" cy="45" r="6" fill="#0ea5e9" opacity="0.8" />
-                    <path d="M30 105 Q50 115 30 125 M60 105 Q80 118 60 130 M90 105 Q110 115 90 125" 
-                          stroke="#7dd3fc" strokeWidth="2" fill="none" opacity="0.6" />
+                  {/* Botón para ver imagen real */}
+                  {getEquipmentImage(item) && (
+                    <button 
+                      className="view-image-btn"
+                      onClick={() => setImageModal({ open: true, item, currentIndex: 0 })}
+                      title={t('landing.catalog.viewImage', 'Ver imagen')}
+                    >
+                      <Eye size={18} />
+                    </button>
+                  )}
+                  {/* SVG animado del equipo con partículas - Click para encender/apagar */}
+                  <svg 
+                    viewBox="0 0 200 150" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    style={{ width: '70%', height: 'auto', cursor: 'pointer' }}
+                    onClick={() => togglePower(item.id)}
+                    className={`equipment-svg ${isOn(item) ? 'powered-on' : 'powered-off'}`}
+                  >
+                    {/* Cuerpo del split */}
+                    <rect x="10" y="25" width="180" height="70" rx="10" fill="#e2e8f0"/>
+                    <rect x="15" y="30" width="170" height="55" rx="7" fill="#f8fafc"/>
+                    
+                    {/* Rejillas de ventilación */}
+                    <rect x="25" y="37" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+                    <rect x="25" y="45" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+                    <rect x="25" y="53" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+                    <rect x="25" y="61" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+                    <rect x="25" y="69" width="140" height="4" rx="2" fill="#94a3b8" opacity="0.5"/>
+                    
+                    {/* LED indicador - cambia según estado */}
+                    <circle 
+                      cx="172" cy="42" r="5" 
+                      fill={isOn(item) ? "#0ea5e9" : "#475569"} 
+                      className={isOn(item) ? "equipment-led" : ""}
+                    />
+                    
+                    {/* Display de temperatura o símbolo apagado */}
+                    <rect x="140" y="58" width="32" height="16" rx="3" fill="#0f172a" opacity="0.15"/>
+                    <text 
+                      x="156" y="70" 
+                      fontFamily="monospace" 
+                      fontSize="10" 
+                      fill={isOn(item) ? "#0ea5e9" : "#475569"} 
+                      textAnchor="middle" 
+                      className={isOn(item) ? "equipment-temp" : ""}
+                    >
+                      {isOn(item) ? "24°" : "- -"}
+                    </text>
+                    
+                    {/* Partículas de aire frío - solo si está encendido */}
+                    {isOn(item) && (
+                      <>
+                        <circle className="air-particle p1" cx="30" cy="98" r="3" fill="#7dd3fc"/>
+                        <circle className="air-particle p2" cx="50" cy="98" r="2.5" fill="#7dd3fc"/>
+                        <circle className="air-particle p3" cx="70" cy="98" r="3" fill="#7dd3fc"/>
+                        <circle className="air-particle p4" cx="90" cy="98" r="2" fill="#7dd3fc"/>
+                        <circle className="air-particle p5" cx="110" cy="98" r="3" fill="#7dd3fc"/>
+                        <circle className="air-particle p6" cx="130" cy="98" r="2.5" fill="#7dd3fc"/>
+                        <circle className="air-particle p7" cx="150" cy="98" r="3" fill="#7dd3fc"/>
+                        <circle className="air-particle p8" cx="170" cy="98" r="2" fill="#7dd3fc"/>
+                        <circle className="air-particle p9" cx="40" cy="98" r="2" fill="#7dd3fc"/>
+                        <circle className="air-particle p10" cx="80" cy="98" r="2.5" fill="#7dd3fc"/>
+                        <circle className="air-particle p11" cx="120" cy="98" r="2" fill="#7dd3fc"/>
+                        <circle className="air-particle p12" cx="160" cy="98" r="2.5" fill="#7dd3fc"/>
+                      </>
+                    )}
                   </svg>
                 </div>
                 
@@ -295,6 +435,94 @@ const visibleEquipment = sortedEquipment.slice(0, visibleCount);
           </div>
         )}
       </div>
+
+      {/* Modal para ver imagen del equipo */}
+      {imageModal.open && imageModal.item && (
+        <div 
+          className="image-modal-overlay"
+          onClick={() => setImageModal({ open: false, item: null, currentIndex: 0 })}
+        >
+          <div 
+            className="image-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              className="image-modal-close"
+              onClick={() => setImageModal({ open: false, item: null, currentIndex: 0 })}
+            >
+              <X size={24} />
+            </button>
+            <div className="image-modal-header">
+              <span className="image-modal-brand">{imageModal.item.marca}</span>
+              <h3 className="image-modal-title">{imageModal.item.modelo}</h3>
+              <span className="image-modal-capacity">
+                {imageModal.item.capacidad || imageModal.item.capacidadBTU}
+              </span>
+            </div>
+            <div className="image-modal-body">
+              {/* Flecha izquierda */}
+              {getEquipmentImages(imageModal.item).length > 1 && (
+                <button 
+                  className="gallery-arrow gallery-arrow-left"
+                  onClick={() => setImageModal(prev => ({
+                    ...prev,
+                    currentIndex: prev.currentIndex === 0 
+                      ? getEquipmentImages(prev.item).length - 1 
+                      : prev.currentIndex - 1
+                  }))}
+                >
+                  <ChevronLeft size={28} />
+                </button>
+              )}
+              
+              <img 
+                src={getEquipmentImages(imageModal.item)[imageModal.currentIndex]} 
+                alt={`${imageModal.item.marca} ${imageModal.item.modelo}`}
+              />
+              
+              {/* Flecha derecha */}
+              {getEquipmentImages(imageModal.item).length > 1 && (
+                <button 
+                  className="gallery-arrow gallery-arrow-right"
+                  onClick={() => setImageModal(prev => ({
+                    ...prev,
+                    currentIndex: prev.currentIndex === getEquipmentImages(prev.item).length - 1 
+                      ? 0 
+                      : prev.currentIndex + 1
+                  }))}
+                >
+                  <ChevronRight size={28} />
+                </button>
+              )}
+            </div>
+            
+            {/* Indicadores de imagen */}
+            {getEquipmentImages(imageModal.item).length > 1 && (
+              <div className="gallery-indicators">
+                {getEquipmentImages(imageModal.item).map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={`gallery-dot ${idx === imageModal.currentIndex ? 'active' : ''}`}
+                    onClick={() => setImageModal(prev => ({ ...prev, currentIndex: idx }))}
+                  />
+                ))}
+              </div>
+            )}
+            
+            <div className="image-modal-footer">
+              <button 
+                className="equipment-cta"
+                onClick={() => {
+                  setImageModal({ open: false, item: null, currentIndex: 0 });
+                  scrollToContact();
+                }}
+              >
+                {t('landing.catalog.cta', 'Cotizar')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
