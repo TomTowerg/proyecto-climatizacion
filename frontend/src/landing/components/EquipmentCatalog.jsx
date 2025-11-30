@@ -134,13 +134,23 @@ const EquipmentCatalog = () => {
   // Obtener tipos únicos para filtros
   const types = ['todos', ...new Set(equipment.map(e => e.tipo))];
 
-  // Filtrar equipos
-  const filteredEquipment = activeFilter === 'todos' 
-    ? equipment 
-    : equipment.filter(e => e.tipo === activeFilter);
+const filteredEquipment = activeFilter === 'todos' 
+  ? equipment 
+  : equipment.filter(e => e.tipo === activeFilter);
 
-  // Equipos visibles
-  const visibleEquipment = filteredEquipment.slice(0, visibleCount);
+// Ordenar equipos: primero por marca (A-Z), luego por BTU (menor a mayor)
+const sortedEquipment = [...filteredEquipment].sort((a, b) => {
+  // Primero ordenar por marca alfabéticamente
+  const marcaComparison = (a.marca || '').localeCompare(b.marca || '');
+  if (marcaComparison !== 0) return marcaComparison;
+  
+  // Si la marca es igual, ordenar por BTU de menor a mayor
+  const btuA = parseInt(a.capacidadBTU) || parseInt(a.capacidad) || 0;
+  const btuB = parseInt(b.capacidadBTU) || parseInt(b.capacidad) || 0;
+  return btuA - btuB;
+});
+
+const visibleEquipment = sortedEquipment.slice(0, visibleCount);
 
   // Debug - remover después
   console.log('Equipment loaded:', equipment.length, 'items');
