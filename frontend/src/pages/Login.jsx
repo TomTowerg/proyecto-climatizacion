@@ -5,8 +5,9 @@ import { GoogleLogin } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import toast from 'react-hot-toast'
 import { login } from '../services/authService'
-// ⭐ 1. IMPORTAR EL COMPONENTE
 import LanguageSelector from '../components/LanguageSelector'
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react'
+import './Login.css'
 
 function Login() {
   const { t } = useTranslation()
@@ -14,6 +15,7 @@ function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Login normal con email/password
   const handleLogin = async (e) => {
@@ -33,7 +35,7 @@ function Login() {
     }
   }
 
-  // ⭐ LOGIN CON GOOGLE
+  // LOGIN CON GOOGLE
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setLoading(true)
@@ -80,84 +82,132 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 relative">
+    <div className="login-page">
+      {/* Fondo animado */}
+      <div className="login-bg-pattern"></div>
       
-      {/* ⭐ 2. INSERTAR EL SELECTOR AQUÍ */}
-      {/* Posicionado absoluto respecto al contenedor del login */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Selector de idioma */}
+      <div className="login-language-selector">
         <LanguageSelector />
       </div>
 
-      <div className="card max-w-md w-full mx-4">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-          {t('app.title')}
-        </h1>
+      {/* Logo */}
+      <div className="login-logo">
+        <img src="/logo-kmts.png" alt="KMTS Powertech" />
+      </div>
+
+      {/* Card de login */}
+      <div className="login-card">
+        <div className="login-card-header">
+          <h1 className="login-title">{t('app.title')}</h1>
+          <p className="login-subtitle">{t('auth.welcomeBack', 'Bienvenido de vuelta')}</p>
+        </div>
         
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+        <form onSubmit={handleLogin} className="login-form">
+          {/* Email */}
+          <div className="login-input-group">
+            <label className="login-label">
+              <Mail size={16} />
               {t('auth.email')}
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-              disabled={loading}
-            />
+            <div className="login-input-wrapper">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="login-input"
+                placeholder="correo@ejemplo.com"
+                required
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          {/* Contraseña */}
+          <div className="login-input-group">
+            <label className="login-label">
+              <Lock size={16} />
               {t('auth.password')}
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-              disabled={loading}
-            />
+            <div className="login-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="login-input"
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="login-password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
+          {/* Botón de login */}
           <button 
             type="submit" 
-            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="login-button"
             disabled={loading}
           >
-            {loading ? t('common.loading') : t('auth.login')}
+            {loading ? (
+              <span className="login-button-loading">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                {t('common.loading')}
+              </span>
+            ) : (
+              <span className="login-button-content">
+                <LogIn size={18} />
+                {t('auth.login')}
+              </span>
+            )}
           </button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">O</span>
-            </div>
+          {/* Divisor */}
+          <div className="login-divider">
+            <span>{t('auth.or', 'o')}</span>
           </div>
 
-          <div className="flex justify-center">
+          {/* Google Login */}
+          <div className="login-google-wrapper">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="signin_with"
               locale={t('auth.loginWithGoogle') === "Iniciar sesión con Google" ? "es" : "en"} 
-              theme="outline"
+              theme="filled_black"
               size="large"
               width="100%"
+              shape="pill"
             />
           </div>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-4">
+        {/* Link a registro */}
+        <p className="login-register-link">
           {t('auth.dontHaveAccount')}{' '}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            {t('auth.register')}
-          </Link>
+          <Link to="/register">{t('auth.register')}</Link>
         </p>
+
+        {/* Link a landing */}
+        <Link to="/" className="login-back-link">
+          ← {t('auth.backToHome', 'Volver al inicio')}
+        </Link>
+      </div>
+
+      {/* Partículas decorativas */}
+      <div className="login-particles">
+        {[...Array(12)].map((_, i) => (
+          <div key={i} className={`login-particle p${i + 1}`}></div>
+        ))}
       </div>
     </div>
   )
