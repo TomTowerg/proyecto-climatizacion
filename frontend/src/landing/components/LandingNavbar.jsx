@@ -10,10 +10,35 @@ const LandingNavbar = () => {
   const { t } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentSection, setCurrentSection] = useState('hero');
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
+      
+      // Detectar sección actual
+      const sections = [
+        'hero',
+        'servicios', 
+        'equipos', 
+        'como-funciona', 
+        'testimonios',
+        'faq', 
+        'contacto'
+      ];
+      
+      const navbarHeight = 100;
+      
+      for (const sectionId of sections) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= navbarHeight && rect.bottom > navbarHeight) {
+            setCurrentSection(sectionId);
+            break;
+          }
+        }
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -29,7 +54,7 @@ const LandingNavbar = () => {
   };
 
   return (
-    <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''}`}>
+    <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''} section-${currentSection}`}>
       <div className="landing-container navbar-content">
         <Link to="/landing" className="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <img src={logoImg} alt="KMTS Powertech" />

@@ -33,10 +33,11 @@ const Footer = () => {
                 href="https://instagram.com/kmts_powertech"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="social-link"
+                className="social-link-with-text"
                 aria-label="Instagram"
               >
                 <Instagram />
+                <span>@kmts_powertech</span>
               </a>
             </div>
           </div>

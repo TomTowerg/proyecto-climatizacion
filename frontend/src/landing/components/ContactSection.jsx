@@ -46,11 +46,25 @@ const ContactSection = () => {
     return services[value] || value;
   };
 
+  const getServiceDescription = (value) => {
+    const descriptions = {
+      'instalacion': 'Solicito información para la instalación de un equipo de aire acondicionado. Me gustaría coordinar una visita técnica para evaluar el espacio y recibir una cotización detallada.',
+      'mantenimiento': 'Necesito agendar un servicio de mantenimiento preventivo para mi equipo de aire acondicionado. Quisiera conocer disponibilidad, el detalle del servicio y sus costos.',
+      'reparacion': 'Mi equipo de aire acondicionado presenta fallas y requiere revisión técnica. Solicito información sobre el servicio de diagnóstico y reparación, incluyendo costos de la visita técnica.',
+      'cotizacion': 'Estoy interesado en adquirir un equipo de aire acondicionado. Me gustaría recibir una cotización que incluya el equipo, instalación y cualquier costo adicional.',
+      'otro': 'Tengo una consulta sobre sus servicios de climatización y me gustaría recibir más información.'
+    };
+    return descriptions[value] || '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Obtener descripción del servicio
+      const serviceDescription = getServiceDescription(formData.servicio);
+
       // Construir mensaje para WhatsApp
       const whatsappMessage = `¡Hola! Me contacto desde la web de KMTS Powertech.
 
@@ -60,7 +74,9 @@ const ContactSection = () => {
 • Email: ${formData.email}
 ${formData.servicio ? `• Servicio: ${getServiceLabel(formData.servicio)}` : ''}
 
-${formData.mensaje ? `*Mensaje:*\n${formData.mensaje}` : ''}
+${serviceDescription ? `*Motivo de contacto:*\n${serviceDescription}` : ''}
+
+${formData.mensaje ? `*Mensaje adicional:*\n${formData.mensaje}` : ''}
 
 Quedo atento a su respuesta. ¡Gracias!`;
 
@@ -75,7 +91,10 @@ Quedo atento a su respuesta. ¡Gracias!`;
 - Email: ${formData.email}
 - Servicio: ${getServiceLabel(formData.servicio) || 'No especificado'}
 
-Mensaje:
+Motivo de contacto:
+${serviceDescription || 'No especificado'}
+
+Mensaje adicional:
 ${formData.mensaje || 'Sin mensaje adicional'}`;
 
       const mailtoUrl = `mailto:${businessEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
@@ -186,10 +205,11 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
                 href={`https://instagram.com/${contactInfo.instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="social-link"
+                className="social-link-with-text"
                 aria-label="Instagram"
               >
                 <Instagram />
+                <span>@{contactInfo.instagram}</span>
               </a>
             </div>
           </div>

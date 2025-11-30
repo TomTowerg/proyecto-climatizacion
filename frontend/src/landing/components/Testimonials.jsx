@@ -32,7 +32,7 @@ const Testimonials = () => {
   ];
 
   return (
-    <section className="testimonials-section">
+    <section id="testimonios" className="testimonials-section">
       <div className="landing-container">
         <div className="section-header animate-on-scroll">
           <span className="section-label">

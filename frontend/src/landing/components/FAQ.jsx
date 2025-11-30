@@ -47,7 +47,7 @@ const FAQ = () => {
       questionKey: 'landing.faq.q7.question',
       questionDefault: '¿Cubren toda la Región Metropolitana?',
       answerKey: 'landing.faq.q7.answer',
-      answerDefault: 'Sí, cubrimos toda la Región Metropolitana sin costo adicional de traslado. Para regiones cercanas (V y VI región), también ofrecemos servicio con un pequeño cargo por distancia.'
+      answerDefault: 'Sí, cubrimos toda la Región Metropolitana sin costo adicional de traslado. Para regiones cercanas, también ofrecemos servicio con un cargo por distancia.'
     }
   ];
 

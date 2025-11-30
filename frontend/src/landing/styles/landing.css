@@ -80,21 +80,60 @@
   left: 0;
   right: 0;
   z-index: 1000;
-  padding: 1rem 0;
-  transition: var(--transition-smooth);
+  padding: 0.25rem 0;
+  transition: all 0.4s ease;
 }
 
 .landing-navbar.scrolled {
-  background: rgba(10, 22, 40, 0.95);
   backdrop-filter: var(--blur-glass);
   border-bottom: 1px solid var(--border-glass);
-  padding: 0.75rem 0;
+  padding: 0.15rem 0;
+}
+
+/* Estilos adaptativos por sección */
+.landing-navbar.section-hero {
+  background: transparent;
+}
+
+.landing-navbar.scrolled.section-hero {
+  background: rgba(10, 22, 40, 0.85);
+}
+
+.landing-navbar.scrolled.section-servicios {
+  background: rgba(10, 22, 40, 0.9);
+  border-bottom-color: rgba(14, 165, 233, 0.2);
+}
+
+.landing-navbar.scrolled.section-equipos {
+  background: rgba(10, 22, 40, 0.95);
+  border-bottom-color: rgba(14, 165, 233, 0.15);
+}
+
+.landing-navbar.scrolled.section-como-funciona {
+  background: rgba(15, 30, 50, 0.9);
+  border-bottom-color: rgba(14, 165, 233, 0.25);
+}
+
+.landing-navbar.scrolled.section-testimonios {
+  background: rgba(10, 22, 40, 0.95);
+  border-bottom-color: rgba(245, 158, 11, 0.2);
+}
+
+.landing-navbar.scrolled.section-faq {
+  background: rgba(12, 25, 45, 0.9);
+  border-bottom-color: rgba(14, 165, 233, 0.2);
+}
+
+.landing-navbar.scrolled.section-contacto {
+  background: rgba(10, 22, 40, 0.95);
+  border-bottom-color: rgba(14, 165, 233, 0.3);
 }
 
 .navbar-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 60px;
 }
 
 .navbar-logo {
@@ -104,14 +143,14 @@
 }
 
 .navbar-logo img {
-  height: 50px;
+  height: 100px;
   width: auto;
-  filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.3));
+  filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.5)) drop-shadow(0 0 30px rgba(14, 165, 233, 0.3));
   transition: var(--transition-smooth);
 }
 
 .navbar-logo:hover img {
-  filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.5));
+  filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.7)) drop-shadow(0 0 40px rgba(14, 165, 233, 0.4));
   transform: scale(1.05);
 }
 
@@ -1226,6 +1265,43 @@
 .social-link svg {
   width: 20px;
   height: 20px;
+}
+
+/* Social link con texto (Instagram) */
+.social-link-with-text {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.social-link-with-text:hover {
+  background: var(--landing-secondary);
+  border-color: var(--landing-secondary);
+  color: white;
+  transform: translateY(-3px);
+}
+
+.social-link-with-text svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--landing-secondary);
+}
+
+.social-link-with-text:hover svg {
+  color: white;
+}
+
+.social-link-with-text span {
+  font-weight: 500;
+  font-size: 0.95rem;
 }
 
 /* Contact form */

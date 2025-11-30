@@ -27,7 +27,7 @@ const HeroSection = () => {
   }));
 
   return (
-    <section className="hero-section">
+    <section id="hero" className="hero-section">
       {/* Background Effects */}
       <div className="hero-bg-effects">
         <div className="hero-glow hero-glow-1"></div>
