@@ -146,9 +146,9 @@ function Dashboard() {
   }
 
   const cotizacionesChartData = cotizacionStats ? [
-    { name: t('workOrders.statuses.pending'), value: cotizacionStats.pendientes, color: '#EAB308' },
-    { name: t('dashboard.approved'), value: cotizacionStats.aprobadas, color: '#22C55E' },
-    { name: t('dashboard.rejected'), value: cotizacionStats.rechazadas, color: '#EF4444' }
+    { name: t('workOrders.statuses.pending'), value: cotizacionStats.pendientes, color: '#0ea5e9' },
+    { name: t('dashboard.approved'), value: cotizacionStats.aprobadas, color: '#2563eb' },
+    { name: t('dashboard.rejected'), value: cotizacionStats.rechazadas, color: '#94a3b8' }
   ].filter(item => item.value > 0) : []
 
   const getCotizacionesPorMes = () => {
@@ -200,7 +200,7 @@ function Dashboard() {
         {/* Header con Bienvenida */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-             👋 {t('dashboard.welcome', { name: userName })}
+             {t('dashboard.welcome', { name: userName })}
           </h1>
           <p className="text-gray-600">
             {t('dashboard.summary')}
@@ -211,59 +211,71 @@ function Dashboard() {
         <EconomicIndicators />
 
         {/* Estadísticas Principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {/* Clientes */}
-          <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/clientes')}>
+          <div 
+            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate('/clientes')}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.clients')}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.clients')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.clientes}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalRegistered')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalRegistered')}</p>
               </div>
-              <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="text-blue-600" size={28} />
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Users className="text-blue-600" size={26} />
               </div>
             </div>
           </div>
 
           {/* Equipos */}
-          <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/equipos')}>
+          <div 
+            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-cyan-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate('/equipos')}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.equipment')}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.equipment')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.equipos}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalInstalled')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalInstalled')}</p>
               </div>
-              <div className="w-14 h-14 bg-cyan-100 rounded-full flex items-center justify-center">
-                <Wind className="text-cyan-600" size={28} />
+              <div className="w-14 h-14 bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Wind className="text-cyan-600" size={26} />
               </div>
             </div>
           </div>
 
           {/* Órdenes de Trabajo */}
-          <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/ordenes-trabajo')}>
+          <div 
+            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-indigo-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate('/ordenes-trabajo')}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{t('nav.workOrders')}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.workOrders')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.ordenes}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalWorks')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalWorks')}</p>
               </div>
-              <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
-                <ClipboardList className="text-purple-600" size={28} />
+              <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <ClipboardList className="text-indigo-600" size={26} />
               </div>
             </div>
           </div>
 
           {/* Inventario */}
-          <div className="card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/inventario')}>
+          <div 
+            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            onClick={() => navigate('/inventario')}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.products')}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.products')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.productos}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.inStock')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('dashboard.inStock')}</p>
               </div>
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
-                <Package className="text-green-600" size={28} />
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Package className="text-emerald-600" size={26} />
               </div>
             </div>
           </div>
@@ -271,60 +283,67 @@ function Dashboard() {
 
         {/* Estadísticas de Cotizaciones */}
         {cotizacionStats && (
-          <div className="card mb-8 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/cotizaciones')}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="text-indigo-600" size={24} />
+          <div 
+            className="bg-white rounded-xl p-6 border border-gray-100 mb-8 cursor-pointer hover:shadow-lg hover:border-indigo-200 transition-all duration-300 group"
+            onClick={() => navigate('/cotizaciones')}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg flex items-center justify-center">
+                  <FileText className="text-indigo-600" size={18} />
+                </div>
                 {t('nav.quotes')}
               </h2>
-              <ArrowRight className="text-gray-400" size={20} />
+              <ArrowRight className="text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all duration-300" size={20} />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {/* Total */}
-              <div className="text-center">
+              <div className="text-center p-3 rounded-lg bg-gray-50">
                 <p className="text-2xl font-bold text-gray-900">{cotizacionStats.total}</p>
-                <p className="text-xs text-gray-600 mt-1">Total</p>
+                <p className="text-xs text-gray-500 mt-1">Total</p>
               </div>
 
               {/* Pendientes */}
-              <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-600">{cotizacionStats.pendientes}</p>
-                <p className="text-xs text-gray-600 mt-1">{t('workOrders.statuses.pending')}</p>
+              <div className="text-center p-3 rounded-lg bg-sky-50">
+                <p className="text-2xl font-bold text-sky-600">{cotizacionStats.pendientes}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('workOrders.statuses.pending')}</p>
               </div>
 
               {/* Aprobadas */}
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{cotizacionStats.aprobadas}</p>
-                <p className="text-xs text-gray-600 mt-1">{t('dashboard.approved')}</p>
+              <div className="text-center p-3 rounded-lg bg-blue-50">
+                <p className="text-2xl font-bold text-blue-600">{cotizacionStats.aprobadas}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.approved')}</p>
               </div>
 
               {/* Tasa */}
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{cotizacionStats.tasaAprobacion}%</p>
-                <p className="text-xs text-gray-600 mt-1">{t('dashboard.approvalRate')}</p>
+              <div className="text-center p-3 rounded-lg bg-indigo-50">
+                <p className="text-2xl font-bold text-indigo-600">{cotizacionStats.tasaAprobacion}%</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.approvalRate')}</p>
               </div>
 
               {/* Valor */}
-              <div className="text-center">
+              <div className="text-center p-3 rounded-lg bg-emerald-50">
                 <div className="flex items-center justify-center gap-1">
-                  <DollarSign className="text-green-600" size={20} />
-                  <p className="text-xl font-bold text-green-600">
+                  <DollarSign className="text-emerald-600" size={18} />
+                  <p className="text-xl font-bold text-emerald-600">
                     {(cotizacionStats.valorTotalAprobadas / 1000000).toFixed(1)}M
                   </p>
                 </div>
-                <p className="text-xs text-gray-600 mt-1">{t('dashboard.totalValue')}</p>
+                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalValue')}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           {cotizacionesChartData.length > 0 && (
-            <div className="card">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <BarChart3 className="text-indigo-600" size={20} />
+            <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
+              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="text-indigo-600" size={16} />
+                </div>
                 {t('dashboard.quotesDistribution')}
               </h3>
               <ResponsiveContainer width="100%" height={250}>
@@ -336,14 +355,24 @@ function Dashboard() {
                     labelLine={false}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
+                    innerRadius={45}
                     fill="#8884d8"
                     dataKey="value"
+                    strokeWidth={3}
+                    stroke="#fff"
                   >
                     {cotizacionesChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
+                    }} 
+                  />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -351,31 +380,42 @@ function Dashboard() {
           )}
 
           {cotizacionesMensuales.length > 0 && (
-            <div className="card">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <TrendingUp className="text-blue-600" size={20} />
+            <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
+              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="text-blue-600" size={16} />
+                </div>
                 {t('dashboard.quotesLast6Months')}
               </h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={cotizacionesMensuales}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                  <XAxis dataKey="mes" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
+                    }} 
+                  />
                   <Legend />
-                  <Bar dataKey="aprobadas" fill="#22C55E" name={t('dashboard.approved')} />
-                  <Bar dataKey="pendientes" fill="#EAB308" name={t('workOrders.statuses.pending')} />
+                  <Bar dataKey="aprobadas" fill="#2563eb" name={t('dashboard.approved')} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="pendientes" fill="#0ea5e9" name={t('workOrders.statuses.pending')} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           {/* Estado de Órdenes */}
-          <div className="card">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="text-blue-600" size={24} />
+          <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
+            <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="text-blue-600" size={16} />
+              </div>
               {t('dashboard.ordersStatus')}
             </h2>
             
@@ -384,14 +424,14 @@ function Dashboard() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Clock className="text-yellow-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.pending')}</span>
+                    <Clock className="text-sky-500" size={16} />
+                    <span className="text-sm font-medium text-gray-600">{t('workOrders.statuses.pending')}</span>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesPendientes}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-2">
                   <div 
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-sky-400 to-sky-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${stats.ordenes > 0 ? (stats.ordenesPendientes / stats.ordenes) * 100 : 0}%` }}
                   ></div>
                 </div>
@@ -406,9 +446,9 @@ function Dashboard() {
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesEnProceso}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-2">
                   <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${stats.ordenes > 0 ? (stats.ordenesEnProceso / stats.ordenes) * 100 : 0}%` }}
                   ></div>
                 </div>
@@ -418,14 +458,14 @@ function Dashboard() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="text-green-600" size={18} />
+                    <CheckCircle className="text-indigo-600" size={18} />
                     <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.completed')}</span>
                   </div>
                   <span className="text-sm font-bold text-gray-900">{stats.ordenesCompletadas}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-2">
                   <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${stats.ordenes > 0 ? (stats.ordenesCompletadas / stats.ordenes) * 100 : 0}%` }}
                   ></div>
                 </div>
@@ -434,13 +474,13 @@ function Dashboard() {
 
             {/* Alerta de Urgencias Críticas */}
             {stats.urgenciasCriticas > 0 && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <AlertCircle className="text-amber-600 flex-shrink-0" size={20} />
                 <div>
-                  <p className="text-sm font-medium text-red-900">
-                    ⚠️ {stats.urgenciasCriticas} {t('dashboard.criticalAlert', { count: stats.urgenciasCriticas })}
+                  <p className="text-sm font-medium text-amber-900">
+                    {stats.urgenciasCriticas} {t('dashboard.criticalAlert', { count: stats.urgenciasCriticas })}
                   </p>
-                  <p className="text-xs text-red-700 mt-1">
+                  <p className="text-xs text-amber-700 mt-1">
                     {t('dashboard.attentionRequired')}
                   </p>
                 </div>
@@ -449,16 +489,18 @@ function Dashboard() {
           </div>
 
           {/* Órdenes Recientes */}
-          <div className="card">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="text-purple-600" size={24} />
+          <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
+            <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg flex items-center justify-center">
+                <Calendar className="text-purple-600" size={16} />
+              </div>
               {t('dashboard.recentOrders')}
             </h2>
             
             {ordenesRecientes.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <ClipboardList size={48} className="mx-auto mb-3 text-gray-400" />
-                <p>{t('dashboard.noOrders')}</p>
+              <div className="text-center py-8 text-gray-400">
+                <ClipboardList size={40} className="mx-auto mb-3 text-gray-300" />
+                <p className="text-sm">{t('dashboard.noOrders')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -467,7 +509,7 @@ function Dashboard() {
                   return (
                     <div 
                       key={orden.id}
-                      className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer border border-gray-200"
+                      className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-sm transition-all duration-200 cursor-pointer border border-gray-100 group"
                       onClick={() => navigate('/ordenes-trabajo')}
                     >
                       <div className="flex items-start justify-between">
@@ -492,79 +534,13 @@ function Dashboard() {
                             <span>{new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}</span>
                           </div>
                         </div>
-                        <ArrowRight className="text-gray-400" size={18} />
+                        <ArrowRight className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-200" size={18} />
                       </div>
                     </div>
                   )
                 })}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Accesos Rápidos */}
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">⚡ {t('dashboard.quickAccess')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => navigate('/ordenes-trabajo')}
-              className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left border border-blue-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Plus className="text-white" size={20} />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewOrder')}</p>
-                  <p className="text-xs text-gray-600">{t('dashboard.create')}</p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/clientes')}
-              className="p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left border border-green-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Plus className="text-white" size={20} />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewClient')}</p>
-                  <p className="text-xs text-gray-600">{t('dashboard.register')}</p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/inventario')}
-              className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors text-left border border-purple-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <Package className="text-white" size={20} />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{t('nav.inventory')}</p>
-                  <p className="text-xs text-gray-600">{t('dashboard.viewStock')}</p>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate('/cotizaciones')}
-              className="p-4 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition-colors text-left border border-cyan-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-cyan-600 rounded-lg flex items-center justify-center">
-                  <Plus className="text-white" size={20} />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{t('dashboard.quickNewQuote')}</p>
-                  <p className="text-xs text-gray-600">{t('dashboard.new')}</p>
-                </div>
-              </div>
-            </button>
           </div>
         </div>
       </main>

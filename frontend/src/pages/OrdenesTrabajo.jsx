@@ -267,7 +267,7 @@ function OrdenesTrabajo() {
       reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: `🔧 ${t('workOrders.types.installation')}`,
+      instalacion: `${t('workOrders.types.installation')}`,
       mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
       mantenimiento: `⚙️ ${t('workOrders.types.maintenance')}`,
       reparacion: `🔨 ${t('workOrders.types.repair')}`
@@ -524,7 +524,7 @@ function OrdenesTrabajo() {
                     required
                   >
                     <option value="">{t('common.select')}...</option>
-                    <option value="instalacion">🔧 {t('workOrders.types.installation')}</option>
+                    <option value="instalacion">{t('workOrders.types.installation')}</option>
                     <option value="mantencion">⚙️ {t('workOrders.types.maintenance')}</option>
                     <option value="reparacion">🔨 {t('workOrders.types.repair')}</option>
                   </select>
@@ -619,10 +619,10 @@ function OrdenesTrabajo() {
                     <div className="flex-1">
                       <h3 className="font-bold text-lg mb-2">
                         {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
-                          ? `⚠️ ${t('workOrders.ai.critical')}` 
+                          ? `${t('workOrders.ai.critical')}` 
                           : analisisIA.nivel === 'MEDIA' 
-                          ? `⚡ ${t('workOrders.ai.medium')}` 
-                          : `✅ ${t('workOrders.ai.low')}`}
+                          ? `${t('workOrders.ai.medium')}` 
+                          : `${t('workOrders.ai.low')}`}
                       </h3>
                       
                       <div className="space-y-2 text-sm">
@@ -636,7 +636,7 @@ function OrdenesTrabajo() {
                         </div>
                         
                         <div>
-                          <strong>🎯 {t('workOrders.ai.recommendation')}:</strong>
+                          <strong>{t('workOrders.ai.recommendation')}:</strong>
                           <p className="ml-2 mt-1">{analisisIA.accionRecomendada}</p>
                         </div>
                         
@@ -675,7 +675,7 @@ function OrdenesTrabajo() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full p-6">
             <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold">📊 {t('workOrders.ai.title')}</h2>
+              <h2 className="text-2xl font-bold">{t('workOrders.ai.title')}</h2>
               <button
                 onClick={() => setShowAnalisisModal(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
@@ -698,10 +698,10 @@ function OrdenesTrabajo() {
                 <div className="flex-1">
                   <h3 className="font-bold text-xl mb-3">
                     {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
-                      ? `⚠️ ${t('workOrders.ai.critical')}` 
+                      ? `${t('workOrders.ai.critical')}` 
                       : analisisSeleccionado.nivel === 'MEDIA' 
-                      ? `⚡ ${t('workOrders.ai.medium')}` 
-                      : `✅ ${t('workOrders.ai.low')}`}
+                      ? `${t('workOrders.ai.medium')}` 
+                      : `${t('workOrders.ai.low')}`}
                   </h3>
                   
                   <div className="space-y-3">
@@ -715,7 +715,7 @@ function OrdenesTrabajo() {
                     </div>
                     
                     <div>
-                      <strong className="text-gray-700">🎯 {t('workOrders.ai.recommendation')}:</strong>
+                      <strong className="text-gray-700">{t('workOrders.ai.recommendation')}:</strong>
                       <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.accionRecomendada}</p>
                     </div>
                     

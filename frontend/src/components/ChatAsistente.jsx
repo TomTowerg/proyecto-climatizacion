@@ -172,19 +172,19 @@ function ChatAsistente() {
                 onClick={() => setMensaje('Mi aire acondicionado no enfría')}
                 className="w-full text-left text-sm bg-white hover:bg-gray-50 p-3 rounded-lg border border-gray-200 transition-colors"
               >
-                ❄️ Mi aire acondicionado no enfría
+                Mi aire acondicionado no enfría
               </button>
               <button
                 onClick={() => setMensaje('¿Cada cuánto debo hacer mantenimiento?')}
                 className="w-full text-left text-sm bg-white hover:bg-gray-50 p-3 rounded-lg border border-gray-200 transition-colors"
               >
-                🔧 ¿Cada cuánto debo hacer mantenimiento?
+                ¿Cada cuánto debo hacer mantenimiento?
               </button>
               <button
                 onClick={() => setMensaje('¿Qué tipo de gas usa mi equipo?')}
                 className="w-full text-left text-sm bg-white hover:bg-gray-50 p-3 rounded-lg border border-gray-200 transition-colors"
               >
-                🌡️ ¿Qué tipo de gas usa mi equipo?
+                ¿Qué tipo de gas usa mi equipo?
               </button>
             </div>
           </div>

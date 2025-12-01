@@ -59,19 +59,23 @@ function Navbar() {
   ]
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2 flex-shrink-0">
-            <Wind className="text-blue-600" size={32} />
-            <span className="text-xl font-bold text-gray-900 hidden sm:block">
-              KMTS Powertech
-            </span>
+          <Link to="/dashboard" className="flex items-center flex-shrink-0 mr-2">
+            <img 
+              src="/logo-kmts.png" 
+              alt="KMTS Powertech" 
+              className="h-20 w-auto"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar mx-4">
+          <div className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar flex-1">
             {navItems.map((item) => {
               const Icon = item.icon
               return (

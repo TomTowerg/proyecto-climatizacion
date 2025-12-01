@@ -33,7 +33,7 @@ const EconomicIndicators = () => {
     fetchIndicators();
   }, []);
 
-  if (loading) return <div className="animate-pulse h-24 bg-gray-100 rounded-lg mb-6"></div>;
+  if (loading) return <div className="animate-pulse h-20 bg-gray-100 rounded-xl mb-6"></div>;
   if (error || !indicators) return null;
 
   const formatMoney = (value) => {
@@ -41,59 +41,55 @@ const EconomicIndicators = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       {/* Dólar */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-green-200 transition-all duration-300 flex items-center justify-between group">
         <div>
-          {/* USAMOS t() AQUÍ */}
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
             {t('dashboard.indicators.dollar')}
           </p>
-          <p className="text-xl font-bold text-green-600">{formatMoney(indicators.dolar.valor)}</p>
+          <p className="text-lg font-bold text-gray-900">{formatMoney(indicators.dolar.valor)}</p>
         </div>
-        <div className="bg-green-50 p-2 rounded-full">
+        <div className="w-10 h-10 bg-gradient-to-br from-green-50 to-green-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <DollarSign className="text-green-600 w-5 h-5" />
         </div>
       </div>
 
       {/* UF */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all duration-300 flex items-center justify-between group">
         <div>
-          {/* USAMOS t() AQUÍ */}
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
             {t('dashboard.indicators.uf')}
           </p>
-          <p className="text-xl font-bold text-blue-600">{formatMoney(indicators.uf.valor)}</p>
+          <p className="text-lg font-bold text-gray-900">{formatMoney(indicators.uf.valor)}</p>
         </div>
-        <div className="bg-blue-50 p-2 rounded-full">
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <TrendingUp className="text-blue-600 w-5 h-5" />
         </div>
       </div>
 
       {/* Euro */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-indigo-200 transition-all duration-300 flex items-center justify-between group">
         <div>
-          {/* USAMOS t() AQUÍ */}
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
             {t('dashboard.indicators.euro')}
           </p>
-          <p className="text-xl font-bold text-indigo-600">{formatMoney(indicators.euro.valor)}</p>
+          <p className="text-lg font-bold text-gray-900">{formatMoney(indicators.euro.valor)}</p>
         </div>
-        <div className="bg-indigo-50 p-2 rounded-full">
+        <div className="w-10 h-10 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <Coins className="text-indigo-600 w-5 h-5" />
         </div>
       </div>
 
       {/* UTM */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+      <div className="bg-white p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-purple-200 transition-all duration-300 flex items-center justify-between group">
         <div>
-          {/* USAMOS t() AQUÍ */}
-          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
             {t('dashboard.indicators.utm')}
           </p>
-          <p className="text-xl font-bold text-purple-600">{formatMoney(indicators.utm.valor)}</p>
+          <p className="text-lg font-bold text-gray-900">{formatMoney(indicators.utm.valor)}</p>
         </div>
-        <div className="bg-purple-50 p-2 rounded-full">
+        <div className="w-10 h-10 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
           <Calendar className="text-purple-600 w-5 h-5" />
         </div>
       </div>

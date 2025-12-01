@@ -260,7 +260,7 @@ function Cotizaciones() {
         <div>
           <p className="font-bold">{t('quotes.messages.approvalSuccess.title')}</p>
           <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id}</p>
-          <p className="text-sm">✅ {t('nav.workOrders')}: #{resultado.ordenTrabajo?.id}</p>
+          <p className="text-sm">{t('nav.workOrders')}: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
       )
@@ -405,7 +405,7 @@ function Cotizaciones() {
       reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: `🔧 ${t('workOrders.types.installation')}`,
+      instalacion: `${t('workOrders.types.installation')}`,
       mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
       reparacion: `🔨 ${t('workOrders.types.repair')}`
     }
@@ -759,7 +759,7 @@ function Cotizaciones() {
                         className="sr-only"
                       />
                       <span className="font-medium">
-                        {tipo === 'instalacion' && `🔧 ${t('workOrders.types.installation')}`}
+                        {tipo === 'instalacion' && `${t('workOrders.types.installation')}`}
                         {tipo === 'mantencion' && `⚙️ ${t('workOrders.types.maintenance')}`}
                         {tipo === 'reparacion' && `🔨 ${t('workOrders.types.repair')}`}
                       </span>
