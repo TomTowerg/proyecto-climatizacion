@@ -10,7 +10,7 @@ const HowItWorks = () => {
       titleKey: 'landing.howItWorks.step1.title',
       titleDefault: 'Contacto Inicial',
       descriptionKey: 'landing.howItWorks.step1.description',
-      descriptionDefault: 'Contáctanos por teléfono, email o formulario web. Te responderemos en menos de 2 horas.'
+      descriptionDefault: 'Contáctanos por teléfono, email o formulario web. Te responderemos en menos de 2 horas por equipo.'
     },
     {
       number: 2,
@@ -24,14 +24,14 @@ const HowItWorks = () => {
       titleKey: 'landing.howItWorks.step3.title',
       titleDefault: 'Cotización Detallada',
       descriptionKey: 'landing.howItWorks.step3.description',
-      descriptionDefault: 'Recibirás una cotización transparente con todos los costos incluidos, sin sorpresas.'
+      descriptionDefault: 'Recibirás una cotización con todos los costos incluidos y el material necesario.'
     },
     {
       number: 4,
       titleKey: 'landing.howItWorks.step4.title',
       titleDefault: 'Instalación Profesional',
       descriptionKey: 'landing.howItWorks.step4.description',
-      descriptionDefault: 'Nuestro equipo certificado realizará la instalación siguiendo los más altos estándares.'
+      descriptionDefault: 'Nuestro equipo certificado realizará la instalación con los más altos estándares de calidad.'
     }
   ];
 

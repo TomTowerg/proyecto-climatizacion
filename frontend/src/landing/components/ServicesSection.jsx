@@ -20,8 +20,8 @@ const ServicesSection = () => {
       descriptionKey: 'landing.services.installation.description',
       descriptionDefault: 'Instalación certificada de equipos de aire acondicionado con los más altos estándares de calidad y seguridad.',
       features: [
-        { key: 'landing.services.installation.feature1', default: 'Evaluación técnica gratuita' },
-        { key: 'landing.services.installation.feature2', default: 'Instalación en 24-48 horas' },
+        { key: 'landing.services.installation.feature1', default: 'Evaluación técnica' },
+        { key: 'landing.services.installation.feature2', default: 'Instalación en 2 horas por equipo' },
         { key: 'landing.services.installation.feature3', default: 'Garantía de instalación' },
       ]
     },
@@ -30,7 +30,7 @@ const ServicesSection = () => {
       titleKey: 'landing.services.maintenance.title',
       titleDefault: 'Mantenimiento Preventivo',
       descriptionKey: 'landing.services.maintenance.description',
-      descriptionDefault: 'Programas de mantenimiento que extienden la vida útil de tu equipo y optimizan su rendimiento energético.',
+      descriptionDefault: 'Programas de mantenimiento que extienden la vida útil de tu equipo y mantiene su rendimiento energético.',
       features: [
         { key: 'landing.services.maintenance.feature1', default: 'Limpieza profunda de filtros' },
         { key: 'landing.services.maintenance.feature2', default: 'Revisión de gas refrigerante' },

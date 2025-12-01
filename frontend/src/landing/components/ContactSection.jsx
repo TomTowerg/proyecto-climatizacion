@@ -180,16 +180,6 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
 
               <div className="contact-method">
                 <div className="contact-method-icon">
-                  <MapPin />
-                </div>
-                <div className="contact-method-content">
-                  <h4>{t('landing.contact.addressLabel', 'Dirección')}</h4>
-                  <p>{contactInfo.address}</p>
-                </div>
-              </div>
-
-              <div className="contact-method">
-                <div className="contact-method-icon">
                   <Clock />
                 </div>
                 <div className="contact-method-content">

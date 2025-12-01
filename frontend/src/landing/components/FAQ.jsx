@@ -21,15 +21,15 @@ const FAQ = () => {
     },
     {
       questionKey: 'landing.faq.q3.question',
-      questionDefault: '¿Cuál es la garantía de los equipos?',
+      questionDefault: '¿Cuál es la garantía?',
       answerKey: 'landing.faq.q3.answer',
-      answerDefault: 'Todos nuestros equipos cuentan con garantía de fábrica que va desde 1 a 5 años dependiendo de la marca. Adicionalmente, ofrecemos garantía de instalación por 1 año y planes de garantía extendida opcionales.'
+      answerDefault: 'Todos nuestros servicios cuentan con garantía. Para nuestros equipos le extendemos la misma proteccion que ofrece el fabricante. Adicionalmente, ofrecemos garantía de instalación por 1 año.'
     },
     {
       questionKey: 'landing.faq.q4.question',
       questionDefault: '¿Trabajan con todas las marcas?',
       answerKey: 'landing.faq.q4.answer',
-      answerDefault: 'Sí, nuestros técnicos están certificados para trabajar con todas las marcas principales: Samsung, LG, Daikin, Carrier, Midea, Gree, Electrolux, entre otras. También trabajamos con equipos industriales y sistemas VRF.'
+      answerDefault: 'Sí, nuestros técnicos están certificados para trabajar con todas las marcas principales: Samsung, LG, Daikin, Hisense, Midea, Gree, Shoot, Anwo, Kendal, entre otras. También trabajamos con equipos industriales y sistemas VRF.'
     },
     {
       questionKey: 'landing.faq.q5.question',
@@ -41,7 +41,7 @@ const FAQ = () => {
       questionKey: 'landing.faq.q6.question',
       questionDefault: '¿Cuáles son las formas de pago?',
       answerKey: 'landing.faq.q6.answer',
-      answerDefault: 'Aceptamos transferencia bancaria, tarjetas de crédito y débito. Para empresas ofrecemos facturación a 30 días. También tenemos convenios de financiamiento en cuotas sin interés con algunas tarjetas.'
+      answerDefault: 'Aceptamos diferentes metodos de pago: Efectivo, transferencia bancaria, tarjetas de crédito y débito.'
     },
     {
       questionKey: 'landing.faq.q7.question',
