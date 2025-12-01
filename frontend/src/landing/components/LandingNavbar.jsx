@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Menu, X } from 'lucide-react';
 
@@ -21,7 +20,8 @@ const LandingNavbar = () => {
         'hero',
         'servicios', 
         'equipos', 
-        'como-funciona', 
+        'como-funciona',
+        'nosotros',
         'testimonios',
         'faq', 
         'contacto'
@@ -56,9 +56,9 @@ const LandingNavbar = () => {
   return (
     <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''} section-${currentSection}`}>
       <div className="landing-container navbar-content">
-        <Link to="/landing" className="navbar-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        <a href="#" className="navbar-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
           <img src={logoImg} alt="KMTS Powertech" />
-        </Link>
+        </a>
 
         <button 
           className="mobile-menu-btn"
@@ -84,9 +84,9 @@ const LandingNavbar = () => {
           <button className="nav-link" onClick={() => scrollToSection('contacto')}>
             {t('landing.nav.contact', 'Contacto')}
           </button>
-          <Link to="/admin" className="nav-cta">
-            {t('landing.nav.adminAccess', 'Acceso Admin')}
-          </Link>
+          <button className="nav-cta" onClick={() => scrollToSection('nosotros')}>
+            {t('landing.nav.aboutUs', 'Conócenos')}
+          </button>
         </div>
       </div>
     </nav>
