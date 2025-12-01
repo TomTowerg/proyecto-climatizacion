@@ -17,7 +17,13 @@ const FAQ = () => {
       questionKey: 'landing.faq.q2.question',
       questionDefault: '¿Qué incluye el servicio de mantenimiento?',
       answerKey: 'landing.faq.q2.answer',
-      answerDefault: 'Nuestro mantenimiento preventivo incluye: limpieza profunda de filtros y serpentines, verificación de niveles de gas refrigerante, revisión del sistema eléctrico, lubricación de partes móviles, medición de temperaturas y presiones, y un informe detallado del estado del equipo.'
+      answerDefault: `Ofrecemos 3 tipos de mantenimiento:
+
+**Mantenimiento Premium:** Limpieza unidad interior (desmontaje de carcasa), limpieza y lavado de filtros de la unidad interior, limpieza y lavado de la unidad exterior, limpieza de bomba de condensado (cuando corresponda), lubricar piezas (cuando corresponda), medición presiones y consumos eléctricos, reapriete de conexiones eléctricas, pruebas de desagüe, y cambio de filtros antibacteriales.
+
+**Mantenimiento Full:** Limpieza unidad interior (desmontaje de carcasa), limpieza y lavado de filtros de la unidad interior, limpieza y lavado de la unidad exterior, limpieza de bomba de condensado (cuando corresponda), lubricar piezas (cuando corresponda), medición presiones y consumos eléctricos, reapriete de conexiones eléctricas, y pruebas de desagüe.
+
+**Mantenimiento Básico:** Limpieza y lavado de filtros de la unidad interior, y limpieza y lavado de la unidad exterior.`
     },
     {
       questionKey: 'landing.faq.q3.question',
