@@ -252,6 +252,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 <div align="center">
 
-**[⬆ Volver arriba](#-kmts-powertech---sistema-de-gestión-hvac)**
+**[⬆ Volver arriba](# 🌡️ KMTS Powertech - Sistema de Gestión HVAC)**
 
 </div>
