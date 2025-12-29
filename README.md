@@ -252,6 +252,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 <div align="center">
 
-**[⬆ Volver arriba](#%F0%9F%8C%A1-kmts-powertech---sistema-de-gesti%C3%B3n-hvac)**
+**[⬆ Volver arriba](https://github.com/TomTowerg/proyecto-climatizacion/blob/main/README.md#%EF%B8%8F-kmts-powertech---sistema-de-gesti%C3%B3n-hvac)**
 
 </div>
