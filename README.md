@@ -246,12 +246,12 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ## 👨‍💻 Autor
 
-**KMTS Powertech**
+**Tomás Torres**
 
 ---
 
 <div align="center">
 
-**[⬆ Volver arriba](#-kmts-powertech---sistema-de-gestión-hvac)**
+**[⬆ Volver arriba](https://github.com/TomTowerg/proyecto-climatizacion/blob/main/README.md#%EF%B8%8F-kmts-powertech---sistema-de-gesti%C3%B3n-hvac)**
 
 </div>
