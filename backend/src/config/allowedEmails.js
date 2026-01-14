@@ -2,6 +2,8 @@
 export const ALLOWED_EMAILS = [
   'niveksar@gmail.com',
   'torres.tomas514@gmail.com',
+  'khevtorresg@gmail.com'
+  
   // Agrega más emails aquí
 ]
 
