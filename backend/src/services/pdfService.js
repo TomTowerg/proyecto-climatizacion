@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
- * SERVICIO DE GENERACIÓN DE PDF
- * Crea cotizaciones profesionales en formato PDF
+ * SERVICIO DE GENERACIÓN DE PDF MEJORADO
+ * Versión optimizada con mejor diseño y manejo de espacio
  */
 
 /**
@@ -31,7 +31,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // Crear documento PDF
       const doc = new PDFDocument({
         size: 'LETTER',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        margins: { top: 40, bottom: 40, left: 50, right: 50 }
       })
 
       // Pipe a archivo
@@ -39,384 +39,419 @@ export const generarPDFCotizacion = async (cotizacion) => {
       doc.pipe(stream)
 
       // ======================
-      // ENCABEZADO
+      // ENCABEZADO COMPACTO
       // ======================
       doc
-        .fontSize(24)
+        .fontSize(22)
         .font('Helvetica-Bold')
+        .fillColor('#1e40af')
         .text('COTIZACIÓN', { align: 'center' })
-        .moveDown(0.5)
+        .fillColor('#000000')
+        .moveDown(0.3)
 
       doc
-        .fontSize(10)
+        .fontSize(9)
         .font('Helvetica')
         .text(`N° ${cotizacion.id.toString().padStart(6, '0')}`, { align: 'center' })
         .text(`Fecha: ${new Date(cotizacion.createdAt).toLocaleDateString('es-CL')}`, { align: 'center' })
-        .moveDown(1)
+        .moveDown(0.5)
 
       // Línea separadora
       doc
-        .strokeColor('#333333')
+        .strokeColor('#1e40af')
         .lineWidth(2)
         .moveTo(50, doc.y)
         .lineTo(562, doc.y)
         .stroke()
-        .moveDown(1)
+        .moveDown(0.8)
 
       // ======================
-      // DATOS EMPRESA
+      // DATOS EMPRESA Y CLIENTE (LADO A LADO COMPACTO)
       // ======================
-      const yEmpresa = doc.y
+      const yInfo = doc.y
+
+      // EMPRESA (Izquierda)
       doc
-        .fontSize(12)
+        .fontSize(10)
         .font('Helvetica-Bold')
-        .text('KMTS POWERTECH SPA', 50, yEmpresa)
-        .fontSize(9)
+        .fillColor('#1e40af')
+        .text('KMTS POWERTECH SPA', 50, yInfo)
+        .fontSize(8)
         .font('Helvetica')
+        .fillColor('#374151')
         .text('RUT: 78.163.187-6', 50)
-        .text('Dirección: AV.IRARRAZAVAL 5185 OF 503 COMUNA ÑUÑOA #123, Santiago', 50)
-        .text('Teléfono: +56 9 54610454', 50)
+        .text('Teléfono: +56 9 5461 0454', 50)
         .text('Email: kmtspowertech@gmail.com', 50)
 
-      // ======================
-      // DATOS CLIENTE
-      // ======================
+      // CLIENTE (Derecha) - ⭐ MANEJAR DATOS CIFRADOS
+      const clienteRut = cotizacion.cliente.rut || cotizacion.cliente.rut_encrypted || 'No especificado'
+      const clienteTelefono = cotizacion.cliente.telefono || cotizacion.cliente.telefono_encrypted || 'No especificado'
+      const clienteEmail = cotizacion.cliente.email || cotizacion.cliente.email_encrypted || 'No especificado'
+
       doc
-        .fontSize(12)
+        .fontSize(10)
         .font('Helvetica-Bold')
-        .text('CLIENTE:', 350, yEmpresa)
-        .fontSize(9)
+        .fillColor('#1e40af')
+        .text('CLIENTE:', 350, yInfo)
+        .fontSize(8)
         .font('Helvetica')
+        .fillColor('#374151')
         .text(cotizacion.cliente.nombre, 350)
-        .text(`RUT: ${cotizacion.cliente.rut}`, 350)
-        .text(`Teléfono: ${cotizacion.cliente.telefono}`, 350)
-        .text(`Email: ${cotizacion.cliente.email}`, 350)
+      
+      if (clienteRut !== 'No especificado') {
+        doc.text(`RUT: ${clienteRut}`, 350)
+      }
+      if (clienteTelefono !== 'No especificado') {
+        doc.text(`Tel: ${clienteTelefono}`, 350)
+      }
+      if (clienteEmail !== 'No especificado') {
+        doc.text(`Email: ${clienteEmail}`, 350)
+      }
 
-      doc.moveDown(2)
+      doc.moveDown(1.5)
 
       // ======================
-      // TIPO DE SERVICIO
+      // TIPO DE SERVICIO - BADGE
       // ======================
+      const tipoBadgeY = doc.y
       doc
+        .roundedRect(200, tipoBadgeY, 210, 25, 5)
+        .fillAndStroke('#eff6ff', '#2563eb')
         .fontSize(11)
         .font('Helvetica-Bold')
-        .fillColor('#2563eb')
-        .text(`TIPO DE SERVICIO: ${cotizacion.tipo.toUpperCase()}`, { align: 'center' })
+        .fillColor('#1e40af')
+        .text(
+          `SERVICIO: ${cotizacion.tipo.toUpperCase()}`,
+          200,
+          tipoBadgeY + 7,
+          { width: 210, align: 'center' }
+        )
         .fillColor('#000000')
-        .moveDown(1)
+
+      doc.y = tipoBadgeY + 35
 
       // ======================
-      // DETALLE DEL EQUIPO
+      // DETALLE DEL EQUIPO - COMPACTO
       // ======================
       if (cotizacion.inventario) {
         doc
-          .fontSize(12)
+          .fontSize(11)
           .font('Helvetica-Bold')
+          .fillColor('#1f2937')
           .text('DETALLE DEL EQUIPO')
-          .moveDown(0.5)
+          .moveDown(0.3)
 
-        // Tabla de equipo
+        // Fondo gris para la tabla
         const tableTop = doc.y
-        const col1 = 50
-        const col2 = 200
-        const col3 = 350
-        const col4 = 480
-
-        // Encabezados de tabla
         doc
-          .fontSize(9)
+          .rect(50, tableTop, 512, 60)
+          .fillAndStroke('#f9fafb', '#e5e7eb')
+
+        // Contenido de la tabla
+        doc
+          .fontSize(8)
           .font('Helvetica-Bold')
-          .fillColor('#666666')
-          .text('Descripción', col1, tableTop)
-          .text('Capacidad', col2, tableTop)
-          .text('Características', col3, tableTop)
-          .text('Precio', col4, tableTop)
+          .fillColor('#6b7280')
+          .text('Descripción', 55, tableTop + 5)
+          .text('Capacidad', 250, tableTop + 5)
+          .text('Características', 350, tableTop + 5)
+          .text('Precio', 495, tableTop + 5)
 
-        // Línea bajo encabezados
-        doc
-          .strokeColor('#cccccc')
-          .lineWidth(1)
-          .moveTo(50, tableTop + 15)
-          .lineTo(562, tableTop + 15)
-          .stroke()
-
-        // Datos del producto
-        const rowTop = tableTop + 25
         doc
           .fontSize(9)
           .font('Helvetica')
           .fillColor('#000000')
           .text(
             `${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`,
-            col1,
-            rowTop,
-            { width: 140 }
+            55,
+            tableTop + 20,
+            { width: 180 }
           )
-          .text(`${cotizacion.inventario.capacidadBTU} BTU`, col2, rowTop)
-          .text(cotizacion.inventario.caracteristicas || 'N/A', col3, rowTop, { width: 120 })
+          .text(`${cotizacion.inventario.capacidadBTU} BTU`, 250, tableTop + 20)
+          .text(cotizacion.inventario.caracteristicas || 'Standard', 350, tableTop + 20, { width: 120 })
           .text(
             `$${cotizacion.precioOfertado.toLocaleString('es-CL')}`,
-            col4,
-            rowTop,
-            { align: 'right', width: 80 }
+            460,
+            tableTop + 20,
+            { align: 'right', width: 95 }
           )
 
-        doc.moveDown(3)
+        doc.y = tableTop + 70
       }
-      
-      // ⭐ ======================
-      // ⭐ MATERIALES INCLUIDOS
-      // ⭐ ======================
+
+      // ======================
+      // MATERIALES INCLUIDOS - OPTIMIZADO
+      // ======================
       if (cotizacion.materiales && cotizacion.materiales.length > 0) {
         doc
-          .fontSize(12)
+          .fontSize(11)
           .font('Helvetica-Bold')
-          .fillColor('#000000')
+          .fillColor('#1f2937')
           .text('MATERIALES INCLUIDOS')
-          .moveDown(0.5)
+          .moveDown(0.3)
 
-        // Encabezados de tabla de materiales
-        const materialesTableTop = doc.y
-        const matCol1 = 50   // Material
-        const matCol2 = 250  // Cantidad
-        const matCol3 = 330  // Unidad
-        const matCol4 = 400  // Precio Unit.
-        const matCol5 = 480  // Subtotal
+        const matTableTop = doc.y
 
-        // Encabezados
+        // Encabezados con fondo
         doc
-          .fontSize(9)
+          .rect(50, matTableTop, 512, 15)
+          .fillAndStroke('#1e40af', '#1e40af')
+
+        doc
+          .fontSize(8)
           .font('Helvetica-Bold')
-          .fillColor('#666666')
-          .text('Material', matCol1, materialesTableTop)
-          .text('Cantidad', matCol2, materialesTableTop)
-          .text('Unidad', matCol3, materialesTableTop)
-          .text('Precio Unit.', matCol4, materialesTableTop)
-          .text('Subtotal', matCol5, materialesTableTop)
+          .fillColor('#ffffff')
+          .text('Material', 55, matTableTop + 3)
+          .text('Cant.', 280, matTableTop + 3)
+          .text('Unidad', 330, matTableTop + 3)
+          .text('P. Unit.', 400, matTableTop + 3)
+          .text('Subtotal', 490, matTableTop + 3)
 
-        // Línea bajo encabezados
-        doc
-          .strokeColor('#cccccc')
-          .lineWidth(1)
-          .moveTo(50, materialesTableTop + 15)
-          .lineTo(562, materialesTableTop + 15)
-          .stroke()
+        let currentY = matTableTop + 20
 
-        // Filas de materiales
-        let currentY = materialesTableTop + 25
-        
+        // ⭐ CONTROL DE PAGINACIÓN MEJORADO
         cotizacion.materiales.forEach((material, index) => {
-          // Alternar color de fondo para mejor lectura
+          // Si no hay espacio, agregar nueva página
+          if (currentY > 680) {
+            doc.addPage()
+            currentY = 60
+
+            // Repetir encabezados en nueva página
+            doc
+              .rect(50, currentY - 15, 512, 15)
+              .fillAndStroke('#1e40af', '#1e40af')
+              .fontSize(8)
+              .font('Helvetica-Bold')
+              .fillColor('#ffffff')
+              .text('Material', 55, currentY - 12)
+              .text('Cant.', 280, currentY - 12)
+              .text('Unidad', 330, currentY - 12)
+              .text('P. Unit.', 400, currentY - 12)
+              .text('Subtotal', 490, currentY - 12)
+          }
+
+          // Fondo alternado
           if (index % 2 === 0) {
             doc
-              .fillColor('#f9fafb')
-              .rect(50, currentY - 5, 512, 20)
-              .fill()
+              .rect(50, currentY - 3, 512, 18)
+              .fillAndStroke('#f9fafb', '#f9fafb')
           }
 
           doc
-            .fontSize(9)
+            .fontSize(8)
             .font('Helvetica')
             .fillColor('#000000')
-            .text(
-              material.nombre,
-              matCol1,
-              currentY,
-              { width: 190 }
-            )
-            .text(
-              material.cantidad.toString(),
-              matCol2,
-              currentY
-            )
-            .text(
-              material.unidad,
-              matCol3,
-              currentY
-            )
-            .text(
-              `$${material.precioUnitario.toLocaleString('es-CL')}`,
-              matCol4,
-              currentY
-            )
-            .text(
-              `$${material.subtotal.toLocaleString('es-CL')}`,
-              matCol5,
-              currentY,
-              { align: 'right', width: 80 }
-            )
+            .text(material.nombre, 55, currentY, { width: 210, ellipsis: true })
+            .text(material.cantidad.toString(), 280, currentY)
+            .text(material.unidad, 330, currentY)
+            .text(`$${material.precioUnitario.toLocaleString('es-CL')}`, 400, currentY)
+            .text(`$${material.subtotal.toLocaleString('es-CL')}`, 460, currentY, {
+              align: 'right',
+              width: 95
+            })
 
-          currentY += 25
-          
-          // Si llegamos al final de la página, agregar nueva página
-          if (currentY > 700) {
-            doc.addPage()
-            currentY = 50
-          }
+          currentY += 18
         })
 
-        // Total de materiales
+        // Total de materiales con fondo
         doc
-          .moveDown(0.5)
-          .fontSize(10)
+          .rect(350, currentY + 5, 212, 18)
+          .fillAndStroke('#dbeafe', '#2563eb')
+          .fontSize(9)
           .font('Helvetica-Bold')
-          .fillColor('#000000')
-          .text('Total Materiales:', 350, currentY + 10)
+          .fillColor('#1e40af')
+          .text('Total Materiales:', 355, currentY + 9)
           .text(
             `$${cotizacion.costoMaterial.toLocaleString('es-CL')}`,
-            480,
-            currentY + 10,
-            { align: 'right', width: 80 }
+            460,
+            currentY + 9,
+            { align: 'right', width: 95 }
           )
+          .fillColor('#000000')
 
-        doc.moveDown(2)
+        doc.y = currentY + 30
       }
-      
+
       // ======================
       // DESGLOSE DE COSTOS
       // ======================
       doc
-        .fontSize(12)
+        .fontSize(11)
         .font('Helvetica-Bold')
+        .fillColor('#1f2937')
         .text('DESGLOSE DE COSTOS')
-        .moveDown(0.5)
+        .moveDown(0.3)
 
       const costoTop = doc.y
-      const labelCol = 50
-      const valueCol = 480
+      const labelCol = 380
+      const valueCol = 490
 
-      // Subtotales
+      // Fondo para desglose
+      const desgloseHeight = (cotizacion.costoInstalacion > 0 ? 15 : 0) + 
+                             (cotizacion.costoMaterial > 0 ? 15 : 0) + 
+                             (cotizacion.descuento > 0 ? 15 : 0) + 60
+
       doc
-        .fontSize(10)
+        .rect(370, costoTop, 192, desgloseHeight)
+        .fillAndStroke('#ffffff', '#e5e7eb')
+
+      let lineY = costoTop + 5
+
+      doc
+        .fontSize(9)
         .font('Helvetica')
-        .text('Equipo:', labelCol, costoTop)
-        .text(`$${cotizacion.precioOfertado.toLocaleString('es-CL')}`, valueCol, costoTop, {
+        .fillColor('#374151')
+        .text('Equipo:', labelCol, lineY)
+        .text(`$${cotizacion.precioOfertado.toLocaleString('es-CL')}`, valueCol, lineY, {
           align: 'right',
-          width: 80
+          width: 65
         })
+
+      lineY += 15
 
       if (cotizacion.costoInstalacion > 0) {
         doc
-          .text('Instalación:', labelCol)
-          .text(`$${cotizacion.costoInstalacion.toLocaleString('es-CL')}`, valueCol, doc.y - 12, {
+          .text('Instalación:', labelCol, lineY)
+          .text(`$${cotizacion.costoInstalacion.toLocaleString('es-CL')}`, valueCol, lineY, {
             align: 'right',
-            width: 80
+            width: 65
           })
+        lineY += 15
       }
 
       if (cotizacion.costoMaterial > 0) {
         doc
-          .text('Materiales:', labelCol)
-          .text(`$${cotizacion.costoMaterial.toLocaleString('es-CL')}`, valueCol, doc.y - 12, {
+          .text('Materiales:', labelCol, lineY)
+          .text(`$${cotizacion.costoMaterial.toLocaleString('es-CL')}`, valueCol, lineY, {
             align: 'right',
-            width: 80
+            width: 65
           })
+        lineY += 15
       }
 
-      // Subtotal
+      // Línea divisora
+      lineY += 3
       doc
-        .moveDown(0.5)
-        .strokeColor('#cccccc')
-        .lineWidth(0.5)
-        .moveTo(350, doc.y)
-        .lineTo(562, doc.y)
+        .strokeColor('#d1d5db')
+        .lineWidth(1)
+        .moveTo(380, lineY)
+        .lineTo(555, lineY)
         .stroke()
-        .moveDown(0.3)
+      lineY += 8
 
       doc
-        .font('Helvetica')
-        .text('Subtotal:', labelCol)
-        .text(`$${cotizacion.subtotal.toLocaleString('es-CL')}`, valueCol, doc.y - 12, {
+        .font('Helvetica-Bold')
+        .text('Subtotal:', labelCol, lineY)
+        .text(`$${cotizacion.subtotal.toLocaleString('es-CL')}`, valueCol, lineY, {
           align: 'right',
-          width: 80
+          width: 65
         })
 
-      // Descuento
+      lineY += 15
+
       if (cotizacion.descuento > 0) {
         const montoDescuento = cotizacion.subtotal - cotizacion.precioFinal
         doc
           .fillColor('#dc2626')
-          .text(`Descuento (${cotizacion.descuento}%):`, labelCol)
-          .text(`-$${montoDescuento.toLocaleString('es-CL')}`, valueCol, doc.y - 12, {
+          .font('Helvetica')
+          .text(`Descuento (${cotizacion.descuento}%):`, labelCol, lineY)
+          .text(`-$${montoDescuento.toLocaleString('es-CL')}`, valueCol, lineY, {
             align: 'right',
-            width: 80
+            width: 65
           })
-          .fillColor('#000000')
+          .fillColor('#374151')
+        lineY += 15
       }
 
-      // Total
+      // Línea divisora gruesa
+      lineY += 3
       doc
-        .moveDown(0.5)
-        .strokeColor('#333333')
+        .strokeColor('#1e40af')
         .lineWidth(2)
-        .moveTo(350, doc.y)
-        .lineTo(562, doc.y)
+        .moveTo(380, lineY)
+        .lineTo(555, lineY)
         .stroke()
-        .moveDown(0.3)
+      lineY += 8
 
+      // TOTAL destacado
       doc
-        .fontSize(14)
+        .fontSize(13)
         .font('Helvetica-Bold')
-        .fillColor('#2563eb')
-        .text('TOTAL:', labelCol)
-        .text(`$${cotizacion.precioFinal.toLocaleString('es-CL')}`, valueCol, doc.y - 15, {
+        .fillColor('#1e40af')
+        .text('TOTAL:', labelCol, lineY)
+        .text(`$${cotizacion.precioFinal.toLocaleString('es-CL')}`, valueCol - 10, lineY, {
           align: 'right',
-          width: 80
+          width: 75
         })
         .fillColor('#000000')
-        .moveDown(2)
+
+      doc.y = costoTop + desgloseHeight + 20
 
       // ======================
-      // OBSERVACIONES
+      // OBSERVACIONES (si existen)
       // ======================
-      if (cotizacion.observaciones) {
+      if (cotizacion.notas && cotizacion.notas.trim() !== '') {
+        // Verificar espacio para observaciones
+        if (doc.y > 650) {
+          doc.addPage()
+        }
+
         doc
-          .fontSize(11)
+          .fontSize(10)
           .font('Helvetica-Bold')
+          .fillColor('#1f2937')
           .text('OBSERVACIONES:')
-          .fontSize(9)
+          .fontSize(8)
           .font('Helvetica')
-          .text(cotizacion.observaciones, { align: 'justify' })
+          .fillColor('#374151')
+          .text(cotizacion.notas, { align: 'justify' })
           .moveDown(1)
       }
 
       // ======================
-      // CONDICIONES
+      // CONDICIONES GENERALES - HORIZONTAL
       // ======================
+      // Ir al final de la página
+      const condicionesY = 680
+
       doc
-        .fontSize(11)
+        .fontSize(9)
         .font('Helvetica-Bold')
-        .text('CONDICIONES GENERALES:')
-        .fontSize(8)
+        .fillColor('#1f2937')
+        .text('CONDICIONES GENERALES:', 50, condicionesY)
+
+      doc
+        .fontSize(7)
         .font('Helvetica')
-        .text(`• Validez de la oferta: ${cotizacion.validez || 15} días`, { indent: 10 })
-        .text('• Garantía del equipo: 1 año por defectos de fábrica', { indent: 10 })
-        .text('• Garantía de instalación: 6 meses', { indent: 10 })
-        .text('• Forma de pago: 50% al aprobar, 50% al finalizar instalación', { indent: 10 })
-        .text('• Los precios incluyen IVA', { indent: 10 })
-        .moveDown(2)
+        .fillColor('#4b5563')
+        .text(
+          `• Validez: ${cotizacion.validez || 15} días  • Garantía equipo: 1 año  • Garantía instalación: 6 meses  • Pago: 50% inicial, 50% al finalizar  • Precios incluyen IVA`,
+          50,
+          condicionesY + 12,
+          { width: 512, align: 'left', lineGap: 2 }
+        )
 
       // ======================
       // PIE DE PÁGINA
       // ======================
-      const bottomY = 700
       doc
-        .fontSize(8)
+        .fontSize(7)
         .font('Helvetica-Oblique')
-        .fillColor('#666666')
+        .fillColor('#9ca3af')
         .text(
-          'Este documento es una cotización no vinculante. Para proceder con el servicio es necesaria la aprobación formal.',
+          'Documento no vinculante. Requiere aprobación formal para proceder.',
           50,
-          bottomY,
+          735,
           { align: 'center', width: 512 }
         )
 
-      // Agregar vendedor/agente si existe
+      // Agente
       if (cotizacion.agente) {
         doc
-          .fontSize(9)
+          .fontSize(7)
           .font('Helvetica')
-          .text(`Atendido por: ${cotizacion.agente}`, 50, bottomY + 20)
+          .fillColor('#6b7280')
+          .text(`Atendido por: ${cotizacion.agente}`, 50, 750)
       }
 
       // Finalizar PDF
@@ -495,7 +530,7 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         .font('Helvetica')
         .text(`Nombre: ${ordenTrabajo.cliente.nombre}`)
         .text(`Dirección: ${ordenTrabajo.direccion}`)
-        .text(`Teléfono: ${ordenTrabajo.cliente.telefono}`)
+        .text(`Teléfono: ${ordenTrabajo.cliente.telefono || 'No especificado'}`)
         .moveDown(1)
 
       // Datos del equipo
@@ -508,7 +543,7 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
           .font('Helvetica')
           .text(`Marca: ${ordenTrabajo.equipo.marca}`)
           .text(`Modelo: ${ordenTrabajo.equipo.modelo}`)
-          .text(`Capacidad: ${ordenTrabajo.equipo.capacidadBTU} BTU`)
+          .text(`Capacidad: ${ordenTrabajo.equipo.capacidad}`)
           .text(`N° Serie: ${ordenTrabajo.equipo.numeroSerie}`)
           .moveDown(1)
       }
@@ -530,8 +565,7 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         .text('INFORMACIÓN ADICIONAL:')
         .fontSize(9)
         .font('Helvetica')
-        .text(`Duración estimada: ${ordenTrabajo.duracion} horas`)
-        .text(`Costo total: $${ordenTrabajo.costoTotal?.toLocaleString('es-CL') || '0'}`)
+        .text(`Costo estimado: $${ordenTrabajo.costoTotal?.toLocaleString('es-CL') || '0'}`)
 
       // Técnico asignado
       if (ordenTrabajo.tecnico) {
