@@ -1,5 +1,5 @@
 // ============================================
-// SCHEMA CON MATERIALES EN COTIZACIONES
+// SCHEMA COMPATIBLE CON DATOS EXISTENTES
 // Reemplazar: backend/prisma/schema.prisma
 // ============================================
 
@@ -119,24 +119,26 @@ model Cotizacion {
   direccionInstalacion String?
   equipoCreado    Equipo?     @relation("CotizacionAprobada")
   ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
-  materiales      MaterialCotizacion[]  // ⭐ NUEVA RELACIÓN
+  materiales      MaterialCotizacion[]  // NUEVA RELACIÓN
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
 
-// ⭐ NUEVO MODELO: MaterialCotizacion
+// NUEVO MODELO: MaterialCotizacion
 model MaterialCotizacion {
   id              Int        @id @default(autoincrement())
   cotizacionId    Int
   cotizacion      Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
   nombre          String     // "Cañería de cobre 1/2", "Soporte metálico", etc.
   cantidad        Float      // Puede ser decimal: 2.5 metros, 15 unidades
-  unidad          String     // "metros", "unidades", "kg", "litros"
+  unidad          String     // "metros", "unidades", "kg", "litros", "cajas"
   precioUnitario  Float      // Precio por unidad
-  subtotal        Float      // cantidad * precioUnitario
+  subtotal        Float      // cantidad * precioUnitario (calculado)
   descripcion     String?    // Opcional: descripción adicional
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  @@index([cotizacionId])
 }
 
 model Equipo {
@@ -193,3 +195,4 @@ model OrdenTrabajo {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+

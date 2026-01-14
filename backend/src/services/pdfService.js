@@ -163,7 +163,115 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
         doc.moveDown(3)
       }
+      
+      // ⭐ ======================
+      // ⭐ MATERIALES INCLUIDOS
+      // ⭐ ======================
+      if (cotizacion.materiales && cotizacion.materiales.length > 0) {
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('MATERIALES INCLUIDOS')
+          .moveDown(0.5)
 
+        // Encabezados de tabla de materiales
+        const materialesTableTop = doc.y
+        const matCol1 = 50   // Material
+        const matCol2 = 250  // Cantidad
+        const matCol3 = 330  // Unidad
+        const matCol4 = 400  // Precio Unit.
+        const matCol5 = 480  // Subtotal
+
+        // Encabezados
+        doc
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#666666')
+          .text('Material', matCol1, materialesTableTop)
+          .text('Cantidad', matCol2, materialesTableTop)
+          .text('Unidad', matCol3, materialesTableTop)
+          .text('Precio Unit.', matCol4, materialesTableTop)
+          .text('Subtotal', matCol5, materialesTableTop)
+
+        // Línea bajo encabezados
+        doc
+          .strokeColor('#cccccc')
+          .lineWidth(1)
+          .moveTo(50, materialesTableTop + 15)
+          .lineTo(562, materialesTableTop + 15)
+          .stroke()
+
+        // Filas de materiales
+        let currentY = materialesTableTop + 25
+        
+        cotizacion.materiales.forEach((material, index) => {
+          // Alternar color de fondo para mejor lectura
+          if (index % 2 === 0) {
+            doc
+              .fillColor('#f9fafb')
+              .rect(50, currentY - 5, 512, 20)
+              .fill()
+          }
+
+          doc
+            .fontSize(9)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(
+              material.nombre,
+              matCol1,
+              currentY,
+              { width: 190 }
+            )
+            .text(
+              material.cantidad.toString(),
+              matCol2,
+              currentY
+            )
+            .text(
+              material.unidad,
+              matCol3,
+              currentY
+            )
+            .text(
+              `$${material.precioUnitario.toLocaleString('es-CL')}`,
+              matCol4,
+              currentY
+            )
+            .text(
+              `$${material.subtotal.toLocaleString('es-CL')}`,
+              matCol5,
+              currentY,
+              { align: 'right', width: 80 }
+            )
+
+          currentY += 25
+          
+          // Si llegamos al final de la página, agregar nueva página
+          if (currentY > 700) {
+            doc.addPage()
+            currentY = 50
+          }
+        })
+
+        // Total de materiales
+        doc
+          .moveDown(0.5)
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#000000')
+          .text('Total Materiales:', 350, currentY + 10)
+          .text(
+            `$${cotizacion.costoMaterial.toLocaleString('es-CL')}`,
+            480,
+            currentY + 10,
+            { align: 'right', width: 80 }
+          )
+
+        doc.moveDown(2)
+      }
+      
       // ======================
       // DESGLOSE DE COSTOS
       // ======================

@@ -34,9 +34,9 @@ export const getCotizaciones = async (req, res) => {
             precioCliente: true
           }
         },
-        equipo: { // Incluir equipo para mantención/reparació
+        equipo: {
           select: {
-             id: true,
+            id: true,
             tipo: true,
             marca: true,
             modelo: true,
@@ -46,6 +46,7 @@ export const getCotizaciones = async (req, res) => {
             clienteId: true
           }
         },
+        materiales: true, // ⭐ INCLUIR MATERIALES
         equipoCreado: true,
         ordenCreada: true
       },
@@ -71,6 +72,8 @@ export const getCotizacionById = async (req, res) => {
       include: {
         cliente: true,
         inventario: true,
+        equipo: true,
+        materiales: true, // ⭐ INCLUIR MATERIALES
         equipoCreado: true,
         ordenCreada: {
           include: {
@@ -91,25 +94,25 @@ export const getCotizacionById = async (req, res) => {
   }
 }
 
-// Crear cotización ⭐ ACTUALIZADO CON SOPORTE PARA EQUIPOID
+// ⭐ CREAR COTIZACIÓN CON MATERIALES
 export const createCotizacion = async (req, res) => {
   try {
     const { 
-      tipo, // instalacion, mantencion, reparacion
+      tipo,
       clienteId, 
-      inventarioId, // Para instalación
-      equipoId, // ⭐ NUEVO - Para mantención/reparación
+      inventarioId,
+      equipoId,
       precioOfertado, 
       costoInstalacion,
-      costoMaterial,
+      costoMaterial, // Esto ahora se calcula automáticamente
       descuento, 
       notas,
       agente,
-      direccionInstalacion
+      direccionInstalacion,
+      materiales // ⭐ NUEVO - Array de materiales
     } = req.body
 
-    // Log para debug
-    console.log('📋 Datos recibidos:', { tipo, clienteId, inventarioId, equipoId })
+    console.log('📋 Datos recibidos:', { tipo, clienteId, inventarioId, equipoId, materiales })
 
     // Validaciones básicas
     if (!tipo || !clienteId) {
@@ -118,22 +121,20 @@ export const createCotizacion = async (req, res) => {
       })
     }
 
-    // ⭐ VALIDACIONES POR TIPO DE SERVICIO
-    if (tipo === 'instalacion') {
-      if (!inventarioId) {
-        return res.status(400).json({ 
-          error: 'Para instalación se requiere seleccionar un producto del inventario' 
-        })
-      }
-    } else if (tipo === 'mantencion' || tipo === 'reparacion') {
-      if (!equipoId) {
-        return res.status(400).json({ 
-          error: `Para ${tipo} se requiere seleccionar un equipo del cliente` 
-        })
-      }
+    // Validaciones por tipo de servicio
+    if (tipo === 'instalacion' && !inventarioId) {
+      return res.status(400).json({ 
+        error: 'Para instalación se requiere seleccionar un producto del inventario' 
+      })
     }
 
-    // Verificar que el cliente existe
+    if ((tipo === 'mantencion' || tipo === 'reparacion') && !equipoId) {
+      return res.status(400).json({ 
+        error: `Para ${tipo} se requiere seleccionar un equipo del cliente` 
+      })
+    }
+
+    // Verificar cliente
     const cliente = await prisma.cliente.findUnique({
       where: { id: parseInt(clienteId) }
     })
@@ -145,7 +146,7 @@ export const createCotizacion = async (req, res) => {
     let producto = null
     let equipo = null
 
-    // ⭐ SI ES INSTALACIÓN - Validar inventario
+    // Validar inventario (instalación)
     if (tipo === 'instalacion' && inventarioId) {
       producto = await prisma.inventario.findUnique({
         where: { id: parseInt(inventarioId) }
@@ -162,47 +163,88 @@ export const createCotizacion = async (req, res) => {
       }
     }
 
-    // ⭐ SI ES MANTENCIÓN O REPARACIÓN - Validar equipo
+    // Validar equipo (mantención/reparación)
     if ((tipo === 'mantencion' || tipo === 'reparacion') && equipoId) {
       equipo = await prisma.equipo.findUnique({
         where: { id: parseInt(equipoId) },
-        include: {
-          cliente: true
-        }
+        include: { cliente: true }
       })
 
       if (!equipo) {
         return res.status(404).json({ error: 'Equipo no encontrado' })
       }
 
-      // Verificar que el equipo pertenece al cliente
       if (equipo.clienteId !== parseInt(clienteId)) {
         return res.status(400).json({ 
           error: 'El equipo no pertenece al cliente seleccionado' 
         })
       }
+    }
 
-      console.log(`✅ Equipo validado: ${equipo.marca} ${equipo.modelo} - Cliente: ${equipo.cliente.nombre}`)
+    // ⭐ CALCULAR COSTO DE MATERIALES
+    let costoMaterialTotal = 0
+    const materialesValidados = []
+
+    if (materiales && Array.isArray(materiales) && materiales.length > 0) {
+      console.log(`📦 Procesando ${materiales.length} materiales...`)
+      
+      for (const material of materiales) {
+        // Validar campos requeridos
+        if (!material.nombre || !material.cantidad || !material.precioUnitario || !material.unidad) {
+          return res.status(400).json({ 
+            error: 'Cada material debe tener nombre, cantidad, unidad y precio unitario' 
+          })
+        }
+
+        const cantidad = parseFloat(material.cantidad)
+        const precioUnitario = parseFloat(material.precioUnitario)
+        
+        if (cantidad <= 0 || precioUnitario <= 0) {
+          return res.status(400).json({ 
+            error: 'Cantidad y precio unitario deben ser mayores a 0' 
+          })
+        }
+
+        const subtotalMaterial = cantidad * precioUnitario
+        costoMaterialTotal += subtotalMaterial
+
+        materialesValidados.push({
+          nombre: material.nombre,
+          cantidad: cantidad,
+          unidad: material.unidad,
+          precioUnitario: precioUnitario,
+          subtotal: subtotalMaterial,
+          descripcion: material.descripcion || null
+        })
+      }
+
+      console.log(`💰 Costo total de materiales: $${costoMaterialTotal.toLocaleString('es-CL')}`)
     }
 
     // Calcular precio final
     const basePrice = precioOfertado || (producto?.precioCliente || 0)
     const instalacion = parseFloat(costoInstalacion) || 0
-    const materiales = parseFloat(costoMaterial) || 0
     const desc = parseFloat(descuento) || 0
     
-    const subtotal = basePrice + instalacion + materiales
+    const subtotal = basePrice + instalacion + costoMaterialTotal
     const precioFinal = subtotal * (1 - desc / 100)
 
-    console.log('💰 Cálculo:', { basePrice, instalacion, materiales, desc, subtotal, precioFinal })
+    console.log('💰 Cálculo:', { 
+      basePrice, 
+      instalacion, 
+      materiales: costoMaterialTotal, 
+      desc, 
+      subtotal, 
+      precioFinal 
+    })
 
-    // ⭐ CREAR COTIZACIÓN CON EQUIPOID
+    // Preparar datos de cotización
     const cotizacionData = {
       tipo: tipo || 'instalacion',
       clienteId: parseInt(clienteId),
       precioOfertado: basePrice,
       costoInstalacion: instalacion,
-      costoMaterial: materiales,
+      costoMaterial: costoMaterialTotal, // ⭐ Calculado automáticamente
       descuento: desc,
       subtotal,
       precioFinal,
@@ -212,30 +254,39 @@ export const createCotizacion = async (req, res) => {
       estado: 'pendiente'
     }
 
-    // Agregar inventarioId solo si es instalación
+    // Agregar inventarioId o equipoId según tipo
     if (tipo === 'instalacion' && inventarioId) {
       cotizacionData.inventarioId = parseInt(inventarioId)
     }
 
-    // ⭐ Agregar equipoId solo si es mantención/reparación
     if ((tipo === 'mantencion' || tipo === 'reparacion') && equipoId) {
       cotizacionData.equipoId = parseInt(equipoId)
     }
 
-    // ⭐ CREAR COTIZACIÓN - SIN include en el create (evita conflictos)
+    // ⭐ CREAR COTIZACIÓN CON MATERIALES
     const cotizacion = await prisma.cotizacion.create({
-      data: cotizacionData
+      data: {
+        ...cotizacionData,
+        // ⭐ Crear materiales relacionados
+        materiales: {
+          create: materialesValidados
+        }
+      }
     })
 
     console.log(`✅ Cotización creada: #${cotizacion.id} - ${tipo}`)
+    if (materialesValidados.length > 0) {
+      console.log(`   📦 ${materialesValidados.length} materiales agregados`)
+    }
 
-    // ⭐ LUEGO obtener con las relaciones
+    // Obtener cotización completa con relaciones
     const cotizacionCompleta = await prisma.cotizacion.findUnique({
       where: { id: cotizacion.id },
       include: {
         cliente: true,
         inventario: true,
-        equipo: true
+        equipo: true,
+        materiales: true // ⭐ INCLUIR MATERIALES
       }
     })
 
@@ -253,40 +304,80 @@ export const createCotizacion = async (req, res) => {
   }
 }
 
-// Actualizar cotización (cambiar estado, precio, etc)
+// Actualizar cotización
 export const updateCotizacion = async (req, res) => {
   try {
     const { id } = req.params
-    const { estado, precioOfertado, descuento, notas, fechaRespuesta } = req.body
+    const { 
+      estado, 
+      precioOfertado, 
+      descuento, 
+      notas, 
+      fechaRespuesta,
+      materiales // ⭐ Permitir actualizar materiales
+    } = req.body
 
     const existingCotizacion = await prisma.cotizacion.findUnique({
       where: { id: parseInt(id) },
-      include: { inventario: true }
+      include: { 
+        inventario: true,
+        materiales: true // ⭐ INCLUIR MATERIALES
+      }
     })
 
     if (!existingCotizacion) {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // No permitir actualizar si ya está aprobada o eliminada
     if (existingCotizacion.estado !== 'pendiente' && estado) {
       return res.status(400).json({ 
         error: 'No se puede modificar una cotización aprobada o eliminada' 
       })
     }
 
-    // Calcular nuevo precio final si cambió
+    // ⭐ RECALCULAR COSTO DE MATERIALES SI SE ACTUALIZAN
+    let costoMaterialTotal = existingCotizacion.costoMaterial
+
+    if (materiales && Array.isArray(materiales)) {
+      // Eliminar materiales existentes
+      await prisma.materialCotizacion.deleteMany({
+        where: { cotizacionId: parseInt(id) }
+      })
+
+      // Crear nuevos materiales
+      costoMaterialTotal = 0
+      for (const material of materiales) {
+        const cantidad = parseFloat(material.cantidad)
+        const precioUnitario = parseFloat(material.precioUnitario)
+        const subtotalMaterial = cantidad * precioUnitario
+        costoMaterialTotal += subtotalMaterial
+
+        await prisma.materialCotizacion.create({
+          data: {
+            cotizacionId: parseInt(id),
+            nombre: material.nombre,
+            cantidad: cantidad,
+            unidad: material.unidad,
+            precioUnitario: precioUnitario,
+            subtotal: subtotalMaterial,
+            descripcion: material.descripcion || null
+          }
+        })
+      }
+    }
+
+    // Calcular nuevo precio final
     const desc = descuento !== undefined ? parseFloat(descuento) : existingCotizacion.descuento
     const precio = precioOfertado !== undefined ? parseFloat(precioOfertado) : existingCotizacion.precioOfertado
     const instalacion = existingCotizacion.costoInstalacion || 0
-    const materiales = existingCotizacion.costoMaterial || 0
     
-    const subtotal = precio + instalacion + materiales
+    const subtotal = precio + instalacion + costoMaterialTotal
     const precioFinal = subtotal * (1 - desc / 100)
 
     const updateData = {
       precioOfertado: precio,
       descuento: desc,
+      costoMaterial: costoMaterialTotal, // ⭐ Actualizar costo
       subtotal,
       precioFinal,
       notas: notas !== undefined ? notas : existingCotizacion.notas
@@ -305,7 +396,8 @@ export const updateCotizacion = async (req, res) => {
       data: updateData,
       include: {
         cliente: true,
-        inventario: true
+        inventario: true,
+        materiales: true // ⭐ INCLUIR MATERIALES
       }
     })
 
@@ -320,7 +412,7 @@ export const updateCotizacion = async (req, res) => {
   }
 }
 
-// Eliminar cotización
+// Eliminar cotización (elimina materiales automáticamente por onDelete: Cascade)
 export const deleteCotizacion = async (req, res) => {
   try {
     const { id } = req.params
@@ -333,8 +425,7 @@ export const deleteCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // ⭐ MODIFICADO: Permitir eliminar cualquier cotización (incluso aprobadas)
-    // Útil para limpiar datos de prueba
+    // Los materiales se eliminan automáticamente por CASCADE
     await prisma.cotizacion.delete({
       where: { id: parseInt(id) }
     })
@@ -346,10 +437,9 @@ export const deleteCotizacion = async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar cotización:', error)
     
-    // Error de restricción de clave foránea
     if (error.code === 'P2003') {
       return res.status(400).json({ 
-        error: 'No se puede eliminar porque tiene registros relacionados (equipo u orden creada)',
+        error: 'No se puede eliminar porque tiene registros relacionados',
         sugerencia: 'Elimine primero el equipo y la orden de trabajo asociados'
       })
     }
@@ -367,14 +457,11 @@ export const deleteCotizacion = async (req, res) => {
  * ═══════════════════════════════════════════════════════
  */
 
-/**
- * APROBAR COTIZACIÓN ⭐ ENDPOINT PRINCIPAL FASE 2
- * Ejecuta el flujo automático: Cliente → Equipo → OT → Stock
- */
+// Aprobar cotización
 export const aprobar = async (req, res) => {
   try {
     const { id } = req.params
-    const usuarioId = req.userId || 1 // ID del usuario que aprueba
+    const usuarioId = req.userId || 1
 
     console.log(`\n🚀 Aprobando cotización #${id}...`)
 
@@ -397,9 +484,7 @@ export const aprobar = async (req, res) => {
   }
 }
 
-/**
- * RECHAZAR COTIZACIÓN
- */
+// Rechazar cotización
 export const rechazar = async (req, res) => {
   try {
     const { id } = req.params
@@ -422,9 +507,7 @@ export const rechazar = async (req, res) => {
   }
 }
 
-/**
- * OBTENER ESTADÍSTICAS
- */
+// Obtener estadísticas
 export const getEstadisticas = async (req, res) => {
   try {
     const estadisticas = await obtenerEstadisticasCotizaciones()
@@ -438,21 +521,20 @@ export const getEstadisticas = async (req, res) => {
   }
 }
 
-/**
- * GENERAR PDF DE COTIZACIÓN ⭐ NUEVO
- */
+// ⭐ GENERAR PDF CON MATERIALES
 export const generarPDF = async (req, res) => {
   try {
     const { id } = req.params
     
     console.log(`📄 Generando PDF para cotización #${id}`)
 
-    // Obtener cotización con todas las relaciones
+    // Obtener cotización con materiales
     const cotizacion = await prisma.cotizacion.findUnique({
       where: { id: parseInt(id) },
       include: {
         cliente: true,
-        inventario: true
+        inventario: true,
+        materiales: true // ⭐ INCLUIR MATERIALES PARA PDF
       }
     })
 
@@ -460,21 +542,16 @@ export const generarPDF = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // ⭐ MODIFICADO: Permitir PDF para CUALQUIER estado (pendiente, aprobada, rechazada)
-    // Esto permite que el cliente vea la cotización antes de aprobarla
-
-    // Generar PDF usando el servicio existente
+    // Generar PDF
     const resultado = await generarPDFCotizacion(cotizacion)
 
-    // Leer el archivo generado
+    // Leer archivo
     const pdfBuffer = fs.readFileSync(resultado.filePath)
 
-    // Configurar headers para visualización en navegador
+    // Enviar PDF
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename=cotizacion-${id}.pdf`)
     res.setHeader('Content-Length', pdfBuffer.length)
-
-    // Enviar PDF
     res.send(pdfBuffer)
 
     console.log(`✅ PDF enviado para cotización #${id}`)
@@ -489,14 +566,11 @@ export const generarPDF = async (req, res) => {
 }
 
 export default {
-  // Funciones originales
   getCotizaciones,
   getCotizacionById,
   createCotizacion,
   updateCotizacion,
   deleteCotizacion,
-  
-  // Funciones nuevas Fase 2
   aprobar,
   rechazar,
   getEstadisticas,

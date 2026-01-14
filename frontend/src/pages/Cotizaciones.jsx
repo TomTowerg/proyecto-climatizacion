@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next' // 1. IMPORTAR
+import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -20,7 +20,7 @@ import { getEquiposByCliente } from '../services/equipoService'
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
-  const { t } = useTranslation() // 2. INICIALIZAR
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [cotizaciones, setCotizaciones] = useState([])
   const [clientes, setClientes] = useState([])
@@ -36,7 +36,6 @@ function Cotizaciones() {
   const [pdfCotizacionId, setPdfCotizacionId] = useState(null)
   const [cotizacionToApprove, setCotizacionToApprove] = useState(null)
   const [approving, setApproving] = useState(false)
-  // ⭐ NUEVO: Estado para modal de cliente rápido
   const [showClientModal, setShowClientModal] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
   const [newClientData, setNewClientData] = useState({
@@ -64,6 +63,15 @@ function Cotizaciones() {
     agente: '',
     direccionInstalacion: '',
     estado: 'pendiente'
+  })
+
+  // ⭐ NUEVOS ESTADOS PARA MATERIALES
+  const [materiales, setMateriales] = useState([])
+  const [nuevoMaterial, setNuevoMaterial] = useState({
+    nombre: '',
+    cantidad: 1,
+    unidad: 'unidades',
+    precioUnitario: 0
   })
 
   useEffect(() => {
@@ -106,6 +114,15 @@ function Cotizaciones() {
       fetchEquiposCliente(formData.clienteId)
     }
   }, [formData.clienteId, formData.tipo])
+
+  // ⭐ NUEVO: Calcular costoMaterial automáticamente desde materiales
+  useEffect(() => {
+    const totalMateriales = calcularTotalMateriales()
+    setFormData(prev => ({
+      ...prev,
+      costoMaterial: totalMateriales.toString()
+    }))
+  }, [materiales])
 
   const fetchData = async () => {
     try {
@@ -156,6 +173,48 @@ function Cotizaciones() {
     return subtotal - montoDescuento
   }
 
+  // ⭐ NUEVAS FUNCIONES PARA MATERIALES
+  const calcularTotalMateriales = () => {
+    return materiales.reduce((acc, m) => acc + m.subtotal, 0)
+  }
+
+  const agregarMaterial = () => {
+    if (!nuevoMaterial.nombre.trim()) {
+      toast.error('Ingresa el nombre del material')
+      return
+    }
+    if (nuevoMaterial.cantidad <= 0) {
+      toast.error('La cantidad debe ser mayor a 0')
+      return
+    }
+    if (nuevoMaterial.precioUnitario <= 0) {
+      toast.error('El precio unitario debe ser mayor a 0')
+      return
+    }
+
+    const materialConSubtotal = {
+      ...nuevoMaterial,
+      subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
+    }
+
+    setMateriales([...materiales, materialConSubtotal])
+    
+    // Resetear formulario
+    setNuevoMaterial({
+      nombre: '',
+      cantidad: 1,
+      unidad: 'unidades',
+      precioUnitario: 0
+    })
+
+    toast.success('Material agregado')
+  }
+
+  const eliminarMaterial = (index) => {
+    setMateriales(materiales.filter((_, i) => i !== index))
+    toast.success('Material eliminado')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -169,7 +228,8 @@ function Cotizaciones() {
         descuento: parseFloat(formData.descuento) || 0,
         notas: formData.notas,
         agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
-        direccionInstalacion: formData.direccionInstalacion
+        direccionInstalacion: formData.direccionInstalacion,
+        materiales: materiales  // ⭐ INCLUIR MATERIALES
       }
 
       if (formData.tipo === 'instalacion') {
@@ -214,6 +274,10 @@ function Cotizaciones() {
       direccionInstalacion: cotizacion.direccionInstalacion || '',
       estado: cotizacion.estado
     })
+    // ⭐ CARGAR MATERIALES SI EXISTEN
+    if (cotizacion.materiales && cotizacion.materiales.length > 0) {
+      setMateriales(cotizacion.materiales)
+    }
     setShowModal(true)
   }
 
@@ -296,7 +360,6 @@ function Cotizaciones() {
     setShowPDFModal(true)
   }
 
-  // ⭐ NUEVO: Crear cliente rápido desde cotización
   const handleCreateQuickClient = async () => {
     if (!newClientData.nombre.trim()) {
       toast.error('El nombre del cliente es requerido')
@@ -307,13 +370,9 @@ function Cotizaciones() {
     try {
       const nuevoCliente = await createCliente(newClientData)
       
-      // Agregar el nuevo cliente a la lista
       setClientes(prev => [...prev, nuevoCliente])
-      
-      // Seleccionar automáticamente el nuevo cliente
       setFormData(prev => ({ ...prev, clienteId: nuevoCliente.id.toString() }))
       
-      // Cerrar modal y limpiar
       setShowClientModal(false)
       setNewClientData({
         nombre: '',
@@ -349,6 +408,14 @@ function Cotizaciones() {
       agente: '',
       direccionInstalacion: '',
       estado: 'pendiente'
+    })
+    // ⭐ LIMPIAR MATERIALES
+    setMateriales([])
+    setNuevoMaterial({
+      nombre: '',
+      cantidad: 1,
+      unidad: 'unidades',
+      precioUnitario: 0
     })
   }
 
@@ -500,186 +567,111 @@ function Cotizaciones() {
               placeholder={t('quotes.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showFilters ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                showFilters ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
               }`}
             >
               <Filter size={18} />
-              {t('common.filter')}
+              {t('common.filters')}
             </button>
           </div>
 
           {showFilters && (
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.status')}
-                  </label>
-                  <select
-                    value={filters.estado}
-                    onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    <option value="">{t('quotes.filters.all')}</option>
-                    <option value="pendiente">{t('workOrders.statuses.pending')}</option>
-                    <option value="aprobada">{t('dashboard.approved')}</option>
-                    <option value="rechazada">{t('dashboard.rejected')}</option>
-                  </select>
-                </div>
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <select
+                value={filters.estado}
+                onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+                className="px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">{t('common.allStatuses')}</option>
+                <option value="pendiente">{t('workOrders.statuses.pending')}</option>
+                <option value="aprobada">{t('dashboard.approved')}</option>
+                <option value="rechazada">{t('dashboard.rejected')}</option>
+              </select>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('workOrders.form.type')}
-                  </label>
-                  <select
-                    value={filters.tipo}
-                    onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    <option value="">{t('quotes.filters.all')}</option>
-                    <option value="instalacion">{t('workOrders.types.installation')}</option>
-                    <option value="mantencion">{t('workOrders.types.maintenance')}</option>
-                    <option value="reparacion">{t('workOrders.types.repair')}</option>
-                  </select>
-                </div>
+              <select
+                value={filters.tipo}
+                onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
+                className="px-4 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="">{t('common.allTypes')}</option>
+                <option value="instalacion">{t('workOrders.types.installation')}</option>
+                <option value="mantencion">{t('workOrders.types.maintenance')}</option>
+                <option value="reparacion">{t('workOrders.types.repair')}</option>
+              </select>
 
-                <div className="flex items-end">
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 px-3 py-2"
-                  >
-                    <X size={16} />
-                    {t('quotes.filters.clear')}
-                  </button>
-                </div>
-              </div>
+              {(filters.estado || filters.tipo) && (
+                <button
+                  onClick={clearFilters}
+                  className="col-span-2 text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
+                >
+                  <X size={16} />
+                  {t('common.clearFilters')}
+                </button>
+              )}
             </div>
           )}
         </div>
 
-        {/* Tabla Optimizada */}
-        <div className="card">
-          <div className="tabla-compacta">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+        {/* Tabla */}
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="tabla-compacta">
+              <thead>
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-tipo-cot">
-                    {t('workOrders.table.type')}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    {t('quotes.form.client')}
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase col-equipo-info">
-                    {t('quotes.table.equipment')}
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-precio">
-                    {t('quotes.table.price')}
-                  </th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-descuento">
-                    {t('quotes.table.discount')}
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase col-total">
-                    {t('inventory.stats.total')}
-                  </th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-estado">
-                    {t('workOrders.table.status')}
-                  </th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase col-acciones-cot">
-                    {t('workOrders.table.actions')}
-                  </th>
+                  <th className="text-left">{t('common.id')}</th>
+                  <th className="text-left">{t('common.type')}</th>
+                  <th className="text-left">{t('common.client')}</th>
+                  <th className="text-left">{t('common.product')}</th>
+                  <th className="text-right">{t('common.total')}</th>
+                  <th className="text-center">{t('common.status')}</th>
+                  <th className="text-center">{t('common.date')}</th>
+                  <th className="text-center">{t('common.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {filteredCotizaciones.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                      {searchTerm || Object.values(filters).some(v => v) ? (
-                        t('quotes.table.noResults')
-                      ) : (
-                        t('quotes.table.empty')
-                      )}
+                    <td colSpan="8" className="text-center text-gray-500 py-8">
+                      {searchTerm || filters.estado || filters.tipo
+                        ? t('common.noResults')
+                        : t('quotes.noQuotes')}
                     </td>
                   </tr>
                 ) : (
                   filteredCotizaciones.map((cotizacion) => {
-                    let marca = 'N/A'
-                    let modelo = 'N/A'
-                    let capacidad = 'N/A'
-                    
-                    if (cotizacion.tipo === 'instalacion' && cotizacion.inventario) {
-                      marca = cotizacion.inventario.marca
-                      modelo = cotizacion.inventario.modelo
-                      capacidad = cotizacion.inventario.capacidadBTU
-                    } else if ((cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion') && cotizacion.equipo) {
-                      marca = cotizacion.equipo.marca
-                      modelo = cotizacion.equipo.modelo
-                      capacidad = cotizacion.equipo.capacidad
-                    }
-                    
+                    const producto = cotizacion.inventario
+                      ? `${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`
+                      : cotizacion.equipo
+                      ? `${cotizacion.equipo.marca} ${cotizacion.equipo.modelo}`
+                      : 'N/A'
+
                     return (
-                      <tr key={cotizacion.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-3 col-tipo-cot">
-                          {getTipoBadge(cotizacion.tipo)}
+                      <tr key={cotizacion.id}>
+                        <td className="font-mono">#{cotizacion.id}</td>
+                        <td>{getTipoBadge(cotizacion.tipo)}</td>
+                        <td>{cotizacion.cliente?.nombre}</td>
+                        <td className="text-sm">{producto}</td>
+                        <td className="text-right font-semibold text-green-600">
+                          ${cotizacion.precioFinal.toLocaleString(t('common.dateFormat'))}
                         </td>
-                        
-                        {/* ⭐ NUEVO: Columna Cliente */}
-                        <td className="px-3 py-3">
-                          <div className="text-sm font-medium text-gray-900 truncate max-w-[150px]" title={cotizacion.cliente?.nombre}>
-                            {cotizacion.cliente?.nombre || 'Sin cliente'}
-                          </div>
+                        <td className="text-center">{getEstadoBadge(cotizacion.estado)}</td>
+                        <td className="text-center text-sm">
+                          {new Date(cotizacion.createdAt).toLocaleDateString(t('common.dateFormat'))}
                         </td>
-                        
-                        <td className="px-3 py-3 col-equipo-info">
-                          <div className="info-2-lineas">
-                            <div className="info-principal truncate-text" title={`${marca} ${modelo}`}>
-                              {marca} {modelo}
-                            </div>
-                            <div className="info-secundaria">
-                              {typeof capacidad === 'number' 
-                                ? `${capacidad.toLocaleString(t('common.dateFormat'))} BTU`
-                                : capacidad}
-                            </div>
-                          </div>
-                        </td>
-                        
-                        <td className="px-3 py-3 col-precio text-right">
-                          <span className="text-sm text-gray-900">
-                            ${cotizacion.precioOfertado?.toLocaleString(t('common.dateFormat'))}
-                          </span>
-                        </td>
-                        
-                        <td className="px-3 py-3 col-descuento text-center">
-                          <span className="text-sm text-gray-600">
-                            {cotizacion.descuento}%
-                          </span>
-                        </td>
-                        
-                        <td className="px-3 py-3 col-total text-right">
-                          <span className="text-sm font-bold text-green-600">
-                            ${cotizacion.precioFinal?.toLocaleString(t('common.dateFormat'))}
-                          </span>
-                        </td>
-                        
-                        <td className="px-3 py-3 col-estado">
-                          {getEstadoBadge(cotizacion.estado)}
-                        </td>
-                        
-                        <td className="px-3 py-3 col-acciones-cot">
-                          <div className="flex gap-1 justify-center flex-wrap">
-                            {/* ⭐ MODIFICADO: PDF visible SIEMPRE (no solo aprobadas) */}
+                        <td>
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleVerPDF(cotizacion.id)}
-                              className="btn-accion-compacto text-purple-600 hover:bg-purple-50"
-                              title={t('quotes.actions.viewPdf')}
+                              className="btn-accion-compacto text-gray-600 hover:bg-gray-50"
+                              title={t('quotes.actions.viewPDF')}
                             >
                               <FileText size={16} />
                             </button>
-                            
                             {cotizacion.estado === 'pendiente' && (
                               <>
                                 <button
@@ -731,7 +723,7 @@ function Cotizaciones() {
       {/* Modal de Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-3xl w-full p-6 my-8">
+          <div className="bg-white rounded-lg max-w-4xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
               {editingCotizacion ? t('quotes.edit') : t('quotes.add')}
             </h2>
@@ -774,7 +766,6 @@ function Cotizaciones() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('quotes.form.client')} *
                   </label>
-                  {/* ⭐ MODIFICADO: Flex container con botón + */}
                   <div className="flex gap-2">
                     <select
                       value={formData.clienteId}
@@ -791,7 +782,6 @@ function Cotizaciones() {
                       ))}
                     </select>
                     
-                    {/* ⭐ NUEVO: Botón crear cliente rápido */}
                     {!editingCotizacion && (
                       <button
                         type="button"
@@ -904,9 +894,13 @@ function Cotizaciones() {
                     onChange={(e) => setFormData({ ...formData, costoMaterial: e.target.value })}
                     step="1"
                     min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                    readOnly
+                    title="Se calcula automáticamente desde los materiales agregados"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Se calcula automáticamente con los materiales
+                  </p>
                 </div>
 
                 <div>
@@ -923,6 +917,156 @@ function Cotizaciones() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
+              </div>
+
+              {/* ⭐ NUEVA SECCIÓN: MATERIALES */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  📦 Materiales
+                  <span className="text-sm font-normal text-gray-600">
+                    ({materiales.length} {materiales.length === 1 ? 'material' : 'materiales'})
+                  </span>
+                </h3>
+
+                {/* Formulario para agregar material */}
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Nombre del Material
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevoMaterial.nombre}
+                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, nombre: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        placeholder="Ej: Cañería de cobre 1/2"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Cantidad
+                      </label>
+                      <input
+                        type="number"
+                        value={nuevoMaterial.cantidad}
+                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, cantidad: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        min="0"
+                        step="0.1"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Unidad
+                      </label>
+                      <select
+                        value={nuevoMaterial.unidad}
+                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, unidad: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      >
+                        <option value="unidades">Unidades</option>
+                        <option value="metros">Metros</option>
+                        <option value="kilogramos">Kilogramos</option>
+                        <option value="litros">Litros</option>
+                        <option value="cajas">Cajas</option>
+                        <option value="paquetes">Paquetes</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Precio Unitario ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={nuevoMaterial.precioUnitario}
+                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, precioUnitario: parseFloat(e.target.value) || 0})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div className="col-span-2 flex items-end">
+                      <button
+                        type="button"
+                        onClick={agregarMaterial}
+                        className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                        disabled={!nuevoMaterial.nombre || nuevoMaterial.precioUnitario <= 0}
+                      >
+                        <Plus size={16} />
+                        Agregar Material
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista de materiales agregados */}
+                {materiales.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700">Material</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Cantidad</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Unidad</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-700">Precio Unit.</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-700">Subtotal</th>
+                          <th className="px-3 py-2 text-center font-medium text-gray-700">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white">
+                        {materiales.map((material, index) => (
+                          <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
+                            <td className="px-3 py-2">{material.nombre}</td>
+                            <td className="px-3 py-2 text-center">{material.cantidad}</td>
+                            <td className="px-3 py-2 text-center">{material.unidad}</td>
+                            <td className="px-3 py-2 text-right">
+                              ${material.precioUnitario.toLocaleString('es-CL')}
+                            </td>
+                            <td className="px-3 py-2 text-right font-medium">
+                              ${material.subtotal.toLocaleString('es-CL')}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => eliminarMaterial(index)}
+                                className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                title="Eliminar material"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50">
+                        <tr className="border-t-2 border-gray-300">
+                          <td colSpan="4" className="px-3 py-2 text-right font-bold text-gray-700">
+                            Total Materiales:
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold text-green-600">
+                            ${calcularTotalMateriales().toLocaleString('es-CL')}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+
+                {materiales.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <p className="text-sm">No hay materiales agregados</p>
+                    <p className="text-xs mt-1">Agrega materiales usando el formulario de arriba</p>
+                  </div>
+                )}
               </div>
 
               {/* Vista Previa del Total */}
@@ -1104,11 +1248,10 @@ function Cotizaciones() {
         />
       )}
 
-      {/* ⭐ NUEVO: MODAL CREAR CLIENTE RÁPIDO */}
+      {/* Modal CREAR CLIENTE RÁPIDO */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-2">
                 <UserPlus className="text-green-500" size={24} />
@@ -1124,9 +1267,7 @@ function Cotizaciones() {
               </button>
             </div>
 
-            {/* Formulario */}
             <div className="p-6 space-y-4">
-              {/* Nombre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('clients.form.name')} *
@@ -1141,7 +1282,6 @@ function Cotizaciones() {
                 />
               </div>
 
-              {/* RUT */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('clients.form.rut')}
@@ -1155,7 +1295,6 @@ function Cotizaciones() {
                 />
               </div>
 
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('clients.form.email')}
@@ -1169,7 +1308,6 @@ function Cotizaciones() {
                 />
               </div>
 
-              {/* Teléfono */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('clients.form.phone')}
@@ -1183,7 +1321,6 @@ function Cotizaciones() {
                 />
               </div>
 
-              {/* Dirección */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('clients.form.address')}
@@ -1198,7 +1335,6 @@ function Cotizaciones() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex gap-3 p-4 border-t bg-gray-50">
               <button
                 type="button"
