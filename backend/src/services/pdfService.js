@@ -2,13 +2,14 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { decryptSensitiveFields } from '../utils/encryption.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
- * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN FINAL CORREGIDA
- * Logo, línea posicionada, datos completos del cliente
+ * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN FINAL
+ * Con logo y descifrado automático de datos del cliente
  */
 
 /**
@@ -36,31 +37,39 @@ export const generarPDFCotizacion = async (cotizacion) => {
       doc.pipe(stream)
 
       // ============================================
-      // LOGO ARRIBA IZQUIERDA
+      // LOGO ARRIBA IZQUIERDA - BÚSQUEDA MÚLTIPLE
       // ============================================
-      // Construir ruta del logo considerando estructura Windows y Linux
-      const projectRoot = path.resolve(__dirname, '../../..')
-      const logoPath = path.join(projectRoot, 'frontend', 'public', 'logo-kmts.png')
+      const possibleLogoPaths = [
+        // Opción 1: Desde services hacia arriba y a frontend
+        path.resolve(__dirname, '../../../frontend/public/logo-kmts.png'),
+        // Opción 2: Subir al root del proyecto
+        path.resolve(__dirname, '../../..', 'frontend', 'public', 'logo-kmts.png'),
+        // Opción 3: Si backend y frontend están al mismo nivel
+        path.resolve(__dirname, '../../../..', 'frontend', 'public', 'logo-kmts.png'),
+        // Opción 4: Path absoluto si está en Windows
+        'C:\\proyecto-climatizacion\\frontend\\public\\logo-kmts.png',
+      ]
+
+      let logoLoaded = false
       
-      console.log('🔍 Buscando logo en:', logoPath)
-      
-      if (fs.existsSync(logoPath)) {
-        try {
-          doc.image(logoPath, 50, 45, { width: 70, height: 70 })
-          console.log('✅ Logo cargado exitosamente')
-        } catch (error) {
-          console.log('❌ Error al cargar logo:', error.message)
-          // Fallback: texto
-          doc
-            .fontSize(9)
-            .font('Helvetica-Bold')
-            .fillColor('#1e3a8a')
-            .text('KMTS', 50, 50)
-            .text('POWERTECH', 50, 62)
+      for (const logoPath of possibleLogoPaths) {
+        console.log('🔍 Intentando cargar logo desde:', logoPath)
+        
+        if (fs.existsSync(logoPath)) {
+          try {
+            doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+            console.log('✅ Logo cargado exitosamente desde:', logoPath)
+            logoLoaded = true
+            break
+          } catch (error) {
+            console.log('❌ Error al cargar desde', logoPath, ':', error.message)
+          }
         }
-      } else {
-        console.log('❌ Logo no encontrado en:', logoPath)
-        // Fallback: texto
+      }
+
+      // Si no se cargó, usar texto como fallback
+      if (!logoLoaded) {
+        console.log('⚠️  Logo no encontrado, usando texto')
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
@@ -114,6 +123,22 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text('Teléfono: +56 9 5461 0454', 50, dataY + 40)
         .text('Email: kmtspowertech@gmail.com', 50, dataY + 52)
 
+      // ⭐ DESCIFRAR DATOS DEL CLIENTE
+      let clienteDescifrado = cotizacion.cliente
+      
+      try {
+        if (cotizacion.cliente.rut_encrypted || 
+            cotizacion.cliente.email_encrypted || 
+            cotizacion.cliente.telefono_encrypted) {
+          console.log('🔓 Descifrando datos del cliente...')
+          clienteDescifrado = decryptSensitiveFields(cotizacion.cliente)
+          console.log('✅ Datos descifrados exitosamente')
+        }
+      } catch (error) {
+        console.log('⚠️  Error al descifrar:', error.message)
+        // Continuar con datos sin descifrar
+      }
+
       // CLIENTE (Derecha)
       doc
         .fontSize(10)
@@ -125,60 +150,34 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fontSize(9)
         .font('Helvetica-Bold')
         .fillColor('#1f2937')
-        .text(cotizacion.cliente.nombre || 'Cliente', 320, dataY + 15)
+        .text(clienteDescifrado.nombre || 'Cliente', 320, dataY + 15)
 
-      // ⭐ DATOS DEL CLIENTE - Verificar si están cifrados
       doc
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
 
       let clienteY = dataY + 28
-      let hasDatos = false
 
-      // RUT - Verificar si es un dato real (no cifrado)
-      const rutReal = cotizacion.cliente.rut && 
-                      cotizacion.cliente.rut !== 'null' && 
-                      !cotizacion.cliente.rut.startsWith('enc_')
-      
-      if (rutReal) {
-        doc.text(`RUT: ${cotizacion.cliente.rut}`, 320, clienteY)
-        clienteY += 12
-        hasDatos = true
-      }
-
-      // Teléfono - Verificar si es un dato real (no cifrado)
-      const telefonoReal = cotizacion.cliente.telefono && 
-                          cotizacion.cliente.telefono !== 'null' && 
-                          !cotizacion.cliente.telefono.startsWith('enc_')
-      
-      if (telefonoReal) {
-        doc.text(`Teléfono: ${cotizacion.cliente.telefono}`, 320, clienteY)
-        clienteY += 12
-        hasDatos = true
-      }
-
-      // Email - Verificar si es un dato real (no cifrado)
-      const emailReal = cotizacion.cliente.email && 
-                       cotizacion.cliente.email !== 'null' && 
-                       !cotizacion.cliente.email.startsWith('enc_')
-      
-      if (emailReal) {
-        doc.text(`Email: ${cotizacion.cliente.email}`, 320, clienteY, { width: 230 })
-        clienteY += 12
-        hasDatos = true
-      }
-
-      // Si no hay datos disponibles (están cifrados), mostrar mensaje
-      if (!hasDatos) {
-        doc
-          .fontSize(7)
-          .fillColor('#6b7280')
-          .text('(Datos protegidos)', 320, clienteY)
+      // RUT
+      if (clienteDescifrado.rut) {
+        doc.text(`RUT: ${clienteDescifrado.rut}`, 320, clienteY)
         clienteY += 12
       }
 
-      // ⭐ LÍNEA SEPARADORA (después de datos empresa/cliente)
+      // Teléfono
+      if (clienteDescifrado.telefono) {
+        doc.text(`Teléfono: ${clienteDescifrado.telefono}`, 320, clienteY)
+        clienteY += 12
+      }
+
+      // Email
+      if (clienteDescifrado.email) {
+        doc.text(`Email: ${clienteDescifrado.email}`, 320, clienteY, { width: 230 })
+        clienteY += 12
+      }
+
+      // ⭐ LÍNEA SEPARADORA (después de datos)
       doc
         .strokeColor('#1e3a8a')
         .lineWidth(2)
@@ -189,6 +188,10 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       // DIRECCIÓN DEL SERVICIO
       // ============================================
+      const direccion = cotizacion.direccionInstalacion || 
+                       clienteDescifrado.direccion || 
+                       'No especificada'
+
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -197,12 +200,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
-        .text(
-          cotizacion.direccionInstalacion || cotizacion.cliente.direccion || 'No especificada',
-          50,
-          dataY + 100,
-          { width: 500 }
-        )
+        .text(direccion, 50, dataY + 100, { width: 500 })
 
       // ============================================
       // TIPO DE SERVICIO
@@ -236,12 +234,10 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
         equipoY += 18
 
-        // Fondo gris claro para la tabla
         doc
           .rect(50, equipoY, 512, 65)
           .fillAndStroke('#f9fafb', '#e5e7eb')
 
-        // Contenido del equipo
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
@@ -278,7 +274,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
         const matTableTop = equipoY
 
-        // Encabezados con fondo azul
         doc
           .rect(50, matTableTop, 512, 20)
           .fillAndStroke('#1e3a8a', '#1e3a8a')
@@ -294,14 +289,11 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
         let currentY = matTableTop + 25
 
-        // Filas de materiales
         cotizacion.materiales.forEach((material, index) => {
-          // Verificar espacio para nueva página
           if (currentY > 650) {
             doc.addPage()
             currentY = 60
 
-            // Repetir encabezados
             doc
               .rect(50, currentY, 512, 20)
               .fillAndStroke('#1e3a8a', '#1e3a8a')
@@ -316,7 +308,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
             currentY += 25
           }
 
-          // Fondo alternado
           if (index % 2 === 0) {
             doc
               .rect(50, currentY - 3, 512, 18)
@@ -335,7 +326,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
           currentY += 18
         })
 
-        // Total de materiales con fondo
         doc
           .rect(380, currentY + 5, 182, 18)
           .fillAndStroke('#dbeafe', '#2563eb')
@@ -349,17 +339,15 @@ export const generarPDFCotizacion = async (cotizacion) => {
       }
 
       // ============================================
-      // CONDICIONES (Izquierda) y DESGLOSE (Derecha)
+      // CONDICIONES Y DESGLOSE
       // ============================================
       const bottomSectionY = equipoY + 10
 
-      // Verificar si necesitamos nueva página
       if (bottomSectionY > 560) {
         doc.addPage()
         equipoY = 60
       }
 
-      // CONDICIONES GENERALES (Izquierda)
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -378,7 +366,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text('• Garantía de instalación: 6 meses', 50, condicionesY + 36, { width: 240 })
         .text('• Los precios incluyen IVA', 50, condicionesY + 48, { width: 240 })
 
-      // DESGLOSE DE COSTOS (Derecha)
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -395,7 +382,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         (cotizacion.descuento > 0 ? 15 : 0) +
         45
 
-      // Fondo para el desglose
       doc
         .rect(320, desgloseY, 242, desgloseHeight)
         .fillAndStroke('#ffffff', '#e5e7eb')
@@ -434,7 +420,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         lineY += 15
       }
 
-      // Línea divisora
       lineY += 5
       doc
         .strokeColor('#d1d5db')
@@ -468,7 +453,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         lineY += 15
       }
 
-      // Línea divisora gruesa
       lineY += 5
       doc
         .strokeColor('#1e3a8a')
@@ -478,7 +462,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .stroke()
       lineY += 10
 
-      // TOTAL
       doc
         .fontSize(13)
         .font('Helvetica-Bold')
@@ -505,7 +488,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
           { align: 'center', width: 512 }
         )
 
-      // Finalizar PDF
       doc.end()
 
       stream.on('finish', () => {
@@ -553,7 +535,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
       const stream = fs.createWriteStream(filePath)
       doc.pipe(stream)
 
-      // Encabezado
       doc
         .fontSize(24)
         .font('Helvetica-Bold')
@@ -566,7 +547,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         .text(`Fecha: ${new Date(ordenTrabajo.createdAt || Date.now()).toLocaleDateString('es-CL')}`, { align: 'center' })
         .moveDown(1)
 
-      // Línea separadora
       doc
         .strokeColor('#1e3a8a')
         .lineWidth(2)
@@ -575,7 +555,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         .stroke()
         .moveDown(1)
 
-      // Tipo y estado
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
@@ -586,7 +565,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         .fillColor('#000000')
         .moveDown(1)
 
-      // Cliente
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -607,7 +585,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
 
       doc.moveDown(1)
 
-      // Equipo
       if (ordenTrabajo.equipo) {
         doc
           .fontSize(10)
@@ -623,7 +600,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
           .moveDown(1)
       }
 
-      // Descripción
       if (ordenTrabajo.descripcion) {
         doc
           .fontSize(10)
@@ -637,7 +613,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
           .moveDown(1)
       }
 
-      // Información adicional
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -655,7 +630,6 @@ export const generarPDFOrdenTrabajo = async (ordenTrabajo) => {
         doc.text(`Técnico: ${ordenTrabajo.tecnico.name}`, 50)
       }
 
-      // Firmas
       doc
         .moveDown(4)
         .fontSize(9)
