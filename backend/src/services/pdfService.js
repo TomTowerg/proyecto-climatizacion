@@ -38,24 +38,36 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       // LOGO ARRIBA IZQUIERDA
       // ============================================
-      const logoPath = path.join(__dirname, '../../public/logo-kmts.png')
+      // Buscar logo en múltiples ubicaciones posibles
+      const possibleLogoPaths = [
+        path.join(__dirname, '../../../frontend/public/logo-kmts.png'),
+        path.join(__dirname, '../../public/logo-kmts.png'),
+        path.join(__dirname, '../public/logo-kmts.png'),
+      ]
       
-      try {
-        if (fs.existsSync(logoPath)) {
-          doc.image(logoPath, 50, 45, { width: 80 })
-        } else {
-          // Si no existe, dibuja un placeholder
+      let logoPath = null
+      for (const testPath of possibleLogoPaths) {
+        if (fs.existsSync(testPath)) {
+          logoPath = testPath
+          break
+        }
+      }
+      
+      if (logoPath) {
+        try {
+          doc.image(logoPath, 50, 45, { width: 70 })
+        } catch (error) {
+          console.log('Error al cargar logo:', error.message)
           doc
-            .fontSize(10)
+            .fontSize(9)
             .font('Helvetica-Bold')
             .fillColor('#1e3a8a')
             .text('KMTS', 50, 50)
             .text('POWERTECH', 50, 62)
         }
-      } catch (error) {
-        console.log('Logo no encontrado, usando texto')
+      } else {
         doc
-          .fontSize(10)
+          .fontSize(9)
           .font('Helvetica-Bold')
           .fillColor('#1e3a8a')
           .text('KMTS', 50, 50)
@@ -82,13 +94,14 @@ export const generarPDFCotizacion = async (cotizacion) => {
           doc.y,
           { align: 'center', width: 332 }
         )
+        .moveDown(0.8)
 
-      // Línea separadora
+      // Línea separadora DESPUÉS del número
       doc
         .strokeColor('#1e3a8a')
         .lineWidth(2)
-        .moveTo(50, 100)
-        .lineTo(562, 100)
+        .moveTo(50, doc.y)
+        .lineTo(562, doc.y)
         .stroke()
 
       // ============================================
@@ -132,10 +145,20 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fillColor('#374151')
 
       let clienteY = dataY + 28
+      
+      // RUT del cliente
+      if (cotizacion.cliente.rut && cotizacion.cliente.rut !== 'null') {
+        doc.text(`RUT: ${cotizacion.cliente.rut}`, 320, clienteY)
+        clienteY += 12
+      }
+      
+      // Teléfono del cliente
       if (cotizacion.cliente.telefono && cotizacion.cliente.telefono !== 'null') {
         doc.text(`Teléfono: ${cotizacion.cliente.telefono}`, 320, clienteY)
         clienteY += 12
       }
+      
+      // Email del cliente
       if (cotizacion.cliente.email && cotizacion.cliente.email !== 'null') {
         doc.text(`Email: ${cotizacion.cliente.email}`, 320, clienteY, { width: 230 })
       }
@@ -341,14 +364,14 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
       const desgloseY = bottomSectionY + 18
       
-      // ⭐ Calcular altura necesaria (más grande para que quepa TOTAL)
+      // ⭐ Calcular altura necesaria (MÁS GRANDE para que quepa TOTAL completamente)
       const desgloseHeight = 
         25 + // Equipo
         (cotizacion.costoInstalacion > 0 ? 15 : 0) +
         (cotizacion.costoMaterial > 0 ? 15 : 0) +
         15 + // Subtotal
         (cotizacion.descuento > 0 ? 15 : 0) +
-        35  // ⭐ Espacio para TOTAL (aumentado de 25 a 35)
+        45  // ⭐ Espacio para TOTAL (aumentado a 45px para más espacio)
 
       // Fondo para el desglose
       doc
@@ -459,15 +482,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
           footerY,
           { align: 'center', width: 512 }
         )
-
-      // Atendido por
-      if (cotizacion.agente) {
-        doc
-          .fontSize(7.5)
-          .font('Helvetica')
-          .fillColor('#374151')
-          .text(`Atendido por: ${cotizacion.agente}`, 50, footerY + 15, { align: 'center', width: 512 })
-      }
 
       // Finalizar PDF
       doc.end()
