@@ -37,33 +37,36 @@ export const generarPDFCotizacion = async (cotizacion) => {
       doc.pipe(stream)
 
       // ============================================
-      // LOGO ARRIBA IZQUIERDA - BÚSQUEDA MÚLTIPLE
+      // LOGO ARRIBA IZQUIERDA - BÚSQUEDA PRIORITARIA EN BACKEND
       // ============================================
       const possibleLogoPaths = [
-        // Opción 1: Desde services hacia arriba y a frontend
+        // ⭐ PRIORIDAD 1: Logo en backend/public (mismo directorio del servicio)
+        path.join(__dirname, '../../public/logo-kmts.png'),
+        // Opción 2: Subir desde services
         path.resolve(__dirname, '../../../frontend/public/logo-kmts.png'),
-        // Opción 2: Subir al root del proyecto
+        // Opción 3: Root del proyecto
         path.resolve(__dirname, '../../..', 'frontend', 'public', 'logo-kmts.png'),
-        // Opción 3: Si backend y frontend están al mismo nivel
-        path.resolve(__dirname, '../../../..', 'frontend', 'public', 'logo-kmts.png'),
-        // Opción 4: Path absoluto si está en Windows
+        // Opción 4: Path absoluto Windows
         'C:\\proyecto-climatizacion\\frontend\\public\\logo-kmts.png',
+        'C:\\proyecto-climatizacion\\backend\\public\\logo-kmts.png',
       ]
 
       let logoLoaded = false
       
       for (const logoPath of possibleLogoPaths) {
-        console.log('🔍 Intentando cargar logo desde:', logoPath)
+        console.log('🔍 Intentando:', logoPath)
         
         if (fs.existsSync(logoPath)) {
           try {
             doc.image(logoPath, 50, 45, { width: 70, height: 70 })
-            console.log('✅ Logo cargado exitosamente desde:', logoPath)
+            console.log('✅ Logo cargado desde:', logoPath)
             logoLoaded = true
             break
           } catch (error) {
-            console.log('❌ Error al cargar desde', logoPath, ':', error.message)
+            console.log('❌ Error al cargar:', error.message)
           }
+        } else {
+          console.log('❌ No existe:', logoPath)
         }
       }
 
