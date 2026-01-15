@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
@@ -20,7 +19,6 @@ import { getEquiposByCliente } from '../services/equipoService'
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
-  const { t } = useTranslation()
   const navigate = useNavigate()
   const [cotizaciones, setCotizaciones] = useState([])
   const [clientes, setClientes] = useState([])
@@ -65,7 +63,7 @@ function Cotizaciones() {
     estado: 'pendiente'
   })
 
-  // ⭐ NUEVOS ESTADOS PARA MATERIALES
+  // Estados para materiales
   const [materiales, setMateriales] = useState([])
   const [nuevoMaterial, setNuevoMaterial] = useState({
     nombre: '',
@@ -115,7 +113,7 @@ function Cotizaciones() {
     }
   }, [formData.clienteId, formData.tipo])
 
-  // ⭐ NUEVO: Calcular costoMaterial automáticamente desde materiales
+  // Calcular costoMaterial automáticamente desde materiales
   useEffect(() => {
     const totalMateriales = calcularTotalMateriales()
     setFormData(prev => ({
@@ -142,7 +140,7 @@ function Cotizaciones() {
       setInventarioDisponible(disponible)
     } catch (error) {
       console.error('Error al cargar datos:', error)
-      toast.error(t('quotes.messages.loadError'))
+      toast.error('Error al cargar los datos')
     } finally {
       setLoading(false)
     }
@@ -154,7 +152,7 @@ function Cotizaciones() {
       setEquiposCliente(equipos)
       
       if (equipos.length === 0) {
-        toast.info(t('quotes.messages.noEquipment'))
+        toast.info('Este cliente no tiene equipos registrados')
       }
     } catch (error) {
       console.error('Error al cargar equipos del cliente:', error)
@@ -173,7 +171,6 @@ function Cotizaciones() {
     return subtotal - montoDescuento
   }
 
-  // ⭐ NUEVAS FUNCIONES PARA MATERIALES
   const calcularTotalMateriales = () => {
     return materiales.reduce((acc, m) => acc + m.subtotal, 0)
   }
@@ -199,7 +196,6 @@ function Cotizaciones() {
 
     setMateriales([...materiales, materialConSubtotal])
     
-    // Resetear formulario
     setNuevoMaterial({
       nombre: '',
       cantidad: 1,
@@ -229,7 +225,7 @@ function Cotizaciones() {
         notas: formData.notas,
         agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
         direccionInstalacion: formData.direccionInstalacion,
-        materiales: materiales  // ⭐ INCLUIR MATERIALES
+        materiales: materiales
       }
 
       if (formData.tipo === 'instalacion') {
@@ -243,17 +239,17 @@ function Cotizaciones() {
           ...dataToSend,
           estado: formData.estado
         })
-        toast.success(t('quotes.messages.updateSuccess'))
+        toast.success('Cotización actualizada exitosamente')
       } else {
         await createCotizacion(dataToSend)
-        toast.success(t('quotes.messages.createSuccess'))
+        toast.success('Cotización creada exitosamente')
       }
       
       fetchData()
       handleCloseModal()
     } catch (error) {
       console.error('Error completo:', error)
-      const errorMessage = error.response?.data?.error || error.response?.data?.details || t('quotes.messages.saveError')
+      const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Error al guardar la cotización'
       toast.error(errorMessage)
     }
   }
@@ -274,7 +270,6 @@ function Cotizaciones() {
       direccionInstalacion: cotizacion.direccionInstalacion || '',
       estado: cotizacion.estado
     })
-    // ⭐ CARGAR MATERIALES SI EXISTEN
     if (cotizacion.materiales && cotizacion.materiales.length > 0) {
       setMateriales(cotizacion.materiales)
     }
@@ -282,17 +277,17 @@ function Cotizaciones() {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm(t('quotes.messages.deleteConfirm'))) {
+    if (!window.confirm('¿Estás seguro de eliminar esta cotización?')) {
       return
     }
 
     try {
       await deleteCotizacion(id)
-      toast.success(t('quotes.messages.deleteSuccess'))
+      toast.success('Cotización eliminada exitosamente')
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.error || t('quotes.messages.deleteError')
+      const errorMessage = error.response?.data?.error || 'Error al eliminar la cotización'
       toast.error(errorMessage)
     }
   }
@@ -308,23 +303,23 @@ function Cotizaciones() {
     try {
       setApproving(true)
       
-      const loadingToast = toast.loading(t('quotes.messages.approving'))
+      const loadingToast = toast.loading('Aprobando cotización...')
       
       const resultado = await aprobarCotizacion(cotizacionToApprove.id)
       
       toast.dismiss(loadingToast)
       
       const mensajesTipo = {
-        instalacion: t('quotes.messages.approvalSuccess.installation'),
-        mantencion: t('quotes.messages.approvalSuccess.maintenance'),
-        reparacion: t('quotes.messages.approvalSuccess.repair')
+        instalacion: 'Equipo registrado',
+        mantencion: 'Mantención programada',
+        reparacion: 'Reparación programada'
       }
       
       toast.success(
         <div>
-          <p className="font-bold">{t('quotes.messages.approvalSuccess.title')}</p>
-          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id}</p>
-          <p className="text-sm">{t('nav.workOrders')}: #{resultado.ordenTrabajo?.id}</p>
+          <p className="font-bold">Cotización Aprobada</p>
+          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id || resultado.ordenTrabajo?.id}</p>
+          <p className="text-sm">Orden de Trabajo: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
       )
@@ -334,7 +329,7 @@ function Cotizaciones() {
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      const errorMessage = error.response?.data?.detalle || error.response?.data?.error || t('quotes.messages.approvalError')
+      const errorMessage = error.response?.data?.detalle || error.response?.data?.error || 'Error al aprobar la cotización'
       toast.error(errorMessage)
     } finally {
       setApproving(false)
@@ -342,16 +337,16 @@ function Cotizaciones() {
   }
 
   const handleRechazar = async (cotizacion) => {
-    const motivo = window.prompt(t('quotes.messages.rejectReason'))
+    const motivo = window.prompt('¿Motivo del rechazo?')
     if (motivo === null) return
 
     try {
       await rechazarCotizacion(cotizacion.id, motivo)
-      toast.success(t('quotes.messages.rejectSuccess'))
+      toast.success('Cotización rechazada')
       fetchData()
     } catch (error) {
       console.error('Error:', error)
-      toast.error(t('quotes.messages.rejectError'))
+      toast.error('Error al rechazar la cotización')
     }
   }
 
@@ -409,7 +404,6 @@ function Cotizaciones() {
       direccionInstalacion: '',
       estado: 'pendiente'
     })
-    // ⭐ LIMPIAR MATERIALES
     setMateriales([])
     setNuevoMaterial({
       nombre: '',
@@ -454,9 +448,9 @@ function Cotizaciones() {
       rechazada: 'bg-red-100 text-red-800'
     }
     const labels = {
-      pendiente: t('workOrders.statuses.pending'),
-      aprobada: t('dashboard.approved'),
-      rechazada: t('dashboard.rejected')
+      pendiente: 'Pendiente',
+      aprobada: 'Aprobada',
+      rechazada: 'Rechazada'
     }
     return (
       <span className={`badge-compacto ${badges[estado]}`}>
@@ -472,9 +466,9 @@ function Cotizaciones() {
       reparacion: 'bg-orange-100 text-orange-800'
     }
     const labels = {
-      instalacion: `${t('workOrders.types.installation')}`,
-      mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
-      reparacion: `🔨 ${t('workOrders.types.repair')}`
+      instalacion: '🔧 Instalación',
+      mantencion: '⚙️ Mantención',
+      reparacion: '🔨 Reparación'
     }
     return (
       <span className={`badge-compacto ${badges[tipo]}`}>
@@ -523,10 +517,10 @@ function Cotizaciones() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {t('quotes.title')}
+              Cotizaciones
             </h1>
             <p className="text-gray-600 mt-1">
-              {t('quotes.subtitle')}
+              Gestión de presupuestos y servicios
             </p>
           </div>
           <button
@@ -534,26 +528,26 @@ function Cotizaciones() {
             className="flex items-center gap-2 btn-primary"
           >
             <Plus size={20} />
-            {t('quotes.add')}
+            Nueva Cotización
           </button>
         </div>
 
         {/* Estadísticas */}
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="card">
-            <p className="text-sm text-gray-600">{t('inventory.stats.total')}</p>
+            <p className="text-sm text-gray-600">Total</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">{t('workOrders.statuses.pending')}</p>
+            <p className="text-sm text-gray-600">Pendiente</p>
             <p className="text-2xl font-bold text-yellow-600">{stats.pendientes}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">{t('dashboard.approved')}</p>
+            <p className="text-sm text-gray-600">Aprobadas</p>
             <p className="text-2xl font-bold text-green-600">{stats.aprobadas}</p>
           </div>
           <div className="card">
-            <p className="text-sm text-gray-600">{t('dashboard.rejected')}</p>
+            <p className="text-sm text-gray-600">Rechazadas</p>
             <p className="text-2xl font-bold text-red-600">{stats.rechazadas}</p>
           </div>
         </div>
@@ -564,7 +558,7 @@ function Cotizaciones() {
             <Search size={20} className="text-gray-400" />
             <input
               type="text"
-              placeholder={t('quotes.searchPlaceholder')}
+              placeholder="Buscar por cliente o equipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -576,7 +570,7 @@ function Cotizaciones() {
               }`}
             >
               <Filter size={18} />
-              {t('common.filters')}
+              Filtros
             </button>
           </div>
 
@@ -587,10 +581,10 @@ function Cotizaciones() {
                 onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="">{t('common.allStatuses')}</option>
-                <option value="pendiente">{t('workOrders.statuses.pending')}</option>
-                <option value="aprobada">{t('dashboard.approved')}</option>
-                <option value="rechazada">{t('dashboard.rejected')}</option>
+                <option value="">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="aprobada">Aprobada</option>
+                <option value="rechazada">Rechazada</option>
               </select>
 
               <select
@@ -598,10 +592,10 @@ function Cotizaciones() {
                 onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="">{t('common.allTypes')}</option>
-                <option value="instalacion">{t('workOrders.types.installation')}</option>
-                <option value="mantencion">{t('workOrders.types.maintenance')}</option>
-                <option value="reparacion">{t('workOrders.types.repair')}</option>
+                <option value="">Todos los tipos</option>
+                <option value="instalacion">Instalación</option>
+                <option value="mantencion">Mantención</option>
+                <option value="reparacion">Reparación</option>
               </select>
 
               {(filters.estado || filters.tipo) && (
@@ -610,7 +604,7 @@ function Cotizaciones() {
                   className="col-span-2 text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
                 >
                   <X size={16} />
-                  {t('common.clearFilters')}
+                  Limpiar filtros
                 </button>
               )}
             </div>
@@ -623,14 +617,14 @@ function Cotizaciones() {
             <table className="tabla-compacta">
               <thead>
                 <tr>
-                  <th className="text-left">{t('common.id')}</th>
-                  <th className="text-left">{t('common.type')}</th>
-                  <th className="text-left">{t('common.client')}</th>
-                  <th className="text-left">{t('common.product')}</th>
-                  <th className="text-right">{t('common.total')}</th>
-                  <th className="text-center">{t('common.status')}</th>
-                  <th className="text-center">{t('common.date')}</th>
-                  <th className="text-center">{t('common.actions')}</th>
+                  <th className="text-left">ID</th>
+                  <th className="text-left">Tipo</th>
+                  <th className="text-left">Cliente</th>
+                  <th className="text-left">Equipo</th>
+                  <th className="text-right">Total</th>
+                  <th className="text-center">Estado</th>
+                  <th className="text-center">Fecha</th>
+                  <th className="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -638,8 +632,8 @@ function Cotizaciones() {
                   <tr>
                     <td colSpan="8" className="text-center text-gray-500 py-8">
                       {searchTerm || filters.estado || filters.tipo
-                        ? t('common.noResults')
-                        : t('quotes.noQuotes')}
+                        ? 'No se encontraron resultados'
+                        : 'No hay cotizaciones registradas'}
                     </td>
                   </tr>
                 ) : (
@@ -657,18 +651,18 @@ function Cotizaciones() {
                         <td>{cotizacion.cliente?.nombre}</td>
                         <td className="text-sm">{producto}</td>
                         <td className="text-right font-semibold text-green-600">
-                          ${cotizacion.precioFinal.toLocaleString(t('common.dateFormat'))}
+                          ${cotizacion.precioFinal.toLocaleString('es-CL')}
                         </td>
                         <td className="text-center">{getEstadoBadge(cotizacion.estado)}</td>
                         <td className="text-center text-sm">
-                          {new Date(cotizacion.createdAt).toLocaleDateString(t('common.dateFormat'))}
+                          {new Date(cotizacion.createdAt).toLocaleDateString('es-CL')}
                         </td>
                         <td>
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => handleVerPDF(cotizacion.id)}
                               className="btn-accion-compacto text-gray-600 hover:bg-gray-50"
-                              title={t('quotes.actions.viewPDF')}
+                              title="Ver PDF"
                             >
                               <FileText size={16} />
                             </button>
@@ -677,14 +671,14 @@ function Cotizaciones() {
                                 <button
                                   onClick={() => handleAprobar(cotizacion)}
                                   className="btn-accion-compacto text-green-600 hover:bg-green-50"
-                                  title={t('quotes.actions.approve')}
+                                  title="Aprobar"
                                 >
                                   <CheckCircle size={16} />
                                 </button>
                                 <button
                                   onClick={() => handleRechazar(cotizacion)}
                                   className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                                  title={t('quotes.actions.reject')}
+                                  title="Rechazar"
                                 >
                                   <XCircle size={16} />
                                 </button>
@@ -693,14 +687,14 @@ function Cotizaciones() {
                             <button
                               onClick={() => handleEdit(cotizacion)}
                               className="btn-accion-compacto text-blue-600 hover:bg-blue-50"
-                              title={t('common.edit')}
+                              title="Editar"
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(cotizacion.id)}
                               className="btn-accion-compacto text-red-600 hover:bg-red-50"
-                              title={t('common.delete')}
+                              title="Eliminar"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -716,7 +710,7 @@ function Cotizaciones() {
         </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
-          {t('inventory.showing', { count: filteredCotizaciones.length, total: cotizaciones.length })}
+          Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
         </div>
       </main>
 
@@ -725,13 +719,13 @@ function Cotizaciones() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-lg max-w-4xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
-              {editingCotizacion ? t('quotes.edit') : t('quotes.add')}
+              {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Tipo de Servicio */}
               <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold mb-3">{t('quotes.form.serviceType')}</h3>
+                <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {['instalacion', 'mantencion', 'reparacion'].map((tipo) => (
                     <label
@@ -751,9 +745,9 @@ function Cotizaciones() {
                         className="sr-only"
                       />
                       <span className="font-medium">
-                        {tipo === 'instalacion' && `${t('workOrders.types.installation')}`}
-                        {tipo === 'mantencion' && `⚙️ ${t('workOrders.types.maintenance')}`}
-                        {tipo === 'reparacion' && `🔨 ${t('workOrders.types.repair')}`}
+                        {tipo === 'instalacion' && '🔧 Instalación'}
+                        {tipo === 'mantencion' && '⚙️ Mantención'}
+                        {tipo === 'reparacion' && '🔨 Reparación'}
                       </span>
                     </label>
                   ))}
@@ -764,7 +758,7 @@ function Cotizaciones() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('quotes.form.client')} *
+                    Cliente *
                   </label>
                   <div className="flex gap-2">
                     <select
@@ -774,7 +768,7 @@ function Cotizaciones() {
                       required
                       disabled={editingCotizacion}
                     >
-                      <option value="">{t('common.select')}...</option>
+                      <option value="">Seleccionar...</option>
                       {clientes.map(cliente => (
                         <option key={cliente.id} value={cliente.id}>
                           {cliente.nombre}
@@ -787,7 +781,7 @@ function Cotizaciones() {
                         type="button"
                         onClick={() => setShowClientModal(true)}
                         className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
-                        title={t('clients.add')}
+                        title="Crear cliente"
                       >
                         <UserPlus size={18} />
                       </button>
@@ -799,7 +793,7 @@ function Cotizaciones() {
                 {formData.tipo === 'instalacion' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotes.form.product')} *
+                      Equipo *
                     </label>
                     <select
                       value={formData.inventarioId}
@@ -808,7 +802,7 @@ function Cotizaciones() {
                       required
                       disabled={editingCotizacion}
                     >
-                      <option value="">{t('common.select')}...</option>
+                      <option value="">Seleccionar...</option>
                       {inventarioDisponible.map(item => (
                         <option key={item.id} value={item.id}>
                           {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
@@ -822,7 +816,7 @@ function Cotizaciones() {
                 {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotes.form.equipment')} *
+                      Equipo del Cliente *
                     </label>
                     <select
                       value={formData.equipoId}
@@ -833,10 +827,10 @@ function Cotizaciones() {
                     >
                       <option value="">
                         {!formData.clienteId 
-                          ? t('quotes.form.selectClientFirst')
+                          ? 'Primero selecciona un cliente'
                           : equiposCliente.length === 0
-                          ? t('quotes.form.noClientEquipment')
-                          : t('common.select')}
+                          ? 'Este cliente no tiene equipos'
+                          : 'Seleccionar...'}
                       </option>
                       {equiposCliente.map(equipo => (
                         <option key={equipo.id} value={equipo.id}>
@@ -852,9 +846,9 @@ function Cotizaciones() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.tipo === 'instalacion' && `${t('quotes.form.priceEquipment')} *`}
-                    {formData.tipo === 'mantencion' && `${t('quotes.form.priceMaintenance')} *`}
-                    {formData.tipo === 'reparacion' && `${t('quotes.form.priceRepair')} *`}
+                    {formData.tipo === 'instalacion' && 'Precio del Equipo *'}
+                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
+                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
                   </label>
                   <input
                     type="number"
@@ -870,7 +864,7 @@ function Cotizaciones() {
                 {formData.tipo === 'instalacion' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('quotes.form.priceInstallation')} *
+                      Costo Instalación *
                     </label>
                     <input
                       type="number"
@@ -886,7 +880,7 @@ function Cotizaciones() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('quotes.form.priceMaterial')} *
+                    Costo Materiales
                   </label>
                   <input
                     type="number"
@@ -905,7 +899,7 @@ function Cotizaciones() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('quotes.form.discount')} (%)
+                    Descuento (%)
                   </label>
                   <input
                     type="number"
@@ -919,7 +913,7 @@ function Cotizaciones() {
                 </div>
               </div>
 
-              {/* ⭐ NUEVA SECCIÓN: MATERIALES */}
+              {/* SECCIÓN MATERIALES */}
               <div className="border-t pt-4">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   📦 Materiales
@@ -1075,31 +1069,31 @@ function Cotizaciones() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>
-                        {formData.tipo === 'instalacion' && t('quotes.form.priceEquipment') + ':'}
-                        {formData.tipo === 'mantencion' && t('quotes.form.priceMaintenance') + ':'}
-                        {formData.tipo === 'reparacion' && t('quotes.form.priceRepair') + ':'}
+                        {formData.tipo === 'instalacion' && 'Equipo:'}
+                        {formData.tipo === 'mantencion' && 'Mantención:'}
+                        {formData.tipo === 'reparacion' && 'Reparación:'}
                       </span>
-                      <span>${parseFloat(formData.precioOfertado || 0).toLocaleString(t('common.dateFormat'))}</span>
+                      <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
                     </div>
                     {formData.tipo === 'instalacion' && (
                       <div className="flex justify-between">
-                        <span>{t('quotes.form.priceInstallation')}:</span>
-                        <span>${parseFloat(formData.costoInstalacion || 0).toLocaleString(t('common.dateFormat'))}</span>
+                        <span>Instalación:</span>
+                        <span>${parseFloat(formData.costoInstalacion || 0).toLocaleString('es-CL')}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span>{t('quotes.form.priceMaterial')}:</span>
-                      <span>${parseFloat(formData.costoMaterial || 0).toLocaleString(t('common.dateFormat'))}</span>
+                      <span>Materiales:</span>
+                      <span>${parseFloat(formData.costoMaterial || 0).toLocaleString('es-CL')}</span>
                     </div>
                     {formData.descuento > 0 && (
                       <div className="flex justify-between text-red-600">
-                        <span>{t('quotes.form.discount')} ({formData.descuento}%):</span>
-                        <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString(t('common.dateFormat'))}</span>
+                        <span>Descuento ({formData.descuento}%):</span>
+                        <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString('es-CL')}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-lg font-bold text-green-600 pt-2 border-t">
                       <span>TOTAL:</span>
-                      <span>${calcularTotal().toLocaleString(t('common.dateFormat'))}</span>
+                      <span>${calcularTotal().toLocaleString('es-CL')}</span>
                     </div>
                   </div>
                 </div>
@@ -1109,37 +1103,37 @@ function Cotizaciones() {
               {formData.tipo === 'instalacion' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('quotes.form.address')}
+                    Dirección de Instalación
                   </label>
                   <input
                     type="text"
                     value={formData.direccionInstalacion}
                     onChange={(e) => setFormData({ ...formData, direccionInstalacion: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder={t('quotes.form.addressPlaceholder')}
+                    placeholder="Dirección donde se realizará la instalación"
                   />
                 </div>
               )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('quotes.form.notes')}
+                  Notas u Observaciones
                 </label>
                 <textarea
                   value={formData.notas}
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="3"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  placeholder={t('quotes.form.notesPlaceholder')}
+                  placeholder="Información adicional sobre la cotización"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">
-                  {t('common.cancel')}
+                  Cancelar
                 </button>
                 <button type="submit" className="flex-1 btn-primary">
-                  {editingCotizacion ? t('common.save') : t('common.create')}
+                  {editingCotizacion ? 'Guardar Cambios' : 'Crear Cotización'}
                 </button>
               </div>
             </form>
@@ -1156,13 +1150,13 @@ function Cotizaciones() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <h2 className="text-xl font-bold text-gray-900">
-                {t('quotes.approval.title')}
+                Aprobar Cotización
               </h2>
             </div>
 
             <div className="space-y-3 mb-6">
               <p className="text-gray-700">
-                {t('quotes.approval.confirm')}
+                ¿Estás seguro de aprobar esta cotización?
               </p>
               
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
@@ -1177,7 +1171,7 @@ function Cotizaciones() {
                   {getTipoBadge(cotizacionToApprove.tipo)}
                 </div>
                 <p className="text-lg font-bold text-green-600 pt-2">
-                  ${cotizacionToApprove.precioFinal.toLocaleString(t('common.dateFormat'))}
+                  ${cotizacionToApprove.precioFinal.toLocaleString('es-CL')}
                 </p>
               </div>
 
@@ -1185,18 +1179,18 @@ function Cotizaciones() {
                 <div className="flex gap-2">
                   <AlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
                   <div className="text-sm text-yellow-800">
-                    <p className="font-medium mb-1">{t('quotes.approval.systemActions')}:</p>
+                    <p className="font-medium mb-1">El sistema realizará:</p>
                     <ul className="space-y-1 ml-4 list-disc">
                       {cotizacionToApprove.tipo === 'instalacion' ? (
                         <>
-                          <li>{t('quotes.approval.actionCreateEquipment')}</li>
-                          <li>{t('quotes.approval.actionReduceStock')}</li>
+                          <li>Crear registro de equipo para el cliente</li>
+                          <li>Reducir stock del inventario</li>
                         </>
                       ) : (
-                        <li>{t('quotes.approval.actionUseEquipment')}</li>
+                        <li>Usar equipo existente del cliente</li>
                       )}
-                      <li>{t('quotes.approval.actionCreateOrder')}</li>
-                      <li>{t('quotes.approval.actionMarkApproved')}</li>
+                      <li>Crear orden de trabajo</li>
+                      <li>Marcar cotización como aprobada</li>
                     </ul>
                   </div>
                 </div>
@@ -1213,7 +1207,7 @@ function Cotizaciones() {
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 disabled={approving}
               >
-                {t('common.cancel')}
+                Cancelar
               </button>
               <button
                 onClick={confirmarAprobacion}
@@ -1223,12 +1217,12 @@ function Cotizaciones() {
                 {approving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {t('common.loading')}
+                    Procesando...
                   </>
                 ) : (
                   <>
                     <CheckCircle size={18} />
-                    {t('quotes.actions.approve')}
+                    Aprobar
                   </>
                 )}
               </button>
@@ -1256,7 +1250,7 @@ function Cotizaciones() {
               <div className="flex items-center gap-2">
                 <UserPlus className="text-green-500" size={24} />
                 <h2 className="text-xl font-bold text-gray-800">
-                  {t('clients.add')}
+                  Crear Cliente Rápido
                 </h2>
               </div>
               <button
@@ -1270,7 +1264,7 @@ function Cotizaciones() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('clients.form.name')} *
+                  Nombre *
                 </label>
                 <input
                   type="text"
@@ -1284,7 +1278,7 @@ function Cotizaciones() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('clients.form.rut')}
+                  RUT
                 </label>
                 <input
                   type="text"
@@ -1297,7 +1291,7 @@ function Cotizaciones() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('clients.form.email')}
+                  Email
                 </label>
                 <input
                   type="email"
@@ -1310,7 +1304,7 @@ function Cotizaciones() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('clients.form.phone')}
+                  Teléfono
                 </label>
                 <input
                   type="text"
@@ -1323,7 +1317,7 @@ function Cotizaciones() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('clients.form.address')}
+                  Dirección
                 </label>
                 <input
                   type="text"
@@ -1342,7 +1336,7 @@ function Cotizaciones() {
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                 disabled={creatingClient}
               >
-                {t('common.cancel')}
+                Cancelar
               </button>
               <button
                 type="button"
@@ -1353,12 +1347,12 @@ function Cotizaciones() {
                 {creatingClient ? (
                   <>
                     <span className="animate-spin">⏳</span>
-                    {t('common.loading')}
+                    Creando...
                   </>
                 ) : (
                   <>
                     <UserPlus size={18} />
-                    {t('common.create')}
+                    Crear Cliente
                   </>
                 )}
               </button>
