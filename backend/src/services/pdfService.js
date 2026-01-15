@@ -38,7 +38,9 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       // LOGO ARRIBA IZQUIERDA
       // ============================================
-      const logoPath = path.join(__dirname, '../../../frontend/public/logo-kmts.png')
+      // Construir ruta del logo considerando estructura Windows y Linux
+      const projectRoot = path.resolve(__dirname, '../../..')
+      const logoPath = path.join(projectRoot, 'frontend', 'public', 'logo-kmts.png')
       
       console.log('🔍 Buscando logo en:', logoPath)
       
@@ -125,29 +127,54 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fillColor('#1f2937')
         .text(cotizacion.cliente.nombre || 'Cliente', 320, dataY + 15)
 
-      // ⭐ DATOS COMPLETOS DEL CLIENTE
+      // ⭐ DATOS DEL CLIENTE - Verificar si están cifrados
       doc
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
 
       let clienteY = dataY + 28
+      let hasDatos = false
 
-      // RUT
-      if (cotizacion.cliente.rut && cotizacion.cliente.rut !== 'null') {
+      // RUT - Verificar si es un dato real (no cifrado)
+      const rutReal = cotizacion.cliente.rut && 
+                      cotizacion.cliente.rut !== 'null' && 
+                      !cotizacion.cliente.rut.startsWith('enc_')
+      
+      if (rutReal) {
         doc.text(`RUT: ${cotizacion.cliente.rut}`, 320, clienteY)
         clienteY += 12
+        hasDatos = true
       }
 
-      // Teléfono
-      if (cotizacion.cliente.telefono && cotizacion.cliente.telefono !== 'null') {
+      // Teléfono - Verificar si es un dato real (no cifrado)
+      const telefonoReal = cotizacion.cliente.telefono && 
+                          cotizacion.cliente.telefono !== 'null' && 
+                          !cotizacion.cliente.telefono.startsWith('enc_')
+      
+      if (telefonoReal) {
         doc.text(`Teléfono: ${cotizacion.cliente.telefono}`, 320, clienteY)
         clienteY += 12
+        hasDatos = true
       }
 
-      // Email
-      if (cotizacion.cliente.email && cotizacion.cliente.email !== 'null') {
+      // Email - Verificar si es un dato real (no cifrado)
+      const emailReal = cotizacion.cliente.email && 
+                       cotizacion.cliente.email !== 'null' && 
+                       !cotizacion.cliente.email.startsWith('enc_')
+      
+      if (emailReal) {
         doc.text(`Email: ${cotizacion.cliente.email}`, 320, clienteY, { width: 230 })
+        clienteY += 12
+        hasDatos = true
+      }
+
+      // Si no hay datos disponibles (están cifrados), mostrar mensaje
+      if (!hasDatos) {
+        doc
+          .fontSize(7)
+          .fillColor('#6b7280')
+          .text('(Datos protegidos)', 320, clienteY)
         clienteY += 12
       }
 
