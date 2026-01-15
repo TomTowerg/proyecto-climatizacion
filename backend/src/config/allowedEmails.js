@@ -1,7 +1,6 @@
 // LISTA DE EMAILS PERMITIDOS - AGREGA LOS EMAILS QUE QUIERAS PERMITIR
 export const ALLOWED_EMAILS = [
   'niveksar@gmail.com',
-  'torres.tomas514@gmail.com',
   'khevtorresg@gmail.com',
   
 
