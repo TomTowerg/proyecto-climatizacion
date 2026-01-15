@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
- * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN FINAL MEJORADA
- * Con logo, espaciado correcto y diseño optimizado
+ * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN FINAL CORREGIDA
+ * Logo, línea posicionada, datos completos del cliente
  */
 
 /**
@@ -38,26 +38,17 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       // LOGO ARRIBA IZQUIERDA
       // ============================================
-      // Buscar logo en múltiples ubicaciones posibles
-      const possibleLogoPaths = [
-        path.join(__dirname, '../../../frontend/public/logo-kmts.png'),
-        path.join(__dirname, '../../public/logo-kmts.png'),
-        path.join(__dirname, '../public/logo-kmts.png'),
-      ]
+      const logoPath = path.join(__dirname, '../../../frontend/public/logo-kmts.png')
       
-      let logoPath = null
-      for (const testPath of possibleLogoPaths) {
-        if (fs.existsSync(testPath)) {
-          logoPath = testPath
-          break
-        }
-      }
+      console.log('🔍 Buscando logo en:', logoPath)
       
-      if (logoPath) {
+      if (fs.existsSync(logoPath)) {
         try {
-          doc.image(logoPath, 50, 45, { width: 70 })
+          doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+          console.log('✅ Logo cargado exitosamente')
         } catch (error) {
-          console.log('Error al cargar logo:', error.message)
+          console.log('❌ Error al cargar logo:', error.message)
+          // Fallback: texto
           doc
             .fontSize(9)
             .font('Helvetica-Bold')
@@ -66,6 +57,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
             .text('POWERTECH', 50, 62)
         }
       } else {
+        console.log('❌ Logo no encontrado en:', logoPath)
+        // Fallback: texto
         doc
           .fontSize(9)
           .font('Helvetica-Bold')
@@ -94,15 +87,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
           doc.y,
           { align: 'center', width: 332 }
         )
-        .moveDown(0.8)
-
-      // Línea separadora DESPUÉS del número
-      doc
-        .strokeColor('#1e3a8a')
-        .lineWidth(2)
-        .moveTo(50, doc.y)
-        .lineTo(562, doc.y)
-        .stroke()
 
       // ============================================
       // EMPRESA (Izquierda) y CLIENTE (Derecha)
@@ -140,49 +124,61 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .font('Helvetica-Bold')
         .fillColor('#1f2937')
         .text(cotizacion.cliente.nombre || 'Cliente', 320, dataY + 15)
+
+      // ⭐ DATOS COMPLETOS DEL CLIENTE
+      doc
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
 
       let clienteY = dataY + 28
-      
-      // RUT del cliente
+
+      // RUT
       if (cotizacion.cliente.rut && cotizacion.cliente.rut !== 'null') {
         doc.text(`RUT: ${cotizacion.cliente.rut}`, 320, clienteY)
         clienteY += 12
       }
-      
-      // Teléfono del cliente
+
+      // Teléfono
       if (cotizacion.cliente.telefono && cotizacion.cliente.telefono !== 'null') {
         doc.text(`Teléfono: ${cotizacion.cliente.telefono}`, 320, clienteY)
         clienteY += 12
       }
-      
-      // Email del cliente
+
+      // Email
       if (cotizacion.cliente.email && cotizacion.cliente.email !== 'null') {
         doc.text(`Email: ${cotizacion.cliente.email}`, 320, clienteY, { width: 230 })
+        clienteY += 12
       }
 
+      // ⭐ LÍNEA SEPARADORA (después de datos empresa/cliente)
+      doc
+        .strokeColor('#1e3a8a')
+        .lineWidth(2)
+        .moveTo(50, dataY + 70)
+        .lineTo(562, dataY + 70)
+        .stroke()
+
       // ============================================
-      // DIRECCIÓN DEL SERVICIO (Más abajo, sin sobreponerse)
+      // DIRECCIÓN DEL SERVICIO
       // ============================================
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('DIRECCIÓN DEL SERVICIO', 50, dataY + 75)
+        .text('DIRECCIÓN DEL SERVICIO', 50, dataY + 85)
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
         .text(
           cotizacion.direccionInstalacion || cotizacion.cliente.direccion || 'No especificada',
           50,
-          dataY + 90,
+          dataY + 100,
           { width: 500 }
         )
 
       // ============================================
-      // TIPO DE SERVICIO (Solo texto simple)
+      // TIPO DE SERVICIO
       // ============================================
       const tipoTexto = {
         instalacion: 'INSTALACIÓN',
@@ -194,15 +190,15 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('TIPO DE SERVICIO', 50, dataY + 110)
+        .text('TIPO DE SERVICIO', 50, dataY + 120)
         .fontSize(9)
         .fillColor('#1f2937')
-        .text(tipoTexto[cotizacion.tipo] || 'SERVICIO', 50, dataY + 125)
+        .text(tipoTexto[cotizacion.tipo] || 'SERVICIO', 50, dataY + 135)
 
       // ============================================
       // DETALLE DEL EQUIPO
       // ============================================
-      let equipoY = dataY + 150
+      let equipoY = dataY + 160
 
       if (cotizacion.inventario) {
         doc
@@ -355,7 +351,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text('• Garantía de instalación: 6 meses', 50, condicionesY + 36, { width: 240 })
         .text('• Los precios incluyen IVA', 50, condicionesY + 48, { width: 240 })
 
-      // DESGLOSE DE COSTOS (Derecha) - ⭐ CAJA MÁS GRANDE
+      // DESGLOSE DE COSTOS (Derecha)
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -364,14 +360,13 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
       const desgloseY = bottomSectionY + 18
       
-      // ⭐ Calcular altura necesaria (MÁS GRANDE para que quepa TOTAL completamente)
       const desgloseHeight = 
-        25 + // Equipo
+        25 + 
         (cotizacion.costoInstalacion > 0 ? 15 : 0) +
         (cotizacion.costoMaterial > 0 ? 15 : 0) +
-        15 + // Subtotal
+        15 + 
         (cotizacion.descuento > 0 ? 15 : 0) +
-        45  // ⭐ Espacio para TOTAL (aumentado a 45px para más espacio)
+        45
 
       // Fondo para el desglose
       doc
@@ -456,7 +451,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .stroke()
       lineY += 10
 
-      // TOTAL (ahora sí cabe dentro de la caja)
+      // TOTAL
       doc
         .fontSize(13)
         .font('Helvetica-Bold')
