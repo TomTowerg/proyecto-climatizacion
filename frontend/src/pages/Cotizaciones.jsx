@@ -72,6 +72,14 @@ function Cotizaciones() {
     precioUnitario: 0
   })
 
+  // ⭐ NUEVO: Estados para múltiples equipos
+  const [equipos, setEquipos] = useState([])
+  const [nuevoEquipo, setNuevoEquipo] = useState({
+    inventarioId: '',
+    cantidad: 1,
+    precioUnitario: 0
+  })
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/')
@@ -121,6 +129,17 @@ function Cotizaciones() {
       costoMaterial: totalMateriales.toString()
     }))
   }, [materiales])
+
+  // ⭐ NUEVO: Calcular precio total de equipos
+  useEffect(() => {
+    if (formData.tipo === 'instalacion' && equipos.length > 0) {
+      const totalEquipos = calcularTotalEquipos()
+      setFormData(prev => ({
+        ...prev,
+        precioOfertado: totalEquipos.toString()
+      }))
+    }
+  }, [equipos, formData.tipo])
 
   const fetchData = async () => {
     try {
@@ -211,8 +230,74 @@ function Cotizaciones() {
     toast.success('Material eliminado')
   }
 
+  // ⭐ NUEVAS FUNCIONES PARA EQUIPOS
+  const calcularTotalEquipos = () => {
+    return equipos.reduce((acc, eq) => acc + eq.subtotal, 0)
+  }
+
+  const agregarEquipo = () => {
+    if (!nuevoEquipo.inventarioId) {
+      toast.error('Selecciona un equipo')
+      return
+    }
+    if (nuevoEquipo.cantidad <= 0) {
+      toast.error('La cantidad debe ser mayor a 0')
+      return
+    }
+
+    const equipoSeleccionado = inventario.find(e => e.id === parseInt(nuevoEquipo.inventarioId))
+    
+    if (!equipoSeleccionado) {
+      toast.error('Equipo no encontrado')
+      return
+    }
+
+    // Verificar stock disponible
+    const cantidadYaAgregada = equipos
+      .filter(eq => eq.inventarioId === parseInt(nuevoEquipo.inventarioId))
+      .reduce((total, eq) => total + eq.cantidad, 0)
+    
+    const stockDisponible = equipoSeleccionado.stock - cantidadYaAgregada
+    
+    if (nuevoEquipo.cantidad > stockDisponible) {
+      toast.error(`Solo hay ${stockDisponible} unidades disponibles`)
+      return
+    }
+
+    const equipoConSubtotal = {
+      ...nuevoEquipo,
+      inventarioId: parseInt(nuevoEquipo.inventarioId),
+      marca: equipoSeleccionado.marca,
+      modelo: equipoSeleccionado.modelo,
+      capacidadBTU: equipoSeleccionado.capacidadBTU,
+      precioUnitario: nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente,
+      subtotal: nuevoEquipo.cantidad * (nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente)
+    }
+
+    setEquipos([...equipos, equipoConSubtotal])
+    
+    setNuevoEquipo({
+      inventarioId: '',
+      cantidad: 1,
+      precioUnitario: 0
+    })
+
+    toast.success('Equipo agregado')
+  }
+
+  const eliminarEquipo = (index) => {
+    setEquipos(equipos.filter((_, i) => i !== index))
+    toast.success('Equipo eliminado')
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // ⭐ Validar que haya al menos un equipo si es instalación
+    if (formData.tipo === 'instalacion' && equipos.length === 0) {
+      toast.error('Agrega al menos un equipo')
+      return
+    }
 
     try {
       const dataToSend = {
@@ -228,8 +313,18 @@ function Cotizaciones() {
         materiales: materiales
       }
 
+      // ⭐ Enviar equipos si es instalación
       if (formData.tipo === 'instalacion') {
-        dataToSend.inventarioId = parseInt(formData.inventarioId)
+        if (equipos.length > 0) {
+          dataToSend.equipos = equipos.map(eq => ({
+            inventarioId: eq.inventarioId,
+            cantidad: eq.cantidad,
+            precioUnitario: eq.precioUnitario
+          }))
+        } else {
+          // Compatibilidad con sistema anterior
+          dataToSend.inventarioId = parseInt(formData.inventarioId)
+        }
       } else {
         dataToSend.equipoId = parseInt(formData.equipoId)
       }
@@ -270,8 +365,13 @@ function Cotizaciones() {
       direccionInstalacion: cotizacion.direccionInstalacion || '',
       estado: cotizacion.estado
     })
+    // Cargar materiales si existen
     if (cotizacion.materiales && cotizacion.materiales.length > 0) {
       setMateriales(cotizacion.materiales)
+    }
+    // ⭐ CARGAR EQUIPOS SI EXISTEN
+    if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+      setEquipos(cotizacion.equipos)
     }
     setShowModal(true)
   }
@@ -310,7 +410,7 @@ function Cotizaciones() {
       toast.dismiss(loadingToast)
       
       const mensajesTipo = {
-        instalacion: 'Equipo registrado',
+        instalacion: 'Equipo(s) registrado(s)',
         mantencion: 'Mantención programada',
         reparacion: 'Reparación programada'
       }
@@ -318,7 +418,7 @@ function Cotizaciones() {
       toast.success(
         <div>
           <p className="font-bold">Cotización Aprobada</p>
-          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id || resultado.ordenTrabajo?.id}</p>
+          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}</p>
           <p className="text-sm">Orden de Trabajo: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
@@ -411,29 +511,12 @@ function Cotizaciones() {
       unidad: 'unidades',
       precioUnitario: 0
     })
-  }
-
-  const handleInventarioChange = (inventarioId) => {
-    const item = inventario.find(i => i.id === parseInt(inventarioId))
-    if (item) {
-      setFormData({
-        ...formData,
-        inventarioId,
-        precioOfertado: item.precioCliente.toString()
-      })
-    } else {
-      setFormData({
-        ...formData,
-        inventarioId,
-        precioOfertado: ''
-      })
-    }
-  }
-
-  const handleEquipoChange = (equipoId) => {
-    setFormData({
-      ...formData,
-      equipoId
+    // ⭐ LIMPIAR EQUIPOS
+    setEquipos([])
+    setNuevoEquipo({
+      inventarioId: '',
+      cantidad: 1,
+      precioUnitario: 0
     })
   }
 
@@ -717,7 +800,7 @@ function Cotizaciones() {
       {/* Modal de Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-4xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-5xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">
               {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
@@ -754,7 +837,7 @@ function Cotizaciones() {
                 </div>
               </div>
 
-              {/* Cliente y Producto/Equipo */}
+              {/* Cliente */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -789,26 +872,142 @@ function Cotizaciones() {
                   </div>
                 </div>
 
-                {/* INSTALACIÓN: Mostrar inventario */}
+                {/* ⭐ NUEVA SECCIÓN: MÚLTIPLES EQUIPOS PARA INSTALACIÓN */}
                 {formData.tipo === 'instalacion' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Equipo *
-                    </label>
-                    <select
-                      value={formData.inventarioId}
-                      onChange={(e) => handleInventarioChange(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={editingCotizacion}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {inventarioDisponible.map(item => (
-                        <option key={item.id} value={item.id}>
-                          {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="col-span-2">
+                    <h3 className="text-md font-semibold mb-3 text-gray-900">Equipos a Instalar</h3>
+                    
+                    {/* Formulario para agregar equipo */}
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                      <div className="grid grid-cols-12 gap-3">
+                        <div className="col-span-6">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Seleccionar Equipo
+                          </label>
+                          <select
+                            value={nuevoEquipo.inventarioId}
+                            onChange={(e) => {
+                              const inventarioId = e.target.value
+                              const equipo = inventario.find(eq => eq.id === parseInt(inventarioId))
+                              setNuevoEquipo({
+                                inventarioId,
+                                cantidad: 1,
+                                precioUnitario: equipo?.precioCliente || 0
+                              })
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          >
+                            <option value="">Seleccionar equipo...</option>
+                            {inventarioDisponible.map(item => (
+                              <option key={item.id} value={item.id}>
+                                {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Cantidad
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={nuevoEquipo.cantidad}
+                            onChange={(e) => setNuevoEquipo(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          />
+                        </div>
+                        
+                        <div className="col-span-3">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Precio Unitario
+                          </label>
+                          <input
+                            type="number"
+                            value={nuevoEquipo.precioUnitario}
+                            onChange={(e) => setNuevoEquipo(prev => ({ ...prev, precioUnitario: parseFloat(e.target.value) || 0 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          />
+                        </div>
+                        
+                        <div className="col-span-1 flex items-end">
+                          <button
+                            type="button"
+                            onClick={agregarEquipo}
+                            className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+                            disabled={!nuevoEquipo.inventarioId}
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Tabla de equipos agregados */}
+                    {equipos.length > 0 && (
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="w-full text-sm">
+                          <thead className="bg-blue-600 text-white">
+                            <tr>
+                              <th className="px-4 py-2 text-left">Equipo</th>
+                              <th className="px-4 py-2 text-center">Cantidad</th>
+                              <th className="px-4 py-2 text-right">Precio Unit.</th>
+                              <th className="px-4 py-2 text-right">Subtotal</th>
+                              <th className="px-4 py-2 text-center">Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white">
+                            {equipos.map((equipo, index) => (
+                              <tr key={index} className="border-t hover:bg-gray-50">
+                                <td className="px-4 py-2">
+                                  {equipo.marca} {equipo.modelo}
+                                  <span className="text-xs text-gray-500 block">
+                                    {equipo.capacidadBTU} BTU
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2 text-center font-medium">
+                                  {equipo.cantidad}
+                                </td>
+                                <td className="px-4 py-2 text-right">
+                                  ${equipo.precioUnitario.toLocaleString('es-CL')}
+                                </td>
+                                <td className="px-4 py-2 text-right font-bold text-green-600">
+                                  ${equipo.subtotal.toLocaleString('es-CL')}
+                                </td>
+                                <td className="px-4 py-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => eliminarEquipo(index)}
+                                    className="text-red-600 hover:bg-red-50 p-1 rounded"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+                            <tr>
+                              <td colSpan="3" className="px-4 py-2 text-right font-bold text-gray-900">
+                                Total Equipos:
+                              </td>
+                              <td className="px-4 py-2 text-right font-bold text-blue-600 text-lg">
+                                ${calcularTotalEquipos().toLocaleString('es-CL')}
+                              </td>
+                              <td></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                    
+                    {equipos.length === 0 && (
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-sm">No hay equipos agregados</p>
+                        <p className="text-xs mt-1">Agrega equipos usando el formulario de arriba</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -820,7 +1019,7 @@ function Cotizaciones() {
                     </label>
                     <select
                       value={formData.equipoId}
-                      onChange={(e) => handleEquipoChange(e.target.value)}
+                      onChange={(e) => setFormData({ ...formData, equipoId: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       required
                       disabled={editingCotizacion || !formData.clienteId}
@@ -846,7 +1045,7 @@ function Cotizaciones() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.tipo === 'instalacion' && 'Precio del Equipo *'}
+                    {formData.tipo === 'instalacion' && 'Precio Total Equipos'}
                     {formData.tipo === 'mantencion' && 'Precio Mantención *'}
                     {formData.tipo === 'reparacion' && 'Precio Reparación *'}
                   </label>
@@ -856,9 +1055,17 @@ function Cotizaciones() {
                     onChange={(e) => setFormData({ ...formData, precioOfertado: e.target.value })}
                     step="1"
                     min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${
+                      formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''
+                    }`}
+                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
                     required
                   />
+                  {formData.tipo === 'instalacion' && equipos.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Se calcula automáticamente con los equipos
+                    </p>
+                  )}
                 </div>
 
                 {formData.tipo === 'instalacion' && (
@@ -1069,7 +1276,7 @@ function Cotizaciones() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>
-                        {formData.tipo === 'instalacion' && 'Equipo:'}
+                        {formData.tipo === 'instalacion' && 'Equipos:'}
                         {formData.tipo === 'mantencion' && 'Mantención:'}
                         {formData.tipo === 'reparacion' && 'Reparación:'}
                       </span>
@@ -1183,7 +1390,7 @@ function Cotizaciones() {
                     <ul className="space-y-1 ml-4 list-disc">
                       {cotizacionToApprove.tipo === 'instalacion' ? (
                         <>
-                          <li>Crear registro de equipo para el cliente</li>
+                          <li>Registrar equipo(s) para el cliente</li>
                           <li>Reducir stock del inventario</li>
                         </>
                       ) : (
