@@ -72,13 +72,16 @@ function Cotizaciones() {
     precioUnitario: 0
   })
 
-  // ⭐ NUEVO: Estados para múltiples equipos
+  // Estados para múltiples equipos
   const [equipos, setEquipos] = useState([])
   const [nuevoEquipo, setNuevoEquipo] = useState({
     inventarioId: '',
     cantidad: 1,
     precioUnitario: 0
   })
+
+  // ⭐ NUEVO: Estado para búsqueda de equipos
+  const [busquedaEquipo, setBusquedaEquipo] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -130,7 +133,7 @@ function Cotizaciones() {
     }))
   }, [materiales])
 
-  // ⭐ NUEVO: Calcular precio total de equipos
+  // Calcular precio total de equipos
   useEffect(() => {
     if (formData.tipo === 'instalacion' && equipos.length > 0) {
       const totalEquipos = calcularTotalEquipos()
@@ -194,6 +197,32 @@ function Cotizaciones() {
     return materiales.reduce((acc, m) => acc + m.subtotal, 0)
   }
 
+  const calcularTotalEquipos = () => {
+    return equipos.reduce((acc, eq) => acc + eq.subtotal, 0)
+  }
+
+  // ⭐ NUEVO: Filtrar y ordenar inventario disponible
+  const inventarioFiltrado = inventarioDisponible
+    .filter(item => {
+      if (!busquedaEquipo.trim()) return true
+      
+      const searchTerm = busquedaEquipo.toLowerCase()
+      const marca = item.marca.toLowerCase()
+      const modelo = item.modelo.toLowerCase()
+      const capacidad = item.capacidadBTU.toString()
+      
+      return marca.includes(searchTerm) || 
+             modelo.includes(searchTerm) || 
+             capacidad.includes(searchTerm)
+    })
+    .sort((a, b) => {
+      // Ordenar por marca, luego por capacidad
+      if (a.marca !== b.marca) {
+        return a.marca.localeCompare(b.marca)
+      }
+      return a.capacidadBTU - b.capacidadBTU
+    })
+
   const agregarMaterial = () => {
     if (!nuevoMaterial.nombre.trim()) {
       toast.error('Ingresa el nombre del material')
@@ -230,11 +259,6 @@ function Cotizaciones() {
     toast.success('Material eliminado')
   }
 
-  // ⭐ NUEVAS FUNCIONES PARA EQUIPOS
-  const calcularTotalEquipos = () => {
-    return equipos.reduce((acc, eq) => acc + eq.subtotal, 0)
-  }
-
   const agregarEquipo = () => {
     if (!nuevoEquipo.inventarioId) {
       toast.error('Selecciona un equipo')
@@ -260,16 +284,16 @@ function Cotizaciones() {
     const stockDisponible = equipoSeleccionado.stock - cantidadYaAgregada
     
     if (nuevoEquipo.cantidad > stockDisponible) {
-      toast.error(`Solo hay ${stockDisponible} unidades disponibles`)
+      toast.error(`Solo hay ${stockDisponible} unidades disponibles en stock`)
       return
     }
 
     const equipoConSubtotal = {
-      ...nuevoEquipo,
       inventarioId: parseInt(nuevoEquipo.inventarioId),
       marca: equipoSeleccionado.marca,
       modelo: equipoSeleccionado.modelo,
       capacidadBTU: equipoSeleccionado.capacidadBTU,
+      cantidad: nuevoEquipo.cantidad,
       precioUnitario: nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente,
       subtotal: nuevoEquipo.cantidad * (nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente)
     }
@@ -293,12 +317,6 @@ function Cotizaciones() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // ⭐ Validar que haya al menos un equipo si es instalación
-    if (formData.tipo === 'instalacion' && equipos.length === 0) {
-      toast.error('Agrega al menos un equipo')
-      return
-    }
-
     try {
       const dataToSend = {
         tipo: formData.tipo,
@@ -313,7 +331,6 @@ function Cotizaciones() {
         materiales: materiales
       }
 
-      // ⭐ Enviar equipos si es instalación
       if (formData.tipo === 'instalacion') {
         if (equipos.length > 0) {
           dataToSend.equipos = equipos.map(eq => ({
@@ -322,7 +339,6 @@ function Cotizaciones() {
             precioUnitario: eq.precioUnitario
           }))
         } else {
-          // Compatibilidad con sistema anterior
           dataToSend.inventarioId = parseInt(formData.inventarioId)
         }
       } else {
@@ -365,14 +381,15 @@ function Cotizaciones() {
       direccionInstalacion: cotizacion.direccionInstalacion || '',
       estado: cotizacion.estado
     })
-    // Cargar materiales si existen
+    
     if (cotizacion.materiales && cotizacion.materiales.length > 0) {
       setMateriales(cotizacion.materiales)
     }
-    // ⭐ CARGAR EQUIPOS SI EXISTEN
+    
     if (cotizacion.equipos && cotizacion.equipos.length > 0) {
       setEquipos(cotizacion.equipos)
     }
+    
     setShowModal(true)
   }
 
@@ -410,7 +427,7 @@ function Cotizaciones() {
       toast.dismiss(loadingToast)
       
       const mensajesTipo = {
-        instalacion: 'Equipo(s) registrado(s)',
+        instalacion: 'Equipo registrado',
         mantencion: 'Mantención programada',
         reparacion: 'Reparación programada'
       }
@@ -418,7 +435,7 @@ function Cotizaciones() {
       toast.success(
         <div>
           <p className="font-bold">Cotización Aprobada</p>
-          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}</p>
+          <p className="text-sm mt-1">{mensajesTipo[cotizacionToApprove.tipo]}: #{resultado.equipo?.id || resultado.ordenTrabajo?.id}</p>
           <p className="text-sm">Orden de Trabajo: #{resultado.ordenTrabajo?.id}</p>
         </div>,
         { duration: 5000 }
@@ -511,13 +528,14 @@ function Cotizaciones() {
       unidad: 'unidades',
       precioUnitario: 0
     })
-    // ⭐ LIMPIAR EQUIPOS
     setEquipos([])
     setNuevoEquipo({
       inventarioId: '',
       cantidad: 1,
       precioUnitario: 0
     })
+    // ⭐ NUEVO: Limpiar búsqueda
+    setBusquedaEquipo('')
   }
 
   const clearFilters = () => {
@@ -838,208 +856,246 @@ function Cotizaciones() {
               </div>
 
               {/* Cliente */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cliente *
-                  </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={formData.clienteId}
-                      onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={editingCotizacion}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cliente *
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.clienteId}
+                    onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    disabled={editingCotizacion}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {clientes.map(cliente => (
+                      <option key={cliente.id} value={cliente.id}>
+                        {cliente.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {!editingCotizacion && (
+                    <button
+                      type="button"
+                      onClick={() => setShowClientModal(true)}
+                      className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
+                      title="Crear cliente"
                     >
-                      <option value="">Seleccionar...</option>
-                      {clientes.map(cliente => (
-                        <option key={cliente.id} value={cliente.id}>
-                          {cliente.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    {!editingCotizacion && (
-                      <button
-                        type="button"
-                        onClick={() => setShowClientModal(true)}
-                        className="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
-                        title="Crear cliente"
-                      >
-                        <UserPlus size={18} />
-                      </button>
-                    )}
-                  </div>
+                      <UserPlus size={18} />
+                    </button>
+                  )}
                 </div>
+              </div>
 
-                {/* ⭐ NUEVA SECCIÓN: MÚLTIPLES EQUIPOS PARA INSTALACIÓN */}
-                {formData.tipo === 'instalacion' && (
-                  <div className="col-span-2">
-                    <h3 className="text-md font-semibold mb-3 text-gray-900">Equipos a Instalar</h3>
-                    
-                    {/* Formulario para agregar equipo */}
-                    <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                      <div className="grid grid-cols-12 gap-3">
-                        <div className="col-span-6">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Seleccionar Equipo
-                          </label>
-                          <select
-                            value={nuevoEquipo.inventarioId}
-                            onChange={(e) => {
-                              const inventarioId = e.target.value
-                              const equipo = inventario.find(eq => eq.id === parseInt(inventarioId))
-                              setNuevoEquipo({
-                                inventarioId,
-                                cantidad: 1,
-                                precioUnitario: equipo?.precioCliente || 0
-                              })
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          >
-                            <option value="">Seleccionar equipo...</option>
-                            {inventarioDisponible.map(item => (
-                              <option key={item.id} value={item.id}>
-                                {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Cantidad
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={nuevoEquipo.cantidad}
-                            onChange={(e) => setNuevoEquipo(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          />
-                        </div>
-                        
-                        <div className="col-span-3">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Precio Unitario
-                          </label>
-                          <input
-                            type="number"
-                            value={nuevoEquipo.precioUnitario}
-                            onChange={(e) => setNuevoEquipo(prev => ({ ...prev, precioUnitario: parseFloat(e.target.value) || 0 }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          />
-                        </div>
-                        
-                        <div className="col-span-1 flex items-end">
+              {/* ⭐ SECCIÓN DE EQUIPOS PARA INSTALACIÓN */}
+              {formData.tipo === 'instalacion' && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    🛒 Equipos a Instalar
+                    <span className="text-sm font-normal text-gray-600">
+                      ({equipos.length} {equipos.length === 1 ? 'equipo' : 'equipos'})
+                    </span>
+                  </h3>
+                  
+                  {/* Formulario para agregar equipo */}
+                  <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+                    {/* Campo de búsqueda */}
+                    <div className="mb-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={busquedaEquipo}
+                          onChange={(e) => setBusquedaEquipo(e.target.value)}
+                          placeholder="🔍 Buscar por marca, modelo o capacidad..."
+                          className="w-full px-4 py-2 pl-10 border border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        {busquedaEquipo && (
                           <button
                             type="button"
-                            onClick={agregarEquipo}
-                            className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
-                            disabled={!nuevoEquipo.inventarioId}
+                            onClick={() => setBusquedaEquipo('')}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           >
-                            <Plus size={18} />
+                            <X size={16} />
                           </button>
-                        </div>
+                        )}
+                      </div>
+                      {busquedaEquipo && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          {inventarioFiltrado.length} {inventarioFiltrado.length === 1 ? 'equipo encontrado' : 'equipos encontrados'}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="col-span-6">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Seleccionar Equipo
+                        </label>
+                        <select
+                          value={nuevoEquipo.inventarioId}
+                          onChange={(e) => {
+                            const inventarioId = e.target.value
+                            const equipo = inventario.find(eq => eq.id === parseInt(inventarioId))
+                            setNuevoEquipo({
+                              inventarioId,
+                              cantidad: 1,
+                              precioUnitario: equipo?.precioCliente || 0
+                            })
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                          size="8"
+                        >
+                          <option value="">
+                            {inventarioFiltrado.length === 0 
+                              ? 'No hay equipos disponibles' 
+                              : 'Seleccionar equipo...'}
+                          </option>
+                          {inventarioFiltrado.map(item => (
+                            <option key={item.id} value={item.id}>
+                              {item.marca} {item.modelo} ({item.capacidadBTU} BTU) - Stock: {item.stock}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Cantidad
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={nuevoEquipo.cantidad}
+                          onChange={(e) => setNuevoEquipo(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      
+                      <div className="col-span-3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Precio Unitario
+                        </label>
+                        <input
+                          type="number"
+                          value={nuevoEquipo.precioUnitario}
+                          onChange={(e) => setNuevoEquipo(prev => ({ ...prev, precioUnitario: parseFloat(e.target.value) || 0 }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      
+                      <div className="col-span-1 flex items-end">
+                        <button
+                          type="button"
+                          onClick={agregarEquipo}
+                          className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center transition-colors"
+                          disabled={!nuevoEquipo.inventarioId}
+                        >
+                          <Plus size={18} />
+                        </button>
                       </div>
                     </div>
-                    
-                    {/* Tabla de equipos agregados */}
-                    {equipos.length > 0 && (
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="w-full text-sm">
-                          <thead className="bg-blue-600 text-white">
-                            <tr>
-                              <th className="px-4 py-2 text-left">Equipo</th>
-                              <th className="px-4 py-2 text-center">Cantidad</th>
-                              <th className="px-4 py-2 text-right">Precio Unit.</th>
-                              <th className="px-4 py-2 text-right">Subtotal</th>
-                              <th className="px-4 py-2 text-center">Acción</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white">
-                            {equipos.map((equipo, index) => (
-                              <tr key={index} className="border-t hover:bg-gray-50">
-                                <td className="px-4 py-2">
-                                  {equipo.marca} {equipo.modelo}
-                                  <span className="text-xs text-gray-500 block">
-                                    {equipo.capacidadBTU} BTU
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2 text-center font-medium">
-                                  {equipo.cantidad}
-                                </td>
-                                <td className="px-4 py-2 text-right">
-                                  ${equipo.precioUnitario.toLocaleString('es-CL')}
-                                </td>
-                                <td className="px-4 py-2 text-right font-bold text-green-600">
-                                  ${equipo.subtotal.toLocaleString('es-CL')}
-                                </td>
-                                <td className="px-4 py-2 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => eliminarEquipo(index)}
-                                    className="text-red-600 hover:bg-red-50 p-1 rounded"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                            <tr>
-                              <td colSpan="3" className="px-4 py-2 text-right font-bold text-gray-900">
-                                Total Equipos:
-                              </td>
-                              <td className="px-4 py-2 text-right font-bold text-blue-600 text-lg">
-                                ${calcularTotalEquipos().toLocaleString('es-CL')}
-                              </td>
-                              <td></td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    )}
-                    
-                    {equipos.length === 0 && (
-                      <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                        <p className="text-sm">No hay equipos agregados</p>
-                        <p className="text-xs mt-1">Agrega equipos usando el formulario de arriba</p>
-                      </div>
-                    )}
                   </div>
-                )}
+                  
+                  {/* Tabla de equipos agregados */}
+                  {equipos.length > 0 && (
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-blue-600 text-white">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Equipo</th>
+                            <th className="px-4 py-2 text-center">Cantidad</th>
+                            <th className="px-4 py-2 text-right">Precio Unit.</th>
+                            <th className="px-4 py-2 text-right">Subtotal</th>
+                            <th className="px-4 py-2 text-center">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                          {equipos.map((equipo, index) => (
+                            <tr key={index} className="border-t hover:bg-gray-50">
+                              <td className="px-4 py-2">
+                                <span className="font-medium">{equipo.marca} {equipo.modelo}</span>
+                                <span className="text-xs text-gray-500 block">
+                                  {equipo.capacidadBTU} BTU
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-center font-medium">
+                                {equipo.cantidad}
+                              </td>
+                              <td className="px-4 py-2 text-right">
+                                ${equipo.precioUnitario.toLocaleString('es-CL')}
+                              </td>
+                              <td className="px-4 py-2 text-right font-bold text-green-600">
+                                ${equipo.subtotal.toLocaleString('es-CL')}
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarEquipo(index)}
+                                  className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                  title="Eliminar equipo"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-blue-50 border-t-2 border-blue-300">
+                          <tr>
+                            <td colSpan="3" className="px-4 py-3 text-right font-bold text-gray-900">
+                              Total Equipos:
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-blue-600 text-lg">
+                              ${calcularTotalEquipos().toLocaleString('es-CL')}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+                  
+                  {equipos.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <p className="text-sm">No hay equipos agregados</p>
+                      <p className="text-xs mt-1">Agrega equipos usando el formulario de arriba</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {/* MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
-                {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Equipo del Cliente *
-                    </label>
-                    <select
-                      value={formData.equipoId}
-                      onChange={(e) => setFormData({ ...formData, equipoId: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={editingCotizacion || !formData.clienteId}
-                    >
-                      <option value="">
-                        {!formData.clienteId 
-                          ? 'Primero selecciona un cliente'
-                          : equiposCliente.length === 0
-                          ? 'Este cliente no tiene equipos'
-                          : 'Seleccionar...'}
+              {/* MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
+              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Equipo del Cliente *
+                  </label>
+                  <select
+                    value={formData.equipoId}
+                    onChange={(e) => setFormData({ ...formData, equipoId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    disabled={editingCotizacion || !formData.clienteId}
+                  >
+                    <option value="">
+                      {!formData.clienteId 
+                        ? 'Primero selecciona un cliente'
+                        : equiposCliente.length === 0
+                        ? 'Este cliente no tiene equipos'
+                        : 'Seleccionar...'}
+                    </option>
+                    {equiposCliente.map(equipo => (
+                      <option key={equipo.id} value={equipo.id}>
+                        {equipo.marca} {equipo.modelo} - {equipo.capacidad}
                       </option>
-                      {equiposCliente.map(equipo => (
-                        <option key={equipo.id} value={equipo.id}>
-                          {equipo.marca} {equipo.modelo} - {equipo.capacidad}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Precios */}
               <div className="grid grid-cols-2 gap-4">
@@ -1058,8 +1114,8 @@ function Cotizaciones() {
                     className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${
                       formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''
                     }`}
-                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
                     required
+                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
                   />
                   {formData.tipo === 'instalacion' && equipos.length > 0 && (
                     <p className="text-xs text-gray-500 mt-1">
@@ -1130,7 +1186,7 @@ function Cotizaciones() {
                 </h3>
 
                 {/* Formulario para agregar material */}
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
                   <div className="grid grid-cols-4 gap-3 mb-3">
                     <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1198,7 +1254,7 @@ function Cotizaciones() {
                       <button
                         type="button"
                         onClick={agregarMaterial}
-                        className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                        className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                         disabled={!nuevoMaterial.nombre || nuevoMaterial.precioUnitario <= 0}
                       >
                         <Plus size={16} />
@@ -1390,7 +1446,7 @@ function Cotizaciones() {
                     <ul className="space-y-1 ml-4 list-disc">
                       {cotizacionToApprove.tipo === 'instalacion' ? (
                         <>
-                          <li>Registrar equipo(s) para el cliente</li>
+                          <li>Crear registro de equipo para el cliente</li>
                           <li>Reducir stock del inventario</li>
                         </>
                       ) : (
