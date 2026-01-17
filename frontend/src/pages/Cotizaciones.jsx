@@ -945,7 +945,7 @@ function Cotizaciones() {
                             })
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                          size="8"
+                          
                         >
                           <option value="">
                             {inventarioFiltrado.length === 0 
