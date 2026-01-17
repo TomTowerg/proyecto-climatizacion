@@ -1,4 +1,12 @@
 import prisma from '../utils/prisma.js'
+import { generarPDFOrdenTrabajo } from '../services/ordenTrabajoPDFService.js'
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Obtener todas las órdenes de trabajo
 export const getOrdenesTrabajo = async (req, res) => {
@@ -21,7 +29,6 @@ export const getOrdenesTrabajo = async (req, res) => {
             modelo: true,
             numeroSerie: true,
             capacidad: true,
-            // ⭐ INCLUIR INVENTARIO para obtener capacidadBTU
             inventario: {
               select: {
                 capacidadBTU: true
@@ -35,14 +42,12 @@ export const getOrdenesTrabajo = async (req, res) => {
       }
     })
 
-    // ⭐ Mapear para agregar capacidadBTU del inventario si el equipo no tiene capacidad
     const ordenesConCapacidad = ordenes.map(orden => {
       if (orden.equipo && orden.equipo.inventario) {
         return {
           ...orden,
           equipo: {
             ...orden.equipo,
-            // Si no tiene capacidad, usar la del inventario
             capacidad: orden.equipo.capacidad || `${orden.equipo.inventario.capacidadBTU} BTU`
           }
         }
@@ -92,14 +97,12 @@ export const createOrdenTrabajo = async (req, res) => {
 
     console.log('📝 Creando orden con análisis:', analisisIA)
 
-    // Validar campos requeridos
     if (!clienteId || !tipo || !fecha || !tecnico) {
       return res.status(400).json({ 
         error: 'Cliente, tipo, fecha y técnico son requeridos' 
       })
     }
 
-    // Validar tipo
     const tiposValidos = ['instalacion', 'mantenimiento', 'reparacion']
     if (!tiposValidos.includes(tipo)) {
       return res.status(400).json({ 
@@ -107,7 +110,6 @@ export const createOrdenTrabajo = async (req, res) => {
       })
     }
 
-    // Verificar que el cliente existe
     const cliente = await prisma.cliente.findUnique({
       where: { id: parseInt(clienteId) }
     })
@@ -116,7 +118,6 @@ export const createOrdenTrabajo = async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    // Si hay equipoId, verificar que existe y pertenece al cliente
     if (equipoId) {
       const equipo = await prisma.equipo.findUnique({
         where: { id: parseInt(equipoId) }
@@ -133,7 +134,6 @@ export const createOrdenTrabajo = async (req, res) => {
       }
     }
 
-    // Crear orden de trabajo
     const orden = await prisma.ordenTrabajo.create({
       data: {
         clienteId: parseInt(clienteId),
@@ -174,7 +174,6 @@ export const updateOrdenTrabajo = async (req, res) => {
     const { id } = req.params
     const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
 
-    // Verificar que la orden existe
     const existingOrden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) }
     })
@@ -183,7 +182,6 @@ export const updateOrdenTrabajo = async (req, res) => {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    // Validar tipo si se proporciona
     if (tipo) {
       const tiposValidos = ['instalacion', 'mantenimiento', 'reparacion']
       if (!tiposValidos.includes(tipo)) {
@@ -193,7 +191,6 @@ export const updateOrdenTrabajo = async (req, res) => {
       }
     }
 
-    // Validar estado si se proporciona
     if (estado) {
       const estadosValidos = ['pendiente', 'en_proceso', 'completado']
       if (!estadosValidos.includes(estado)) {
@@ -203,7 +200,6 @@ export const updateOrdenTrabajo = async (req, res) => {
       }
     }
 
-    // Validar urgencia si se proporciona
     if (urgencia) {
       const urgenciasValidas = ['baja', 'media', 'critica']
       if (!urgenciasValidas.includes(urgencia)) {
@@ -213,7 +209,6 @@ export const updateOrdenTrabajo = async (req, res) => {
       }
     }
 
-    // Actualizar orden de trabajo
     const orden = await prisma.ordenTrabajo.update({
       where: { id: parseInt(id) },
       data: {
@@ -247,12 +242,11 @@ export const updateOrdenTrabajo = async (req, res) => {
   }
 }
 
-// ⭐ COMPLETAR ORDEN DE TRABAJO
+// Completar orden de trabajo
 export const completarOrden = async (req, res) => {
   try {
     const { id } = req.params
 
-    // Verificar que la orden existe
     const existingOrden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) }
     })
@@ -265,7 +259,6 @@ export const completarOrden = async (req, res) => {
       return res.status(400).json({ error: 'Esta orden ya está completada' })
     }
 
-    // Actualizar a completado
     const orden = await prisma.ordenTrabajo.update({
       where: { id: parseInt(id) },
       data: {
@@ -297,7 +290,6 @@ export const deleteOrdenTrabajo = async (req, res) => {
   try {
     const { id } = req.params
 
-    // Verificar que la orden existe
     const existingOrden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) }
     })
@@ -306,7 +298,6 @@ export const deleteOrdenTrabajo = async (req, res) => {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    // Eliminar orden de trabajo
     await prisma.ordenTrabajo.delete({
       where: { id: parseInt(id) }
     })
@@ -324,7 +315,6 @@ export const getEstadisticas = async (req, res) => {
     const totalClientes = await prisma.cliente.count()
     const totalEquipos = await prisma.equipo.count()
     
-    // Órdenes del mes actual
     const inicioMes = new Date()
     inicioMes.setDate(1)
     inicioMes.setHours(0, 0, 0, 0)
@@ -362,6 +352,161 @@ export const getEstadisticas = async (req, res) => {
   }
 }
 
+// ⭐ GENERAR PDF DE ORDEN DE TRABAJO
+export const generarPDF = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const orden = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        cliente: true,
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
+      }
+    })
+
+    if (!orden) {
+      return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    }
+
+    console.log('📄 Generando PDF para orden:', orden.id)
+
+    const pdfBuffer = await generarPDFOrdenTrabajo(orden)
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename=orden-trabajo-${orden.id}.pdf`)
+    res.send(pdfBuffer)
+
+  } catch (error) {
+    console.error('Error al generar PDF:', error)
+    res.status(500).json({ error: 'Error al generar PDF de la orden de trabajo' })
+  }
+}
+
+// ⭐ CONFIGURACIÓN DE MULTER PARA SUBIDA DE ARCHIVOS
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, '../../uploads/ordenes')
+    
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true })
+    }
+    
+    cb(null, uploadsDir)
+  },
+  filename: (req, file, cb) => {
+    const ordenId = req.params.id
+    const timestamp = Date.now()
+    const ext = path.extname(file.originalname)
+    cb(null, `orden-${ordenId}-firmada-${timestamp}${ext}`)
+  }
+})
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true)
+  } else {
+    cb(new Error('Tipo de archivo no permitido. Solo PDF, JPG y PNG.'), false)
+  }
+}
+
+export const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB máximo
+  }
+})
+
+// ⭐ SUBIR DOCUMENTO FIRMADO
+export const subirDocumentoFirmado = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ningún archivo' })
+    }
+
+    const orden = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) }
+    })
+
+    if (!orden) {
+      return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    }
+
+    const rutaArchivo = `/uploads/ordenes/${req.file.filename}`
+
+    const ordenActualizada = await prisma.ordenTrabajo.update({
+      where: { id: parseInt(id) },
+      data: {
+        documentoFirmado: rutaArchivo,
+        fechaFirma: new Date()
+      },
+      include: {
+        cliente: true,
+        equipo: {
+          include: {
+            inventario: true
+          }
+        }
+      }
+    })
+
+    res.json({
+      message: 'Documento firmado subido exitosamente',
+      orden: ordenActualizada,
+      archivo: {
+        nombre: req.file.filename,
+        ruta: rutaArchivo,
+        tamaño: req.file.size,
+        tipo: req.file.mimetype
+      }
+    })
+
+  } catch (error) {
+    console.error('Error al subir documento:', error)
+    res.status(500).json({ error: 'Error al subir el documento firmado' })
+  }
+}
+
+// ⭐ DESCARGAR DOCUMENTO FIRMADO
+export const descargarDocumentoFirmado = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const orden = await prisma.ordenTrabajo.findUnique({
+      where: { id: parseInt(id) }
+    })
+
+    if (!orden) {
+      return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    }
+
+    if (!orden.documentoFirmado) {
+      return res.status(404).json({ error: 'Esta orden no tiene documento firmado' })
+    }
+
+    const filePath = path.join(__dirname, '../..', orden.documentoFirmado)
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'El archivo no existe en el servidor' })
+    }
+
+    res.download(filePath)
+
+  } catch (error) {
+    console.error('Error al descargar documento:', error)
+    res.status(500).json({ error: 'Error al descargar el documento' })
+  }
+}
+
 export default {
   getOrdenesTrabajo,
   getOrdenTrabajoById,
@@ -369,5 +514,9 @@ export default {
   updateOrdenTrabajo,
   completarOrden,
   deleteOrdenTrabajo,
-  getEstadisticas
+  getEstadisticas,
+  generarPDF,
+  subirDocumentoFirmado,
+  descargarDocumentoFirmado,
+  upload
 }

@@ -190,6 +190,8 @@ model OrdenTrabajo {
   calificacion  Int?
   comentarioCliente String?
   fechaCompletado DateTime?
+  documentoFirmado String?
+  fechaFirma       DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

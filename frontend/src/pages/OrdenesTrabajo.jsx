@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Sparkles, Eye, CheckCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Sparkles, Eye, CheckCircle, FileText, Upload, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
-import { isAuthenticated } from '../services/authService'
-import { getOrdenesTrabajo, createOrdenTrabajo, updateOrdenTrabajo, deleteOrdenTrabajo, completarOrden } from '../services/ordenTrabajoService'
+import { 
+  getOrdenesTrabajo, 
+  createOrdenTrabajo, 
+  updateOrdenTrabajo, 
+  deleteOrdenTrabajo, 
+  completarOrden,
+  generarPDFOrden,
+  subirDocumentoFirmado,
+  descargarDocumentoFirmado
+} from '../services/ordenTrabajoService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
 import { analizarUrgencia } from '../services/iaService'
@@ -73,6 +81,95 @@ function OrdenesTrabajo() {
       setLoading(false)
     }
   }
+
+  // ⭐ GENERAR Y VER PDF
+const handleVerPDF = async (ordenId) => {
+  try {
+    const loadingToast = toast.loading('Generando PDF...')
+    
+    const blob = await generarPDFOrden(ordenId)
+    const url = window.URL.createObjectURL(blob)
+    
+    toast.dismiss(loadingToast)
+    
+    // Abrir en nueva pestaña
+    window.open(url, '_blank')
+    
+    toast.success('PDF generado exitosamente')
+    
+    // Limpiar URL después de un tiempo
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url)
+    }, 100)
+    
+  } catch (error) {
+    console.error('Error al generar PDF:', error)
+    toast.error('Error al generar el PDF')
+  }
+}
+
+// ⭐ SUBIR DOCUMENTO FIRMADO
+const handleUploadDocument = (ordenId) => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf,.jpg,.jpeg,.png'
+  
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    // Validar tamaño (10MB máximo)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('El archivo no debe superar los 10MB')
+      return
+    }
+    
+    try {
+      const loadingToast = toast.loading('Subiendo documento...')
+      
+      await subirDocumentoFirmado(ordenId, file)
+      
+      toast.dismiss(loadingToast)
+      toast.success('Documento firmado subido exitosamente')
+      
+      // Recargar órdenes para mostrar el checkmark
+      fetchData()
+      
+    } catch (error) {
+      console.error('Error al subir documento:', error)
+      toast.error(error.message || 'Error al subir el documento')
+    }
+  }
+  
+  input.click()
+}
+
+// ⭐ DESCARGAR DOCUMENTO FIRMADO
+const handleDownloadDocument = async (ordenId) => {
+  try {
+    const loadingToast = toast.loading('Descargando documento...')
+    
+    const blob = await descargarDocumentoFirmado(ordenId)
+    const url = window.URL.createObjectURL(blob)
+    
+    // Crear enlace de descarga
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `orden-${ordenId}-firmada.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    
+    window.URL.revokeObjectURL(url)
+    
+    toast.dismiss(loadingToast)
+    toast.success('Documento descargado')
+    
+  } catch (error) {
+    console.error('Error al descargar documento:', error)
+    toast.error('Error al descargar el documento')
+  }
+}
 
   const handleAnalizarUrgencia = async () => {
     if (!formData.notas || formData.notas.trim() === '') {
@@ -207,6 +304,8 @@ function OrdenesTrabajo() {
       toast.error(t('workOrders.messages.deleteError'))
     }
   }
+
+
 
   const handleCloseModal = () => {
     setShowModal(false)
@@ -415,45 +514,78 @@ function OrdenesTrabajo() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getEstadoBadge(orden.estado)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
-                          {orden.estado !== 'completado' && (
-                            <button
-                              onClick={() => handleCompletar(orden)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title={t('workOrders.actions.complete')}
-                            >
-                              <CheckCircle size={18} />
-                            </button>
-                          )}
-                          
-                          {orden.analisisIA && (
-                            <button
-                              onClick={() => verAnalisisIA(orden)}
-                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                              title={t('workOrders.actions.viewAnalysis')}
-                            >
-                              <Eye size={18} />
-                            </button>
-                          )}
-                          
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* ⭐ BOTÓN VER PDF */}
+                        <button
+                          onClick={() => handleVerPDF(orden.id)}
+                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                          title="Ver PDF"
+                        >
+                          <FileText size={18} />
+                        </button>
+
+                        {/* ⭐ BOTÓN SUBIR DOCUMENTO */}
+                        <button
+                          onClick={() => handleUploadDocument(orden.id)}
+                          className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                          title="Subir documento firmado"
+                        >
+                          <Upload size={18} />
+                        </button>
+
+                        {/* ⭐ INDICADOR DE DOCUMENTO FIRMADO */}
+                        {orden.documentoFirmado && (
                           <button
-                            onClick={() => handleEdit(orden)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title={t('common.edit')}
+                            onClick={() => handleDownloadDocument(orden.id)}
+                            className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                            title="Descargar documento firmado"
                           >
-                            <Edit size={18} />
+                            <Download size={18} />
                           </button>
-                          
+                        )}
+
+                        {/* BOTONES EXISTENTES - MANTENER */}
+                        {orden.estado === 'pendiente' && (
                           <button
-                            onClick={() => handleDelete(orden.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title={t('common.delete')}
+                            onClick={() => handleCompletar(orden.id)}
+                            className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                            title="Completar"
                           >
-                            <Trash2 size={18} />
+                            <CheckCircle size={18} />
                           </button>
-                        </div>
-                      </td>
+                        )}
+
+                        <button
+                          onClick={() => handleEdit(orden)}
+                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                          title="Editar"
+                        >
+                          <Edit size={18} />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(orden.id)}
+                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+
+                        {orden.analisisIA && (
+                          <button
+                            onClick={() => {
+                              setAnalisisSeleccionado(JSON.parse(orden.analisisIA))
+                              setShowAnalisisModal(true)
+                            }}
+                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
+                            title="Ver análisis IA"
+                          >
+                            <Eye size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                     </tr>
                   ))
                 )}
