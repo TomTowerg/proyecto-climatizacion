@@ -739,18 +739,53 @@ function Cotizaciones() {
                   </tr>
                 ) : (
                   filteredCotizaciones.map((cotizacion) => {
-                    const producto = cotizacion.inventario
-                      ? `${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`
-                      : cotizacion.equipo
-                      ? `${cotizacion.equipo.marca} ${cotizacion.equipo.modelo}`
-                      : 'N/A'
+                    // ⭐ NUEVO: Detectar múltiples equipos
+                    let producto = 'N/A'
+                    
+                    if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+                      // Múltiples equipos
+                      if (cotizacion.equipos.length === 1) {
+                        // Un solo equipo en el array
+                        const eq = cotizacion.equipos[0]
+                        const inv = inventario.find(i => i.id === eq.inventarioId)
+                        producto = inv ? `${inv.marca} ${inv.modelo}` : 'Equipo'
+                      } else {
+                        // Múltiples equipos
+                        producto = `${cotizacion.equipos.length} equipos`
+                      }
+                    } else if (cotizacion.inventario) {
+                      // Sistema antiguo - un equipo
+                      producto = `${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`
+                    } else if (cotizacion.equipo) {
+                      // Mantención/Reparación
+                      producto = `${cotizacion.equipo.marca} ${cotizacion.equipo.modelo}`
+                    }
 
                     return (
                       <tr key={cotizacion.id}>
                         <td className="font-mono">#{cotizacion.id}</td>
                         <td>{getTipoBadge(cotizacion.tipo)}</td>
                         <td>{cotizacion.cliente?.nombre}</td>
-                        <td className="text-sm">{producto}</td>
+                        
+                        {/* ⭐ COLUMNA EQUIPO MEJORADA */}
+                        <td className="text-sm">
+                          <div>
+                            {producto}
+                            {cotizacion.equipos && cotizacion.equipos.length > 1 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {cotizacion.equipos.map((eq, idx) => {
+                                  const inv = inventario.find(i => i.id === eq.inventarioId)
+                                  return inv ? (
+                                    <div key={idx}>
+                                      • {inv.marca} {inv.modelo} ({eq.cantidad})
+                                    </div>
+                                  ) : null
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        
                         <td className="text-right font-semibold text-green-600">
                           ${cotizacion.precioFinal.toLocaleString('es-CL')}
                         </td>
