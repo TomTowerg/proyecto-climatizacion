@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, Sparkles, Eye, CheckCircle, FileText, Upload, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
+import { isAuthenticated } from '../services/authService'
 import { 
   getOrdenesTrabajo, 
   createOrdenTrabajo, 
