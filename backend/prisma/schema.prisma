@@ -89,6 +89,7 @@ model Inventario {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   cotizaciones            Cotizacion[]
+  equiposCotizacion EquipoCotizacion[]
   equipos                 Equipo[]
 }
 
@@ -119,25 +120,12 @@ model Cotizacion {
   direccionInstalacion String?
   equipoCreado    Equipo?     @relation("CotizacionAprobada")
   ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
-  materiales      MaterialCotizacion[]  // ⭐ NUEVA RELACIÓN
+  equipos       EquipoCotizacion[]
+  materiales      MaterialCotizacion[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
 
-// ⭐ NUEVO MODELO: MaterialCotizacion
-model MaterialCotizacion {
-  id              Int        @id @default(autoincrement())
-  cotizacionId    Int
-  cotizacion      Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
-  nombre          String     // "Cañería de cobre 1/2", "Soporte metálico", etc.
-  cantidad        Float      // Puede ser decimal: 2.5 metros, 15 unidades
-  unidad          String     // "metros", "unidades", "kg", "litros"
-  precioUnitario  Float      // Precio por unidad
-  subtotal        Float      // cantidad * precioUnitario
-  descripcion     String?    // Opcional: descripción adicional
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-}
 
 model Equipo {
   id                Int      @id @default(autoincrement())
@@ -194,4 +182,37 @@ model OrdenTrabajo {
   fechaFirma       DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+// ⭐ NUEVO: Tabla para múltiples equipos en cotizaciones
+model EquipoCotizacion {
+  id            Int      @id @default(autoincrement())
+  cotizacionId  Int
+  cotizacion    Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  inventarioId  Int
+  inventario    Inventario @relation(fields: [inventarioId], references: [id])
+  cantidad      Int
+  precioUnitario Float
+  subtotal      Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([cotizacionId])
+  @@index([inventarioId])
+}
+
+model MaterialCotizacion {
+  id              Int        @id @default(autoincrement())
+  cotizacionId    Int
+  cotizacion      Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  nombre          String     // "Cañería de cobre 1/2", "Soporte metálico", etc.
+  cantidad        Float      // Puede ser decimal: 2.5 metros, 15 unidades
+  unidad          String     // "metros", "unidades", "kg", "litros"
+  precioUnitario  Float      // Precio por unidad
+  subtotal        Float      // cantidad * precioUnitario
+  descripcion     String?    // Opcional: descripción adicional
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+
+  @@index([cotizacionId])
 }

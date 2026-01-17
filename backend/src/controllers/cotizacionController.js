@@ -101,7 +101,7 @@ export const createCotizacion = async (req, res) => {
       tipo,
       clienteId, 
       inventarioId,  // Sistema antiguo (un equipo)
-      equipos,       // ⭐ NUEVO: Sistema de múltiples equipos
+      equipos,       // ⭐ Sistema de múltiples equipos
       equipoId,
       precioOfertado, 
       costoInstalacion,
@@ -110,7 +110,7 @@ export const createCotizacion = async (req, res) => {
       notas,
       agente,
       direccionInstalacion,
-      materiales
+      materiales     // ⭐ Array de materiales
     } = req.body
 
     console.log('📋 Datos recibidos:', { 
@@ -129,7 +129,7 @@ export const createCotizacion = async (req, res) => {
       })
     }
 
-    // ⭐ VALIDACIONES POR TIPO DE SERVICIO (CORREGIDO)
+    // ⭐ VALIDACIONES POR TIPO DE SERVICIO
     if (tipo === 'instalacion') {
       // Aceptar TANTO inventarioId (antiguo) COMO equipos[] (nuevo)
       if (!inventarioId && (!equipos || equipos.length === 0)) {
@@ -254,7 +254,7 @@ export const createCotizacion = async (req, res) => {
       console.log(`💰 Costo total de materiales: $${costoMaterialTotal.toLocaleString('es-CL')}`)
     }
 
-    // ⭐ CALCULAR EQUIPOS (SI HAY MÚLTIPLES)
+    // ⭐ PREPARAR EQUIPOS PARA GUARDAR
     const equiposValidados = []
     if (tipo === 'instalacion' && equipos && equipos.length > 0) {
       console.log(`🛒 Procesando ${equipos.length} equipos...`)
@@ -270,7 +270,7 @@ export const createCotizacion = async (req, res) => {
     }
 
     // Calcular precio final
-    const basePrice = precioOfertado || (producto?.precioCliente || 0)
+    const basePrice = parseFloat(precioOfertado) || (producto?.precioCliente || 0)
     const instalacion = parseFloat(costoInstalacion) || 0
     const desc = parseFloat(descuento) || 0
     
@@ -315,12 +315,13 @@ export const createCotizacion = async (req, res) => {
     const cotizacion = await prisma.cotizacion.create({
       data: {
         ...cotizacionData,
+        // ⭐ Crear materiales relacionados
         materiales: {
           create: materialesValidados
         },
         // ⭐ Crear equipos relacionados (si hay múltiples)
         ...(equiposValidados.length > 0 && {
-          equiposCotizacion: {
+          equipos: {
             create: equiposValidados
           }
         })
@@ -342,8 +343,8 @@ export const createCotizacion = async (req, res) => {
         cliente: true,
         inventario: true,
         equipo: true,
-        materiales: true,
-        equiposCotizacion: true // ⭐ INCLUIR EQUIPOS
+        materiales: true,  // ⭐ Incluir materiales
+        equipos: true      // ⭐ Incluir equipos
       }
     })
 

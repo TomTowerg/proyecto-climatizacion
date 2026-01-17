@@ -21,7 +21,9 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
       where: { id: cotizacionId },
       include: {
         cliente: true,
-        inventario: true
+        inventario: true,
+        equipos: true,      // ⭐ INCLUIR EQUIPOS MÚLTIPLES
+        materiales: true    // ⭐ INCLUIR MATERIALES
       }
     })
 
@@ -55,12 +57,14 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
     // 4. PROCESAR SEGÚN TIPO DE SERVICIO
     let equipo = null
     let ordenTrabajo = null
+    let equiposCreados = 0
 
     if (cotizacion.tipo === 'instalacion') {
       // FLUJO INSTALACIÓN
       const resultado = await procesarInstalacion(cotizacion, cliente)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
+      equiposCreados = resultado.equiposCreados || 1
 
     } else if (cotizacion.tipo === 'mantencion') {
       // FLUJO MANTENCIÓN
@@ -86,13 +90,15 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
         cliente: true,
         inventario: true,
         equipoCreado: true,
-        ordenCreada: true
+        ordenCreada: true,
+        equipos: true,
+        materiales: true
       }
     })
 
     console.log(`\n✅ COTIZACIÓN APROBADA EXITOSAMENTE`)
     console.log(`   Cliente: ${cliente.nombre}`)
-    console.log(`   Equipo: ${equipo?.marca || 'N/A'} ${equipo?.modelo || ''}`)
+    console.log(`   Equipos creados: ${equiposCreados}`)
     console.log(`   Orden de Trabajo: #${ordenTrabajo?.id || 'N/A'}`)
 
     return {
@@ -100,6 +106,7 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
       cotizacion: cotizacionAprobada,
       equipo,
       ordenTrabajo,
+      equiposCreados,
       mensaje: 'Cotización aprobada exitosamente'
     }
 
@@ -115,7 +122,21 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
 const validarCotizacionPorTipo = async (cotizacion) => {
   try {
     if (cotizacion.tipo === 'instalacion') {
-      // Para instalación: Verificar stock disponible
+      // ⭐ VALIDAR SISTEMA NUEVO (MÚLTIPLES EQUIPOS)
+      if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+        console.log(`📦 Validando ${cotizacion.equipos.length} equipos...`)
+        
+        for (const equipoCot of cotizacion.equipos) {
+          const stockCheck = await verificarStock(equipoCot.inventarioId, equipoCot.cantidad)
+          if (!stockCheck.disponible) {
+            return { valido: false, error: stockCheck.error }
+          }
+        }
+        
+        return { valido: true }
+      }
+      
+      // VALIDAR SISTEMA ANTIGUO (UN EQUIPO)
       if (!cotizacion.inventarioId) {
         return { valido: false, error: 'Se requiere un producto del inventario para instalación' }
       }
@@ -152,56 +173,156 @@ const validarCotizacionPorTipo = async (cotizacion) => {
 }
 
 /**
- * PROCESAR INSTALACIÓN
- * 1. Crear equipo nuevo del inventario
- * 2. Reducir stock
- * 3. Crear orden de trabajo de instalación
+ * ⭐ PROCESAR INSTALACIÓN CON MÚLTIPLES EQUIPOS
+ * 1. Verificar stock y reducir inventario
+ * 2. Crear equipos del cliente (uno o múltiples)
+ * 3. Crear orden de trabajo
  */
 const procesarInstalacion = async (cotizacion, cliente) => {
   try {
-    console.log(`\n📦 Procesando instalación...`)
+    console.log(`\n🔧 Procesando instalación...`)
 
-    // 1. Verificar y reducir stock
-    const stockResult = await reducirStock(cotizacion.inventarioId, 1)
-    const producto = stockResult.producto
+    const equiposCreados = []
+    let totalEquipos = 0
 
-    // 2. Crear equipo nuevo para el cliente
-    const equipo = await prisma.equipo.create({
-      data: {
-        tipo: producto.tipo,
-        marca: producto.marca,
-        modelo: producto.modelo,
-        numeroSerie: `${producto.marca}-${producto.modelo}-${producto.capacidadBTU}BTU-${Date.now()}`,
-        capacidad: `${producto.capacidadBTU} BTU`, // String requerido
-        tipoGas: producto.tipoGas, // String requerido
-        estado: 'activo',
-        fechaInstalacion: new Date(),
-        fechaCompra: new Date(),
-        clienteId: cliente.id,
-        inventarioId: producto.id,
-        cotizacionId: cotizacion.id
-      }
+    // ⭐ VERIFICAR SI HAY MÚLTIPLES EQUIPOS
+    const equiposCotizacion = await prisma.equipoCotizacion.findMany({
+      where: { cotizacionId: cotizacion.id },
+      include: { inventario: true }
     })
 
-    console.log(`✅ Equipo creado: ${equipo.marca} ${equipo.modelo}`)
+    if (equiposCotizacion && equiposCotizacion.length > 0) {
+      // ========================================
+      // FLUJO MÚLTIPLES EQUIPOS
+      // ========================================
+      console.log(`🛒 Procesando ${equiposCotizacion.length} equipos...`)
 
-    // 3. Crear orden de trabajo de instalación
+      for (const equipoCot of equiposCotizacion) {
+        const producto = equipoCot.inventario
+        const cantidad = equipoCot.cantidad
+
+        // Verificar stock
+        if (producto.stock < cantidad) {
+          throw new Error(
+            `Stock insuficiente para ${producto.marca} ${producto.modelo}. ` +
+            `Disponible: ${producto.stock}, Solicitado: ${cantidad}`
+          )
+        }
+
+        // Crear equipos (uno por cada cantidad)
+        for (let i = 0; i < cantidad; i++) {
+          const numeroEquipo = totalEquipos + i + 1
+          
+          const equipo = await prisma.equipo.create({
+            data: {
+              tipo: producto.tipo,
+              marca: producto.marca,
+              modelo: producto.modelo,
+              numeroSerie: `${producto.marca}-${producto.modelo}-${producto.capacidadBTU}BTU-${Date.now()}-${numeroEquipo}`,
+              capacidad: `${producto.capacidadBTU} BTU`,
+              tipoGas: producto.tipoGas,
+              estado: 'activo',
+              fechaInstalacion: new Date(),
+              fechaCompra: new Date(),
+              clienteId: cliente.id,
+              inventarioId: producto.id,
+              cotizacionId: cotizacion.id
+            }
+          })
+
+          equiposCreados.push(equipo)
+          console.log(`   ✅ Equipo ${numeroEquipo}: ${equipo.marca} ${equipo.modelo}`)
+        }
+
+        // Reducir stock
+        await prisma.inventario.update({
+          where: { id: producto.id },
+          data: { stock: { decrement: cantidad } }
+        })
+
+        console.log(`   📦 Stock reducido: ${producto.marca} ${producto.modelo} (-${cantidad})`)
+        totalEquipos += cantidad
+      }
+
+    } else if (cotizacion.inventarioId) {
+      // ========================================
+      // FLUJO ANTIGUO - UN SOLO EQUIPO
+      // ========================================
+      console.log(`📦 Procesando equipo único (sistema antiguo)...`)
+
+      const producto = await prisma.inventario.findUnique({
+        where: { id: cotizacion.inventarioId }
+      })
+
+      if (!producto) {
+        throw new Error('Producto no encontrado en inventario')
+      }
+
+      if (producto.stock === 0) {
+        throw new Error('Producto sin stock disponible')
+      }
+
+      // Reducir stock
+      await prisma.inventario.update({
+        where: { id: producto.id },
+        data: { stock: { decrement: 1 } }
+      })
+
+      // Crear equipo
+      const equipo = await prisma.equipo.create({
+        data: {
+          tipo: producto.tipo,
+          marca: producto.marca,
+          modelo: producto.modelo,
+          numeroSerie: `${producto.marca}-${producto.modelo}-${producto.capacidadBTU}BTU-${Date.now()}`,
+          capacidad: `${producto.capacidadBTU} BTU`,
+          tipoGas: producto.tipoGas,
+          estado: 'activo',
+          fechaInstalacion: new Date(),
+          fechaCompra: new Date(),
+          clienteId: cliente.id,
+          inventarioId: producto.id,
+          cotizacionId: cotizacion.id
+        }
+      })
+
+      equiposCreados.push(equipo)
+      console.log(`✅ Equipo creado: ${equipo.marca} ${equipo.modelo}`)
+      totalEquipos = 1
+    }
+
+    if (equiposCreados.length === 0) {
+      throw new Error('No se pudo crear ningún equipo')
+    }
+
+    // ⭐ CREAR ORDEN DE TRABAJO (usar el primer equipo como principal)
+    const equipoPrincipal = equiposCreados[0]
+    
+    const descripcionEquipos = equiposCreados.length === 1
+      ? `${equipoPrincipal.marca} ${equipoPrincipal.modelo} ${equipoPrincipal.capacidad}`
+      : `${equiposCreados.length} equipos: ${equiposCreados.map(e => `${e.marca} ${e.modelo}`).join(', ')}`
+
     const ordenTrabajo = await prisma.ordenTrabajo.create({
       data: {
         tipo: 'instalacion',
         estado: 'pendiente',
-        fecha: calcularFechaInstalacion(), // Próximo día hábil
+        fecha: calcularFechaInstalacion(),
         clienteId: cliente.id,
-        equipoId: equipo.id,
+        equipoId: equipoPrincipal.id,
         cotizacionId: cotizacion.id,
         tecnico: 'Por asignar',
-        notas: `Instalación de ${equipo.marca} ${equipo.modelo} ${equipo.capacidad}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion}`
+        notas: `Instalación de ${descripcionEquipos}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}`
       }
     })
 
     console.log(`✅ Orden de trabajo creada: #${ordenTrabajo.id}`)
+    console.log(`   Total equipos instalados: ${equiposCreados.length}`)
 
-    return { equipo, ordenTrabajo }
+    return { 
+      equipo: equipoPrincipal, 
+      ordenTrabajo,
+      equiposCreados: equiposCreados.length
+    }
 
   } catch (error) {
     console.error('Error en procesarInstalacion:', error)
