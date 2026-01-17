@@ -94,25 +94,33 @@ export const getCotizacionById = async (req, res) => {
   }
 }
 
-// ⭐ CREAR COTIZACIÓN CON MATERIALES
+// ⭐ CREAR COTIZACIÓN CON MATERIALES Y MÚLTIPLES EQUIPOS
 export const createCotizacion = async (req, res) => {
   try {
     const { 
       tipo,
       clienteId, 
-      inventarioId,
+      inventarioId,  // Sistema antiguo (un equipo)
+      equipos,       // ⭐ NUEVO: Sistema de múltiples equipos
       equipoId,
       precioOfertado, 
       costoInstalacion,
-      costoMaterial, // Esto ahora se calcula automáticamente
+      costoMaterial,
       descuento, 
       notas,
       agente,
       direccionInstalacion,
-      materiales // ⭐ NUEVO - Array de materiales
+      materiales
     } = req.body
 
-    console.log('📋 Datos recibidos:', { tipo, clienteId, inventarioId, equipoId, materiales })
+    console.log('📋 Datos recibidos:', { 
+      tipo, 
+      clienteId, 
+      inventarioId, 
+      equipos: equipos?.length || 0,
+      equipoId, 
+      materiales: materiales?.length || 0
+    })
 
     // Validaciones básicas
     if (!tipo || !clienteId) {
@@ -121,11 +129,14 @@ export const createCotizacion = async (req, res) => {
       })
     }
 
-    // Validaciones por tipo de servicio
-    if (tipo === 'instalacion' && !inventarioId) {
-      return res.status(400).json({ 
-        error: 'Para instalación se requiere seleccionar un producto del inventario' 
-      })
+    // ⭐ VALIDACIONES POR TIPO DE SERVICIO (CORREGIDO)
+    if (tipo === 'instalacion') {
+      // Aceptar TANTO inventarioId (antiguo) COMO equipos[] (nuevo)
+      if (!inventarioId && (!equipos || equipos.length === 0)) {
+        return res.status(400).json({ 
+          error: 'Para instalación se requiere seleccionar al menos un producto del inventario' 
+        })
+      }
     }
 
     if ((tipo === 'mantencion' || tipo === 'reparacion') && !equipoId) {
@@ -146,7 +157,7 @@ export const createCotizacion = async (req, res) => {
     let producto = null
     let equipo = null
 
-    // Validar inventario (instalación)
+    // ⭐ VALIDAR INVENTARIO (SISTEMA ANTIGUO - UN SOLO EQUIPO)
     if (tipo === 'instalacion' && inventarioId) {
       producto = await prisma.inventario.findUnique({
         where: { id: parseInt(inventarioId) }
@@ -160,6 +171,29 @@ export const createCotizacion = async (req, res) => {
         return res.status(400).json({ 
           error: 'Producto sin stock disponible' 
         })
+      }
+    }
+
+    // ⭐ VALIDAR MÚLTIPLES EQUIPOS (SISTEMA NUEVO)
+    if (tipo === 'instalacion' && equipos && equipos.length > 0) {
+      console.log(`📦 Validando ${equipos.length} equipos...`)
+      
+      for (const eq of equipos) {
+        const equipoInventario = await prisma.inventario.findUnique({
+          where: { id: parseInt(eq.inventarioId) }
+        })
+
+        if (!equipoInventario) {
+          return res.status(404).json({ 
+            error: `Equipo con ID ${eq.inventarioId} no encontrado en inventario` 
+          })
+        }
+
+        if (equipoInventario.stock < eq.cantidad) {
+          return res.status(400).json({ 
+            error: `Stock insuficiente para ${equipoInventario.marca} ${equipoInventario.modelo}. Disponible: ${equipoInventario.stock}, Solicitado: ${eq.cantidad}` 
+          })
+        }
       }
     }
 
@@ -189,7 +223,6 @@ export const createCotizacion = async (req, res) => {
       console.log(`📦 Procesando ${materiales.length} materiales...`)
       
       for (const material of materiales) {
-        // Validar campos requeridos
         if (!material.nombre || !material.cantidad || !material.precioUnitario || !material.unidad) {
           return res.status(400).json({ 
             error: 'Cada material debe tener nombre, cantidad, unidad y precio unitario' 
@@ -221,6 +254,21 @@ export const createCotizacion = async (req, res) => {
       console.log(`💰 Costo total de materiales: $${costoMaterialTotal.toLocaleString('es-CL')}`)
     }
 
+    // ⭐ CALCULAR EQUIPOS (SI HAY MÚLTIPLES)
+    const equiposValidados = []
+    if (tipo === 'instalacion' && equipos && equipos.length > 0) {
+      console.log(`🛒 Procesando ${equipos.length} equipos...`)
+      
+      for (const eq of equipos) {
+        equiposValidados.push({
+          inventarioId: parseInt(eq.inventarioId),
+          cantidad: parseInt(eq.cantidad),
+          precioUnitario: parseFloat(eq.precioUnitario),
+          subtotal: parseInt(eq.cantidad) * parseFloat(eq.precioUnitario)
+        })
+      }
+    }
+
     // Calcular precio final
     const basePrice = precioOfertado || (producto?.precioCliente || 0)
     const instalacion = parseFloat(costoInstalacion) || 0
@@ -244,7 +292,7 @@ export const createCotizacion = async (req, res) => {
       clienteId: parseInt(clienteId),
       precioOfertado: basePrice,
       costoInstalacion: instalacion,
-      costoMaterial: costoMaterialTotal, // ⭐ Calculado automáticamente
+      costoMaterial: costoMaterialTotal,
       descuento: desc,
       subtotal,
       precioFinal,
@@ -263,20 +311,28 @@ export const createCotizacion = async (req, res) => {
       cotizacionData.equipoId = parseInt(equipoId)
     }
 
-    // ⭐ CREAR COTIZACIÓN CON MATERIALES
+    // ⭐ CREAR COTIZACIÓN CON MATERIALES Y EQUIPOS
     const cotizacion = await prisma.cotizacion.create({
       data: {
         ...cotizacionData,
-        // ⭐ Crear materiales relacionados
         materiales: {
           create: materialesValidados
-        }
+        },
+        // ⭐ Crear equipos relacionados (si hay múltiples)
+        ...(equiposValidados.length > 0 && {
+          equiposCotizacion: {
+            create: equiposValidados
+          }
+        })
       }
     })
 
     console.log(`✅ Cotización creada: #${cotizacion.id} - ${tipo}`)
     if (materialesValidados.length > 0) {
       console.log(`   📦 ${materialesValidados.length} materiales agregados`)
+    }
+    if (equiposValidados.length > 0) {
+      console.log(`   🛒 ${equiposValidados.length} equipos agregados`)
     }
 
     // Obtener cotización completa con relaciones
@@ -286,7 +342,8 @@ export const createCotizacion = async (req, res) => {
         cliente: true,
         inventario: true,
         equipo: true,
-        materiales: true // ⭐ INCLUIR MATERIALES
+        materiales: true,
+        equiposCotizacion: true // ⭐ INCLUIR EQUIPOS
       }
     })
 
