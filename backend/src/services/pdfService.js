@@ -8,8 +8,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
- * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN FINAL
- * Con logo y descifrado automático de datos del cliente
+ * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN CORREGIDA
+ * Con logo, múltiples equipos, materiales y descifrado automático
  */
 
 /**
@@ -19,6 +19,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
   return new Promise((resolve, reject) => {
     try {
       console.log(`📄 Generando PDF de cotizacion #${cotizacion.id}...`)
+      console.log(`📦 Equipos múltiples: ${cotizacion.equipos?.length || 0}`)
+      console.log(`📦 Materiales: ${cotizacion.materiales?.length || 0}`)
 
       const pdfDir = path.join(__dirname, '../../pdfs')
       if (!fs.existsSync(pdfDir)) {
@@ -37,16 +39,12 @@ export const generarPDFCotizacion = async (cotizacion) => {
       doc.pipe(stream)
 
       // ============================================
-      // LOGO ARRIBA IZQUIERDA - BÚSQUEDA PRIORITARIA EN BACKEND
+      // LOGO ARRIBA IZQUIERDA
       // ============================================
       const possibleLogoPaths = [
-        // ⭐ PRIORIDAD 1: Logo en backend/public (mismo directorio del servicio)
         path.join(__dirname, '../../public/logo-kmts.png'),
-        // Opción 2: Subir desde services
         path.resolve(__dirname, '../../../frontend/public/logo-kmts.png'),
-        // Opción 3: Root del proyecto
         path.resolve(__dirname, '../../..', 'frontend', 'public', 'logo-kmts.png'),
-        // Opción 4: Path absoluto Windows
         'C:\\proyecto-climatizacion\\frontend\\public\\logo-kmts.png',
         'C:\\proyecto-climatizacion\\backend\\public\\logo-kmts.png',
       ]
@@ -54,8 +52,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
       let logoLoaded = false
       
       for (const logoPath of possibleLogoPaths) {
-        console.log('🔍 Intentando:', logoPath)
-        
         if (fs.existsSync(logoPath)) {
           try {
             doc.image(logoPath, 50, 45, { width: 70, height: 70 })
@@ -63,10 +59,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
             logoLoaded = true
             break
           } catch (error) {
-            console.log('❌ Error al cargar:', error.message)
+            console.log('❌ Error al cargar logo:', error.message)
           }
-        } else {
-          console.log('❌ No existe:', logoPath)
         }
       }
 
@@ -139,7 +133,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         }
       } catch (error) {
         console.log('⚠️  Error al descifrar:', error.message)
-        // Continuar con datos sin descifrar
       }
 
       // CLIENTE (Derecha)
@@ -162,25 +155,22 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
       let clienteY = dataY + 28
 
-      // RUT
       if (clienteDescifrado.rut) {
         doc.text(`RUT: ${clienteDescifrado.rut}`, 320, clienteY)
         clienteY += 12
       }
 
-      // Teléfono
       if (clienteDescifrado.telefono) {
         doc.text(`Teléfono: ${clienteDescifrado.telefono}`, 320, clienteY)
         clienteY += 12
       }
 
-      // Email
       if (clienteDescifrado.email) {
         doc.text(`Email: ${clienteDescifrado.email}`, 320, clienteY, { width: 230 })
         clienteY += 12
       }
 
-      // ⭐ LÍNEA SEPARADORA (después de datos)
+      // LÍNEA SEPARADORA
       doc
         .strokeColor('#1e3a8a')
         .lineWidth(2)
@@ -224,11 +214,100 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text(tipoTexto[cotizacion.tipo] || 'SERVICIO', 50, dataY + 135)
 
       // ============================================
-      // DETALLE DEL EQUIPO
+      // ⭐ EQUIPOS (MÚLTIPLES O ÚNICO)
       // ============================================
       let equipoY = dataY + 160
 
-      if (cotizacion.inventario) {
+      // ⭐ NUEVO: Verificar si hay múltiples equipos
+      if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+        console.log('✅ Mostrando múltiples equipos en PDF')
+        
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('EQUIPOS COTIZADOS', 50, equipoY)
+
+        equipoY += 18
+
+        // Encabezado de tabla
+        const tableTop = equipoY
+        doc
+          .rect(50, tableTop, 512, 20)
+          .fillAndStroke('#1e3a8a', '#1e3a8a')
+
+        doc
+          .fontSize(8)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text('Equipo', 60, tableTop + 6)
+          .text('Cantidad', 290, tableTop + 6)
+          .text('Precio Unit.', 370, tableTop + 6)
+          .text('Subtotal', 480, tableTop + 6)
+
+        let currentY = tableTop + 25
+
+        cotizacion.equipos.forEach((equipoItem, index) => {
+          const inv = equipoItem.inventario
+
+          // Verificar si necesitamos nueva página
+          if (currentY > 650) {
+            doc.addPage()
+            currentY = 60
+
+            // Re-dibujar encabezado en nueva página
+            doc
+              .rect(50, currentY, 512, 20)
+              .fillAndStroke('#1e3a8a', '#1e3a8a')
+              .fontSize(8)
+              .font('Helvetica-Bold')
+              .fillColor('#ffffff')
+              .text('Equipo', 60, currentY + 6)
+              .text('Cantidad', 290, currentY + 6)
+              .text('Precio Unit.', 370, currentY + 6)
+              .text('Subtotal', 480, currentY + 6)
+
+            currentY += 25
+          }
+
+          // Fila alternada
+          if (index % 2 === 0) {
+            doc
+              .rect(50, currentY - 3, 512, 18)
+              .fillAndStroke('#f9fafb', '#f9fafb')
+          }
+
+          // Datos del equipo
+          doc
+            .fontSize(8)
+            .font('Helvetica')
+            .fillColor('#1f2937')
+            .text(`${inv.marca} ${inv.modelo}`, 60, currentY, { width: 210 })
+            .text(equipoItem.cantidad.toString(), 290, currentY)
+            .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY)
+            .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY)
+
+          currentY += 18
+        })
+
+        // Total de equipos
+        const totalEquipos = cotizacion.equipos.reduce((sum, eq) => sum + eq.subtotal, 0)
+        
+        doc
+          .rect(380, currentY + 5, 182, 18)
+          .fillAndStroke('#dbeafe', '#2563eb')
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('Total Equipos:', 390, currentY + 10)
+          .text(`$${totalEquipos.toLocaleString('es-CL')}`, 480, currentY + 10)
+
+        equipoY = currentY + 35
+
+      } else if (cotizacion.inventario) {
+        // Sistema antiguo - un solo equipo
+        console.log('✅ Mostrando equipo único (sistema antiguo) en PDF')
+        
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
@@ -267,6 +346,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // MATERIALES INCLUIDOS
       // ============================================
       if (cotizacion.materiales && cotizacion.materiales.length > 0) {
+        console.log('✅ Mostrando materiales en PDF')
+        
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
