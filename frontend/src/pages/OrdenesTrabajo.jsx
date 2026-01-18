@@ -17,7 +17,7 @@ import {
 } from '../services/ordenTrabajoService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
-import { analizarUrgencia } from '../services/iaService'
+
 
 function OrdenesTrabajo() {
   const { t } = useTranslation()
@@ -30,10 +30,6 @@ function OrdenesTrabajo() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingOrden, setEditingOrden] = useState(null)
-  const [analizando, setAnalizando] = useState(false)
-  const [analisisIA, setAnalisisIA] = useState(null)
-  const [showAnalisisModal, setShowAnalisisModal] = useState(false)
-  const [analisisSeleccionado, setAnalisisSeleccionado] = useState(null)
   const [formData, setFormData] = useState({
     clienteId: '',
     equipoId: '',
@@ -172,52 +168,6 @@ const handleDownloadDocument = async (ordenId) => {
   }
 }
 
-  const handleAnalizarUrgencia = async () => {
-    if (!formData.notas || formData.notas.trim() === '') {
-      toast.error(t('workOrders.messages.missingDescription'))
-      return
-    }
-
-    if (!formData.tipo) {
-      toast.error(t('workOrders.messages.missingType'))
-      return
-    }
-
-    setAnalizando(true)
-    try {
-      const clienteNombre = clientes.find(c => c.id === parseInt(formData.clienteId))?.nombre || 'No especificado'
-      
-      const analisis = await analizarUrgencia(
-        formData.notas,
-        formData.tipo,
-        clienteNombre
-      )
-
-      setAnalisisIA(analisis)
-      
-      const urgenciaMap = {
-        'CRÍTICA': 'critica',
-        'CRITICA': 'critica',
-        'MEDIA': 'media',
-        'BAJA': 'baja'
-      }
-      
-      const urgenciaCalculada = urgenciaMap[analisis.nivel?.toUpperCase()] || 'media'
-      
-      setFormData({
-        ...formData,
-        urgencia: urgenciaCalculada
-      })
-
-      toast.success(t('workOrders.messages.analysisSuccess'))
-    } catch (error) {
-      console.error('Error al analizar:', error)
-      toast.error(t('workOrders.messages.analysisError'))
-    } finally {
-      setAnalizando(false)
-    }
-  }
-
   // Reemplazar desde línea 229
 const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
   console.log('🔍 Completando orden ID:', ordenId)
@@ -261,7 +211,6 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
       const dataToSend = {
         ...formData,
         equipoId: formData.equipoId || null,
-        analisisIA: analisisIA
       }
 
       if (editingOrden) {
@@ -290,19 +239,8 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
       notas: orden.notas || '',
       tecnico: orden.tecnico,
       estado: orden.estado,
-      urgencia: orden.urgencia || 'media'
+      
     })
-    
-    if (orden.analisisIA) {
-      try {
-        const analisis = typeof orden.analisisIA === 'string' 
-          ? JSON.parse(orden.analisisIA) 
-          : orden.analisisIA
-        setAnalisisIA(analisis)
-      } catch (e) {
-        setAnalisisIA(null)
-      }
-    }
     
     setShowModal(true)
   }
@@ -327,7 +265,6 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingOrden(null)
-    setAnalisisIA(null)
     setFormData({
       clienteId: '',
       equipoId: '',
@@ -739,65 +676,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                 />
               </div>
 
-              {/* Botón Analizar con IA */}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleAnalizarUrgencia}
-                  disabled={analizando || !formData.notas || !formData.tipo}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Sparkles size={18} />
-                  {analizando ? t('workOrders.form.analyzing') : `🤖 ${t('workOrders.form.analyzeAI')}`}
-                </button>
-              </div>
-
-              {/* Mostrar Análisis de IA */}
-              {analisisIA && (
-                <div className={`p-4 rounded-lg border-2 ${
-                  analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
-                    ? 'bg-red-50 border-red-200' 
-                    : analisisIA.nivel === 'MEDIA' 
-                    ? 'bg-yellow-50 border-yellow-200' 
-                    : 'bg-green-50 border-green-200'
-                }`}>
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">
-                      {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' ? '🔴' : analisisIA.nivel === 'MEDIA' ? '🟡' : '🟢'}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg mb-2">
-                        {analisisIA.nivel === 'CRÍTICA' || analisisIA.nivel === 'CRITICA' 
-                          ? `${t('workOrders.ai.critical')}` 
-                          : analisisIA.nivel === 'MEDIA' 
-                          ? `${t('workOrders.ai.medium')}` 
-                          : `${t('workOrders.ai.low')}`}
-                      </h3>
-                      
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <strong>{t('workOrders.ai.reasons')}:</strong>
-                          <ul className="list-disc list-inside ml-2 mt-1">
-                            {analisisIA.razones?.map((razon, idx) => (
-                              <li key={idx}>{razon}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <strong>{t('workOrders.ai.recommendation')}:</strong>
-                          <p className="ml-2 mt-1">{analisisIA.accionRecomendada}</p>
-                        </div>
-                        
-                        <div>
-                          <strong>⏱️ {t('workOrders.ai.responseTime')}:</strong>
-                          <p className="ml-2 mt-1">{analisisIA.tiempoRespuesta}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+            
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -819,75 +698,6 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
         </div>
       )}
 
-      {/* Modal de Ver Análisis */}
-      {showAnalisisModal && analisisSeleccionado && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-2xl font-bold">{t('workOrders.ai.title')}</h2>
-              <button
-                onClick={() => setShowAnalisisModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className={`p-4 rounded-lg border-2 ${
-              analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
-                ? 'bg-red-50 border-red-200' 
-                : analisisSeleccionado.nivel === 'MEDIA' 
-                ? 'bg-yellow-50 border-yellow-200' 
-                : 'bg-green-50 border-green-200'
-            }`}>
-              <div className="flex items-start gap-3">
-                <div className="text-4xl">
-                  {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' ? '🔴' : analisisSeleccionado.nivel === 'MEDIA' ? '🟡' : '🟢'}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-xl mb-3">
-                    {analisisSeleccionado.nivel === 'CRÍTICA' || analisisSeleccionado.nivel === 'CRITICA' 
-                      ? `${t('workOrders.ai.critical')}` 
-                      : analisisSeleccionado.nivel === 'MEDIA' 
-                      ? `${t('workOrders.ai.medium')}` 
-                      : `${t('workOrders.ai.low')}`}
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <strong className="text-gray-700">{t('workOrders.ai.reasons')}:</strong>
-                      <ul className="list-disc list-inside ml-2 mt-2 space-y-1">
-                        {analisisSeleccionado.razones?.map((razon, idx) => (
-                          <li key={idx} className="text-gray-600">{razon}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div>
-                      <strong className="text-gray-700">{t('workOrders.ai.recommendation')}:</strong>
-                      <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.accionRecomendada}</p>
-                    </div>
-                    
-                    <div>
-                      <strong className="text-gray-700">⏱️ {t('workOrders.ai.responseTime')}:</strong>
-                      <p className="ml-2 mt-1 text-gray-600">{analisisSeleccionado.tiempoRespuesta}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowAnalisisModal(false)}
-                className="btn-primary"
-              >
-                {t('workOrders.ai.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

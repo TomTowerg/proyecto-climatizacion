@@ -141,7 +141,7 @@ export const createOrdenTrabajo = async (req, res) => {
         tecnico,
         estado: estado || 'pendiente',
         urgencia: urgencia || 'media',
-        analisisIA: analisisIA ? JSON.stringify(analisisIA) : null
+        
       },
       include: {
         cliente: true,
@@ -186,7 +186,7 @@ export const updateOrdenTrabajo = async (req, res) => {
       tecnico,
       estado,
       urgencia,
-      analisisIA
+      
     } = req.body
 
     const existingOrden = await prisma.ordenTrabajo.findUnique({
@@ -208,7 +208,7 @@ export const updateOrdenTrabajo = async (req, res) => {
         tecnico,
         estado,
         urgencia,
-        analisisIA: analisisIA ? JSON.stringify(analisisIA) : undefined
+      
       },
       include: {
         cliente: true,
@@ -361,6 +361,7 @@ export const generarPDF = async (req, res) => {
       return res.status(400).json({ error: 'ID de orden inválido' })
     }
 
+    // ⭐ INCLUIR COTIZACIÓN CON EQUIPOS Y MATERIALES
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
@@ -368,6 +369,26 @@ export const generarPDF = async (req, res) => {
         equipo: {
           include: {
             inventario: true
+          }
+        },
+        // ⭐ AGREGAR COTIZACIÓN
+        cotizacion: {
+          include: {
+            equipos: {
+              include: {
+                inventario: {
+                  select: {
+                    id: true,
+                    tipo: true,
+                    marca: true,
+                    modelo: true,
+                    capacidadBTU: true,
+                    precioCliente: true
+                  }
+                }
+              }
+            },
+            materiales: true
           }
         }
       }
