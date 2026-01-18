@@ -9,7 +9,12 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Obtener todas las órdenes de trabajo
+/**
+ * CONTROLADOR DE ÓRDENES DE TRABAJO - VERSIÓN CORREGIDA
+ * Con descifrado de datos y manejo robusto de errores
+ */
+
+// ⭐ OBTENER TODAS LAS ÓRDENES
 export const getOrdenesTrabajo = async (req, res) => {
   try {
     const ordenes = await prisma.ordenTrabajo.findMany({
@@ -19,7 +24,9 @@ export const getOrdenesTrabajo = async (req, res) => {
             id: true,
             nombre: true,
             rut: true,
-            telefono: true
+            telefono: true,
+            rut_encrypted: true,
+            telefono_encrypted: true
           }
         },
         equipo: {
@@ -39,7 +46,7 @@ export const getOrdenesTrabajo = async (req, res) => {
         }
       },
       orderBy: {
-        fecha: 'desc'
+        createdAt: 'desc'
       }
     })
 
@@ -59,14 +66,21 @@ export const getOrdenesTrabajo = async (req, res) => {
     res.json(ordenesConCapacidad)
   } catch (error) {
     console.error('Error al obtener órdenes de trabajo:', error)
-    res.status(500).json({ error: 'Error al obtener órdenes de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al obtener órdenes de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Obtener orden de trabajo por ID
+// ⭐ OBTENER ORDEN POR ID
 export const getOrdenTrabajoById = async (req, res) => {
   try {
     const { id } = req.params
+
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
+    }
 
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
@@ -87,52 +101,34 @@ export const getOrdenTrabajoById = async (req, res) => {
     res.json(orden)
   } catch (error) {
     console.error('Error al obtener orden de trabajo:', error)
-    res.status(500).json({ error: 'Error al obtener orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al obtener orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Crear orden de trabajo
+// ⭐ CREAR ORDEN
 export const createOrdenTrabajo = async (req, res) => {
   try {
-    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
+    const { 
+      clienteId, 
+      equipoId, 
+      tipo, 
+      fecha, 
+      notas, 
+      tecnico, 
+      estado, 
+      urgencia, 
+      analisisIA 
+    } = req.body
 
     console.log('📝 Creando orden con análisis:', analisisIA)
 
-    if (!clienteId || !tipo || !fecha || !tecnico) {
+    if (!clienteId || !tipo) {
       return res.status(400).json({ 
-        error: 'Cliente, tipo, fecha y técnico son requeridos' 
+        error: 'Faltan campos requeridos: clienteId, tipo' 
       })
-    }
-
-    const tiposValidos = ['instalacion', 'mantenimiento', 'reparacion']
-    if (!tiposValidos.includes(tipo)) {
-      return res.status(400).json({ 
-        error: 'Tipo de orden inválido. Debe ser: instalacion, mantenimiento o reparacion' 
-      })
-    }
-
-    const cliente = await prisma.cliente.findUnique({
-      where: { id: parseInt(clienteId) }
-    })
-
-    if (!cliente) {
-      return res.status(404).json({ error: 'Cliente no encontrado' })
-    }
-
-    if (equipoId) {
-      const equipo = await prisma.equipo.findUnique({
-        where: { id: parseInt(equipoId) }
-      })
-
-      if (!equipo) {
-        return res.status(404).json({ error: 'Equipo no encontrado' })
-      }
-
-      if (equipo.clienteId !== parseInt(clienteId)) {
-        return res.status(400).json({ 
-          error: 'El equipo no pertenece al cliente seleccionado' 
-        })
-      }
     }
 
     const orden = await prisma.ordenTrabajo.create({
@@ -140,8 +136,8 @@ export const createOrdenTrabajo = async (req, res) => {
         clienteId: parseInt(clienteId),
         equipoId: equipoId ? parseInt(equipoId) : null,
         tipo,
-        fecha: new Date(fecha),
-        notas: notas || '',
+        fecha: fecha ? new Date(fecha) : new Date(),
+        notas,
         tecnico,
         estado: estado || 'pendiente',
         urgencia: urgencia || 'media',
@@ -157,7 +153,7 @@ export const createOrdenTrabajo = async (req, res) => {
       }
     })
 
-    console.log('✅ Orden creada con urgencia:', orden.urgencia)
+    console.log(`✅ Orden creada: #${orden.id}`)
 
     res.status(201).json({
       message: 'Orden de trabajo creada exitosamente',
@@ -165,15 +161,33 @@ export const createOrdenTrabajo = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear orden de trabajo:', error)
-    res.status(500).json({ error: 'Error al crear orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al crear orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Actualizar orden de trabajo
+// ⭐ ACTUALIZAR ORDEN
 export const updateOrdenTrabajo = async (req, res) => {
   try {
     const { id } = req.params
-    const { clienteId, equipoId, tipo, fecha, notas, tecnico, estado, urgencia, analisisIA } = req.body
+
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
+    }
+
+    const {
+      clienteId,
+      equipoId,
+      tipo,
+      fecha,
+      notas,
+      tecnico,
+      estado,
+      urgencia,
+      analisisIA
+    } = req.body
 
     const existingOrden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) }
@@ -183,45 +197,18 @@ export const updateOrdenTrabajo = async (req, res) => {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    if (tipo) {
-      const tiposValidos = ['instalacion', 'mantenimiento', 'reparacion']
-      if (!tiposValidos.includes(tipo)) {
-        return res.status(400).json({ 
-          error: 'Tipo de orden inválido' 
-        })
-      }
-    }
-
-    if (estado) {
-      const estadosValidos = ['pendiente', 'en_proceso', 'completado']
-      if (!estadosValidos.includes(estado)) {
-        return res.status(400).json({ 
-          error: 'Estado inválido. Debe ser: pendiente, en_proceso o completado' 
-        })
-      }
-    }
-
-    if (urgencia) {
-      const urgenciasValidas = ['baja', 'media', 'critica']
-      if (!urgenciasValidas.includes(urgencia)) {
-        return res.status(400).json({ 
-          error: 'Urgencia inválida. Debe ser: baja, media o critica' 
-        })
-      }
-    }
-
     const orden = await prisma.ordenTrabajo.update({
       where: { id: parseInt(id) },
       data: {
-        clienteId: clienteId ? parseInt(clienteId) : existingOrden.clienteId,
-        equipoId: equipoId ? parseInt(equipoId) : existingOrden.equipoId,
-        tipo: tipo || existingOrden.tipo,
-        fecha: fecha ? new Date(fecha) : existingOrden.fecha,
-        notas: notas !== undefined ? notas : existingOrden.notas,
-        tecnico: tecnico || existingOrden.tecnico,
-        estado: estado || existingOrden.estado,
-        urgencia: urgencia || existingOrden.urgencia,
-        analisisIA: analisisIA ? JSON.stringify(analisisIA) : existingOrden.analisisIA
+        clienteId: clienteId ? parseInt(clienteId) : undefined,
+        equipoId: equipoId ? parseInt(equipoId) : undefined,
+        tipo,
+        fecha: fecha ? new Date(fecha) : undefined,
+        notas,
+        tecnico,
+        estado,
+        urgencia,
+        analisisIA: analisisIA ? JSON.stringify(analisisIA) : undefined
       },
       include: {
         cliente: true,
@@ -239,29 +226,53 @@ export const updateOrdenTrabajo = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar orden de trabajo:', error)
-    res.status(500).json({ error: 'Error al actualizar orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al actualizar orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Completar orden de trabajo
+// ⭐ COMPLETAR ORDEN
 export const completarOrden = async (req, res) => {
   try {
     const { id } = req.params
 
+    console.log('🔄 Intentando completar orden:', id)
+
+    // ⭐ VALIDAR ID
+    if (!id || id === 'undefined' || id === 'null') {
+      console.error('❌ ID inválido:', id)
+      return res.status(400).json({ 
+        error: 'ID de orden inválido',
+        receivedId: id
+      })
+    }
+
+    const ordenId = parseInt(id)
+    if (isNaN(ordenId)) {
+      console.error('❌ ID no es un número:', id)
+      return res.status(400).json({ 
+        error: 'ID de orden debe ser un número',
+        receivedId: id
+      })
+    }
+
     const existingOrden = await prisma.ordenTrabajo.findUnique({
-      where: { id: parseInt(id) }
+      where: { id: ordenId }
     })
 
     if (!existingOrden) {
+      console.error('❌ Orden no encontrada:', ordenId)
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    if (existingOrden.estado === 'completado') {
+    if (existingOrden.estado === 'completado' || existingOrden.estado === 'completada') {
       return res.status(400).json({ error: 'Esta orden ya está completada' })
     }
 
     const orden = await prisma.ordenTrabajo.update({
-      where: { id: parseInt(id) },
+      where: { id: ordenId },
       data: {
         estado: 'completado',
         fechaCompletado: new Date()
@@ -276,27 +287,28 @@ export const completarOrden = async (req, res) => {
       }
     })
 
+    console.log(`✅ Orden completada: #${ordenId}`)
+
     res.json({
       message: 'Orden completada exitosamente',
       orden
     })
   } catch (error) {
     console.error('Error al completar orden:', error)
-    res.status(500).json({ error: 'Error al completar orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al completar orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Eliminar orden de trabajo
+// ⭐ ELIMINAR ORDEN
 export const deleteOrdenTrabajo = async (req, res) => {
   try {
     const { id } = req.params
 
-    const existingOrden = await prisma.ordenTrabajo.findUnique({
-      where: { id: parseInt(id) }
-    })
-
-    if (!existingOrden) {
-      return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
     }
 
     await prisma.ordenTrabajo.delete({
@@ -306,57 +318,48 @@ export const deleteOrdenTrabajo = async (req, res) => {
     res.json({ message: 'Orden de trabajo eliminada exitosamente' })
   } catch (error) {
     console.error('Error al eliminar orden de trabajo:', error)
-    res.status(500).json({ error: 'Error al eliminar orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al eliminar orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// Obtener estadísticas
+// ⭐ OBTENER ESTADÍSTICAS
 export const getEstadisticas = async (req, res) => {
   try {
-    const totalClientes = await prisma.cliente.count()
-    const totalEquipos = await prisma.equipo.count()
-    
-    const inicioMes = new Date()
-    inicioMes.setDate(1)
-    inicioMes.setHours(0, 0, 0, 0)
-    
-    const finMes = new Date()
-    finMes.setMonth(finMes.getMonth() + 1)
-    finMes.setDate(0)
-    finMes.setHours(23, 59, 59, 999)
-    
-    const ordenesMes = await prisma.ordenTrabajo.count({
-      where: {
-        fecha: {
-          gte: inicioMes,
-          lte: finMes
-        }
-      }
-    })
-    
-    const mantenimientosCompletados = await prisma.ordenTrabajo.count({
-      where: {
-        tipo: 'mantenimiento',
-        estado: 'completado'
-      }
-    })
+    const [total, pendientes, enProceso, completadas] = await Promise.all([
+      prisma.ordenTrabajo.count(),
+      prisma.ordenTrabajo.count({ where: { estado: 'pendiente' } }),
+      prisma.ordenTrabajo.count({ where: { estado: 'en_proceso' } }),
+      prisma.ordenTrabajo.count({ where: { estado: { in: ['completado', 'completada'] } } })
+    ])
 
     res.json({
-      totalClientes,
-      totalEquipos,
-      ordenesMes,
-      mantenimientosCompletados
+      total,
+      pendientes,
+      enProceso,
+      completadas
     })
   } catch (error) {
     console.error('Error al obtener estadísticas:', error)
-    res.status(500).json({ error: 'Error al obtener estadísticas' })
+    res.status(500).json({ 
+      error: 'Error al obtener estadísticas',
+      details: error.message
+    })
   }
 }
 
-//  GENERAR PDF DE ORDEN DE TRABAJO
+// ⭐ GENERAR PDF
 export const generarPDF = async (req, res) => {
   try {
     const { id } = req.params
+
+    console.log(`📄 Generando PDF de orden #${id}...`)
+
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
+    }
 
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
@@ -374,7 +377,7 @@ export const generarPDF = async (req, res) => {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    // ⭐ DESCIFRAR DATOS DEL CLIENTE ANTES DE GENERAR PDF
+    // ⭐ DESCIFRAR DATOS DEL CLIENTE
     if (orden.cliente) {
       try {
         if (orden.cliente.rut_encrypted || 
@@ -400,11 +403,14 @@ export const generarPDF = async (req, res) => {
 
   } catch (error) {
     console.error('Error al generar PDF:', error)
-    res.status(500).json({ error: 'Error al generar PDF de la orden de trabajo' })
+    res.status(500).json({ 
+      error: 'Error al generar PDF de la orden de trabajo',
+      details: error.message
+    })
   }
 }
 
-// ⭐ CONFIGURACIÓN DE MULTER PARA SUBIDA DE ARCHIVOS
+// ⭐ CONFIGURACIÓN DE MULTER
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadsDir = path.join(__dirname, '../../uploads/ordenes')
@@ -446,6 +452,12 @@ export const subirDocumentoFirmado = async (req, res) => {
   try {
     const { id } = req.params
 
+    console.log('📤 Subiendo documento para orden:', id)
+
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: 'No se proporcionó ningún archivo' })
     }
@@ -476,6 +488,8 @@ export const subirDocumentoFirmado = async (req, res) => {
       }
     })
 
+    console.log(`✅ Documento subido para orden #${id}`)
+
     res.json({
       message: 'Documento firmado subido exitosamente',
       orden: ordenActualizada,
@@ -489,7 +503,10 @@ export const subirDocumentoFirmado = async (req, res) => {
 
   } catch (error) {
     console.error('Error al subir documento:', error)
-    res.status(500).json({ error: 'Error al subir el documento firmado' })
+    res.status(500).json({ 
+      error: 'Error al subir el documento firmado',
+      details: error.message
+    })
   }
 }
 
@@ -497,6 +514,10 @@ export const subirDocumentoFirmado = async (req, res) => {
 export const descargarDocumentoFirmado = async (req, res) => {
   try {
     const { id } = req.params
+
+    if (!id || id === 'undefined') {
+      return res.status(400).json({ error: 'ID de orden inválido' })
+    }
 
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) }
@@ -520,7 +541,10 @@ export const descargarDocumentoFirmado = async (req, res) => {
 
   } catch (error) {
     console.error('Error al descargar documento:', error)
-    res.status(500).json({ error: 'Error al descargar el documento' })
+    res.status(500).json({ 
+      error: 'Error al descargar el documento',
+      details: error.message
+    })
   }
 }
 
