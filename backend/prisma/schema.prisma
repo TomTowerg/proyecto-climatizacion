@@ -1,5 +1,5 @@
 // ============================================
-// SCHEMA CON MATERIALES EN COTIZACIONES
+// SCHEMA CORREGIDO - MÚLTIPLES EQUIPOS POR COTIZACIÓN
 // Reemplazar: backend/prisma/schema.prisma
 // ============================================
 
@@ -118,7 +118,7 @@ model Cotizacion {
   notas           String?
   agente          String?
   direccionInstalacion String?
-  equipoCreado    Equipo?     @relation("CotizacionAprobada")
+  equiposCreados  Equipo[]    @relation("EquiposDeCotizacion")
   ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
   equipos       EquipoCotizacion[]
   materiales      MaterialCotizacion[]
@@ -142,8 +142,11 @@ model Equipo {
   cliente           Cliente  @relation(fields: [clienteId], references: [id])
   inventarioId      Int?
   inventario        Inventario? @relation(fields: [inventarioId], references: [id])
-  cotizacionId      Int?     @unique
-  cotizacion        Cotizacion? @relation("CotizacionAprobada", fields: [cotizacionId], references: [id])
+  
+  // ⭐ CORREGIDO: Quitar @unique para permitir múltiples equipos por cotización
+  cotizacionId      Int?
+  cotizacion        Cotizacion? @relation("EquiposDeCotizacion", fields: [cotizacionId], references: [id])
+  
   estado            String   @default("activo")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -183,6 +186,7 @@ model OrdenTrabajo {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
 // ⭐ NUEVO: Tabla para múltiples equipos en cotizaciones
 model EquipoCotizacion {
   id            Int      @id @default(autoincrement())
