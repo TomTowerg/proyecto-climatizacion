@@ -142,8 +142,6 @@ model Equipo {
   cliente           Cliente  @relation(fields: [clienteId], references: [id])
   inventarioId      Int?
   inventario        Inventario? @relation(fields: [inventarioId], references: [id])
-  
-  // ⭐ CORREGIDO: Quitar @unique para permitir múltiples equipos por cotización
   cotizacionId      Int?
   cotizacion        Cotizacion? @relation("EquiposDeCotizacion", fields: [cotizacionId], references: [id])
   
