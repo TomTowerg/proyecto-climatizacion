@@ -9,7 +9,7 @@ import fs from 'fs'
  * ═══════════════════════════════════════════════════════
  */
 
-// Obtener todas las cotizaciones
+// ⭐ CORREGIDO: Obtener todas las cotizaciones CON EQUIPOS MÚLTIPLES
 export const getCotizaciones = async (req, res) => {
   try {
     const cotizaciones = await prisma.cotizacion.findMany({
@@ -46,6 +46,21 @@ export const getCotizaciones = async (req, res) => {
             clienteId: true
           }
         },
+        // ⭐ AGREGADO: Incluir equipos múltiples con información del inventario
+        equipos: {
+          include: {
+            inventario: {
+              select: {
+                id: true,
+                tipo: true,
+                marca: true,
+                modelo: true,
+                capacidadBTU: true,
+                precioCliente: true
+              }
+            }
+          }
+        },
         materiales: true, // ⭐ INCLUIR MATERIALES
         equipoCreado: true,
         ordenCreada: true
@@ -62,7 +77,7 @@ export const getCotizaciones = async (req, res) => {
   }
 }
 
-// Obtener cotización por ID
+// ⭐ CORREGIDO: Obtener cotización por ID CON EQUIPOS MÚLTIPLES
 export const getCotizacionById = async (req, res) => {
   try {
     const { id } = req.params
@@ -73,6 +88,21 @@ export const getCotizacionById = async (req, res) => {
         cliente: true,
         inventario: true,
         equipo: true,
+        // ⭐ AGREGADO: Incluir equipos múltiples con información del inventario
+        equipos: {
+          include: {
+            inventario: {
+              select: {
+                id: true,
+                tipo: true,
+                marca: true,
+                modelo: true,
+                capacidadBTU: true,
+                precioCliente: true
+              }
+            }
+          }
+        },
         materiales: true, // ⭐ INCLUIR MATERIALES
         equipoCreado: true,
         ordenCreada: {
@@ -272,92 +302,72 @@ export const createCotizacion = async (req, res) => {
     // Calcular precio final
     const basePrice = parseFloat(precioOfertado) || (producto?.precioCliente || 0)
     const instalacion = parseFloat(costoInstalacion) || 0
+    const material = parseFloat(costoMaterial) || costoMaterialTotal
     const desc = parseFloat(descuento) || 0
-    
-    const subtotal = basePrice + instalacion + costoMaterialTotal
+
+    const subtotal = basePrice + instalacion + material
     const precioFinal = subtotal * (1 - desc / 100)
 
-    console.log('💰 Cálculo:', { 
-      basePrice, 
-      instalacion, 
-      materiales: costoMaterialTotal, 
-      desc, 
-      subtotal, 
-      precioFinal 
+    console.log('💰 Cálculo de precios:', {
+      basePrice,
+      instalacion,
+      material,
+      subtotal,
+      descuento: desc,
+      precioFinal
     })
 
-    // Preparar datos de cotización
-    const cotizacionData = {
-      tipo: tipo || 'instalacion',
-      clienteId: parseInt(clienteId),
-      precioOfertado: basePrice,
-      costoInstalacion: instalacion,
-      costoMaterial: costoMaterialTotal,
-      descuento: desc,
-      subtotal,
-      precioFinal,
-      notas: notas || '',
-      agente,
-      direccionInstalacion,
-      estado: 'pendiente'
-    }
-
-    // Agregar inventarioId o equipoId según tipo
-    if (tipo === 'instalacion' && inventarioId) {
-      cotizacionData.inventarioId = parseInt(inventarioId)
-    }
-
-    if ((tipo === 'mantencion' || tipo === 'reparacion') && equipoId) {
-      cotizacionData.equipoId = parseInt(equipoId)
-    }
-
-    // ⭐ CREAR COTIZACIÓN CON MATERIALES Y EQUIPOS
-    const cotizacion = await prisma.cotizacion.create({
+    // Crear cotización
+    const nuevaCotizacion = await prisma.cotizacion.create({
       data: {
-        ...cotizacionData,
-        // ⭐ Crear materiales relacionados
+        tipo,
+        clienteId: parseInt(clienteId),
+        inventarioId: inventarioId ? parseInt(inventarioId) : null,
+        equipoId: equipoId ? parseInt(equipoId) : null,
+        precioOfertado: basePrice,
+        costoInstalacion: instalacion,
+        costoMaterial: material,
+        subtotal,
+        descuento: desc,
+        precioFinal,
+        notas,
+        agente,
+        direccionInstalacion,
+        estado: 'pendiente',
+        // ⭐ CREAR MATERIALES Y EQUIPOS MÚLTIPLES
         materiales: {
           create: materialesValidados
         },
-        // ⭐ Crear equipos relacionados (si hay múltiples)
-        ...(equiposValidados.length > 0 && {
-          equipos: {
-            create: equiposValidados
-          }
-        })
-      }
-    })
-
-    console.log(`✅ Cotización creada: #${cotizacion.id} - ${tipo}`)
-    if (materialesValidados.length > 0) {
-      console.log(`   📦 ${materialesValidados.length} materiales agregados`)
-    }
-    if (equiposValidados.length > 0) {
-      console.log(`   🛒 ${equiposValidados.length} equipos agregados`)
-    }
-
-    // Obtener cotización completa con relaciones
-    const cotizacionCompleta = await prisma.cotizacion.findUnique({
-      where: { id: cotizacion.id },
+        equipos: {
+          create: equiposValidados
+        }
+      },
       include: {
         cliente: true,
         inventario: true,
         equipo: true,
-        materiales: true,  // ⭐ Incluir materiales
-        equipos: true      // ⭐ Incluir equipos
+        materiales: true,
+        equipos: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
+
+    console.log('✅ Cotización creada:', nuevaCotizacion.id)
 
     res.status(201).json({
       success: true,
       message: 'Cotización creada exitosamente',
-      cotizacion: cotizacionCompleta
+      cotizacion: nuevaCotizacion
     })
+
   } catch (error) {
     console.error('❌ Error al crear cotización:', error)
     res.status(500).json({ 
       error: 'Error al crear cotización',
-      details: error.message 
+      detalle: error.message 
     })
   }
 }
@@ -455,7 +465,12 @@ export const updateCotizacion = async (req, res) => {
       include: {
         cliente: true,
         inventario: true,
-        materiales: true // ⭐ INCLUIR MATERIALES
+        materiales: true, // ⭐ INCLUIR MATERIALES
+        equipos: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
 
@@ -483,7 +498,7 @@ export const deleteCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // Los materiales se eliminan automáticamente por CASCADE
+    // Los materiales y equipos se eliminan automáticamente por CASCADE
     await prisma.cotizacion.delete({
       where: { id: parseInt(id) }
     })
@@ -579,20 +594,25 @@ export const getEstadisticas = async (req, res) => {
   }
 }
 
-// ⭐ GENERAR PDF CON MATERIALES
+// ⭐ GENERAR PDF CON MATERIALES Y EQUIPOS MÚLTIPLES
 export const generarPDF = async (req, res) => {
   try {
     const { id } = req.params
     
     console.log(`📄 Generando PDF para cotización #${id}`)
 
-    // Obtener cotización con materiales
+    // Obtener cotización con materiales y equipos múltiples
     const cotizacion = await prisma.cotizacion.findUnique({
       where: { id: parseInt(id) },
       include: {
         cliente: true,
         inventario: true,
-        materiales: true // ⭐ INCLUIR MATERIALES PARA PDF
+        materiales: true, // ⭐ INCLUIR MATERIALES PARA PDF
+        equipos: {
+          include: {
+            inventario: true
+          }
+        }
       }
     })
 
