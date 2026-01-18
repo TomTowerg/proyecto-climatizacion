@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js'
+import { decryptSensitiveFields } from '../utils/encryption.js'
 import { generarPDFOrdenTrabajo } from '../services/ordenTrabajoPDFService.js'
 import multer from 'multer'
 import path from 'path'
@@ -352,7 +353,7 @@ export const getEstadisticas = async (req, res) => {
   }
 }
 
-// ⭐ GENERAR PDF DE ORDEN DE TRABAJO
+//  GENERAR PDF DE ORDEN DE TRABAJO
 export const generarPDF = async (req, res) => {
   try {
     const { id } = req.params
@@ -371,6 +372,22 @@ export const generarPDF = async (req, res) => {
 
     if (!orden) {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
+    }
+
+    // ⭐ DESCIFRAR DATOS DEL CLIENTE ANTES DE GENERAR PDF
+    if (orden.cliente) {
+      try {
+        if (orden.cliente.rut_encrypted || 
+            orden.cliente.email_encrypted || 
+            orden.cliente.telefono_encrypted ||
+            orden.cliente.direccion_encrypted) {
+          console.log('🔓 Descifrando datos del cliente para PDF...')
+          orden.cliente = decryptSensitiveFields(orden.cliente)
+          console.log('✅ Datos descifrados exitosamente')
+        }
+      } catch (decryptError) {
+        console.log('⚠️  Error al descifrar, usando datos sin cifrar:', decryptError.message)
+      }
     }
 
     console.log('📄 Generando PDF para orden:', orden.id)
