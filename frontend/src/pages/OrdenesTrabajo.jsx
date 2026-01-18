@@ -517,7 +517,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {/* VER PDF DE ORDEN */}
+                        {/* ⭐ VER PDF DE ORDEN (ojo azul) */}
                         <button
                           onClick={() => handleVerPDF(orden.id)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
@@ -526,20 +526,17 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           <Eye size={18} />
                         </button>
 
-                        {/* DOCUMENTO FIRMADO O SUBIR */}
+                        {/* ⭐ DOCUMENTO FIRMADO (papel verde con menú) O SUBIR */}
                         {orden.documentoFirmado ? (
                           <div className="relative group">
                             <button
-                              className="relative text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                              title="Documento firmado disponible"
+                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                              title="Documento firmado"
                             >
                               <FileText size={18} />
-                              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                              </span>
                             </button>
                             
+                            {/* Menú desplegable */}
                             <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                               <div className="px-4 py-2 bg-green-50 border-b">
                                 <p className="text-xs font-semibold text-green-800">Documento Firmado</p>
@@ -561,6 +558,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                             </div>
                           </div>
                         ) : (
+                          /* Subir documento (solo si NO existe) */
                           <button
                             onClick={() => handleUploadDocument(orden.id)}
                             className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
@@ -570,27 +568,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           </button>
                         )}
 
-                        {/* ⭐ VER/DESCARGAR DOCUMENTO FIRMADO */}
-                        {orden.documentoFirmado && (
-                          <>
-                            <button
-                              onClick={() => handleVerDocumentoFirmado(orden.id)}
-                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                              title="Ver documento firmado"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDescargarDocumentoFirmado(orden.id)}
-                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                              title="Descargar documento firmado"
-                            >
-                              <Download size={18} />
-                            </button>
-                          </>
-                        )}
-
-                        {/* COMPLETAR */}
+                        {/* ⭐ COMPLETAR (solo si está pendiente) */}
                         {orden.estado === 'pendiente' && (
                           <button
                             onClick={() => handleCompletar(orden)}
@@ -601,7 +579,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           </button>
                         )}
 
-                        {/* EDITAR */}
+                        {/* ⭐ EDITAR */}
                         <button
                           onClick={() => handleEdit(orden)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
@@ -610,7 +588,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           <Edit size={18} />
                         </button>
 
-                        {/* ELIMINAR */}
+                        {/* ⭐ ELIMINAR */}
                         <button
                           onClick={() => handleDelete(orden.id)}
                           className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full transition-colors"
