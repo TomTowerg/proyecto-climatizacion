@@ -64,7 +64,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       for (const logoPath of possibleLogoPaths) {
         if (fs.existsSync(logoPath)) {
           try {
-            doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+            doc.image(logoPath, 50, 45, { width: 80, height: 80 })
             console.log('✅ Logo cargado desde:', logoPath)
             logoLoaded = true
             break

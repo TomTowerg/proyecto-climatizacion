@@ -119,8 +119,6 @@ export const createOrdenTrabajo = async (req, res) => {
       notas, 
       tecnico, 
       estado, 
-      urgencia, 
-      analisisIA 
     } = req.body
 
     console.log('📝 Creando orden con análisis:', analisisIA)
@@ -140,7 +138,7 @@ export const createOrdenTrabajo = async (req, res) => {
         notas,
         tecnico,
         estado: estado || 'pendiente',
-        urgencia: urgencia || 'media',
+        
         
       },
       include: {
@@ -185,7 +183,7 @@ export const updateOrdenTrabajo = async (req, res) => {
       notas,
       tecnico,
       estado,
-      urgencia,
+      
       
     } = req.body
 
@@ -207,7 +205,7 @@ export const updateOrdenTrabajo = async (req, res) => {
         notas,
         tecnico,
         estado,
-        urgencia,
+        
       
       },
       include: {

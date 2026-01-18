@@ -426,9 +426,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('workOrders.table.type')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('workOrders.table.urgency')}
-                  </th>
+                  
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('workOrders.table.technician')}
                   </th>
