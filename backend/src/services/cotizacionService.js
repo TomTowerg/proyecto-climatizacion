@@ -4,8 +4,9 @@ import { verificarStock, reducirStock } from './stockService.js'
 const prisma = new PrismaClient()
 
 /**
- * SERVICIO DE GESTIÓN DE COTIZACIONES
+ * SERVICIO DE GESTIÓN DE COTIZACIONES - VERSIÓN CORREGIDA
  * Maneja el flujo completo de aprobación de cotizaciones
+ * Sin equipoCreado/ordenCreada + Verificación de orden existente
  */
 
 /**
@@ -40,6 +41,16 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
     }
 
     console.log(`✅ Cotización encontrada: ${cotizacion.tipo}`)
+
+    // ⭐ VERIFICAR SI YA EXISTE ORDEN DE TRABAJO PARA ESTA COTIZACIÓN
+    const ordenExistente = await prisma.ordenTrabajo.findFirst({
+      where: { cotizacionId: cotizacionId }
+    })
+
+    if (ordenExistente) {
+      console.log(`⚠️  Ya existe orden de trabajo #${ordenExistente.id} para esta cotización`)
+      throw new Error(`Esta cotización ya tiene una orden de trabajo asociada (#${ordenExistente.id})`)
+    }
 
     // 2. VALIDAR SEGÚN TIPO DE SERVICIO
     const validacion = await validarCotizacionPorTipo(cotizacion)
@@ -89,8 +100,6 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
       include: {
         cliente: true,
         inventario: true,
-        equipoCreado: true,
-        ordenCreada: true,
         equipos: true,
         materiales: true
       }
@@ -99,7 +108,7 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
     console.log(`\n✅ COTIZACIÓN APROBADA EXITOSAMENTE`)
     console.log(`   Cliente: ${cliente.nombre}`)
     console.log(`   Equipos creados: ${equiposCreados}`)
-    console.log(`   Orden de Trabajo: #${ordenTrabajo?.id || 'N/A'}`)
+    console.log(`   Orden de trabajo: #${ordenTrabajo?.id}`)
 
     return {
       success: true,
@@ -107,11 +116,11 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
       equipo,
       ordenTrabajo,
       equiposCreados,
-      mensaje: 'Cotización aprobada exitosamente'
+      mensaje: `Cotización aprobada. Se crearon ${equiposCreados} equipo(s) y orden de trabajo #${ordenTrabajo?.id}`
     }
 
   } catch (error) {
-    console.error('❌ Error al aprobar cotización:', error)
+    console.error(`❌ Error al aprobar cotización:`, error)
     throw error
   }
 }
@@ -120,63 +129,61 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
  * VALIDAR COTIZACIÓN POR TIPO
  */
 const validarCotizacionPorTipo = async (cotizacion) => {
-  try {
-    if (cotizacion.tipo === 'instalacion') {
-      // ⭐ VALIDAR SISTEMA NUEVO (MÚLTIPLES EQUIPOS)
-      if (cotizacion.equipos && cotizacion.equipos.length > 0) {
-        console.log(`📦 Validando ${cotizacion.equipos.length} equipos...`)
-        
-        for (const equipoCot of cotizacion.equipos) {
-          const stockCheck = await verificarStock(equipoCot.inventarioId, equipoCot.cantidad)
-          if (!stockCheck.disponible) {
-            return { valido: false, error: stockCheck.error }
+  if (cotizacion.tipo === 'instalacion') {
+    // Validar que tenga equipos O inventario
+    if (!cotizacion.equipos || (cotizacion.equipos.length === 0 && !cotizacion.inventarioId)) {
+      return {
+        valido: false,
+        error: 'La cotización de instalación debe tener al menos un equipo asociado'
+      }
+    }
+
+    // Validar stock de equipos múltiples
+    if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+      for (const equipoCot of cotizacion.equipos) {
+        const producto = await prisma.inventario.findUnique({
+          where: { id: equipoCot.inventarioId }
+        })
+
+        if (!producto) {
+          return {
+            valido: false,
+            error: `Producto con ID ${equipoCot.inventarioId} no encontrado`
           }
         }
-        
-        return { valido: true }
-      }
-      
-      // VALIDAR SISTEMA ANTIGUO (UN EQUIPO)
-      if (!cotizacion.inventarioId) {
-        return { valido: false, error: 'Se requiere un producto del inventario para instalación' }
-      }
 
-      const stockCheck = await verificarStock(cotizacion.inventarioId, 1)
-      if (!stockCheck.disponible) {
-        return { valido: false, error: stockCheck.error }
-      }
-
-      return { valido: true }
-
-    } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion') {
-      // Para mantención/reparación: Verificar que existe equipo del cliente
-      const equiposCliente = await prisma.equipo.findMany({
-        where: { clienteId: cotizacion.clienteId }
-      })
-
-      if (equiposCliente.length === 0) {
-        return { 
-          valido: false, 
-          error: 'El cliente no tiene equipos registrados. Para mantención/reparación se requiere un equipo existente.' 
+        if (producto.stock < equipoCot.cantidad) {
+          return {
+            valido: false,
+            error: `Stock insuficiente para ${producto.marca} ${producto.modelo}. Disponible: ${producto.stock}, Solicitado: ${equipoCot.cantidad}`
+          }
         }
       }
-
-      return { valido: true }
-
-    } else {
-      return { valido: false, error: 'Tipo de servicio no válido' }
     }
-  } catch (error) {
-    console.error('Error en validación:', error)
-    return { valido: false, error: error.message }
+
+  } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion') {
+    // Validar que el cliente tenga equipos
+    const equiposCliente = await prisma.equipo.count({
+      where: { clienteId: cotizacion.clienteId, estado: 'activo' }
+    })
+
+    if (equiposCliente === 0) {
+      return {
+        valido: false,
+        error: `El cliente no tiene equipos activos para ${cotizacion.tipo}`
+      }
+    }
   }
+
+  return { valido: true }
 }
 
 /**
- * ⭐ PROCESAR INSTALACIÓN CON MÚLTIPLES EQUIPOS
- * 1. Verificar stock y reducir inventario
- * 2. Crear equipos del cliente (uno o múltiples)
- * 3. Crear orden de trabajo
+ * PROCESAR INSTALACIÓN
+ * 1. Verificar stock
+ * 2. Crear equipos para el cliente
+ * 3. Reducir stock del inventario
+ * 4. Crear orden de trabajo
  */
 const procesarInstalacion = async (cotizacion, cliente) => {
   try {
@@ -185,18 +192,25 @@ const procesarInstalacion = async (cotizacion, cliente) => {
     const equiposCreados = []
     let totalEquipos = 0
 
-    // ⭐ VERIFICAR SI HAY MÚLTIPLES EQUIPOS
-    const equiposCotizacion = await prisma.equipoCotizacion.findMany({
-      where: { cotizacionId: cotizacion.id },
-      include: { inventario: true }
-    })
+    // ========================================
+    // FLUJO NUEVO - MÚLTIPLES EQUIPOS
+    // ========================================
+    if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+      console.log(`🛒 Procesando ${cotizacion.equipos.length} equipos...`)
 
-    if (equiposCotizacion && equiposCotizacion.length > 0) {
-      // ========================================
-      // FLUJO MÚLTIPLES EQUIPOS
-      // ========================================
-      console.log(`🛒 Procesando ${equiposCotizacion.length} equipos...`)
+      // Primero obtener todos los productos con sus datos de inventario
+      const equiposCotizacion = await Promise.all(
+        cotizacion.equipos.map(async (eq) => {
+          const inventario = await prisma.inventario.findUnique({
+            where: { id: eq.inventarioId }
+          })
+          return { ...eq, inventario }
+        })
+      )
 
+      console.log(`📦 Validando ${equiposCotizacion.length} equipos...`)
+
+      // Crear todos los equipos
       for (const equipoCot of equiposCotizacion) {
         const producto = equipoCot.inventario
         const cantidad = equipoCot.cantidad
@@ -302,6 +316,7 @@ const procesarInstalacion = async (cotizacion, cliente) => {
       ? `${equipoPrincipal.marca} ${equipoPrincipal.modelo} ${equipoPrincipal.capacidad}`
       : `${equiposCreados.length} equipos: ${equiposCreados.map(e => `${e.marca} ${e.modelo}`).join(', ')}`
 
+    // ⭐ IMPORTANTE: cotizacionId ahora puede ser usado porque verificamos que no existe orden previa
     const ordenTrabajo = await prisma.ordenTrabajo.create({
       data: {
         tipo: 'instalacion',
@@ -309,7 +324,7 @@ const procesarInstalacion = async (cotizacion, cliente) => {
         fecha: calcularFechaInstalacion(),
         clienteId: cliente.id,
         equipoId: equipoPrincipal.id,
-        cotizacionId: cotizacion.id,
+        cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         notas: `Instalación de ${descripcionEquipos}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}`
       }
@@ -359,7 +374,7 @@ const procesarMantencion = async (cotizacion, cliente) => {
         fecha: calcularFechaInstalacion(), // Próximo día disponible
         clienteId: cliente.id,
         equipoId: equipo.id,
-        cotizacionId: cotizacion.id,
+        cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}`
       }
@@ -369,8 +384,7 @@ const procesarMantencion = async (cotizacion, cliente) => {
     await prisma.equipo.update({
       where: { id: equipo.id },
       data: {
-        estado: 'en_mantenimiento',
-        cotizacionId: cotizacion.id
+        estado: 'en_mantenimiento'
       }
     })
 
@@ -412,7 +426,7 @@ const procesarReparacion = async (cotizacion, cliente) => {
         fecha: calcularFechaInstalacion(),
         clienteId: cliente.id,
         equipoId: equipo.id,
-        cotizacionId: cotizacion.id,
+        cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         costoMateriales: cotizacion.costoMaterial || 0,
         notas: `Reparación de ${equipo.marca} ${equipo.modelo}`
@@ -423,8 +437,7 @@ const procesarReparacion = async (cotizacion, cliente) => {
     await prisma.equipo.update({
       where: { id: equipo.id },
       data: {
-        estado: 'en_mantenimiento',
-        cotizacionId: cotizacion.id
+        estado: 'en_mantenimiento'
       }
     })
 
