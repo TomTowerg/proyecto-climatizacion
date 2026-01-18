@@ -30,6 +30,10 @@ function OrdenesTrabajo() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingOrden, setEditingOrden] = useState(null)
+  const [showPDFModal, setShowPDFModal] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState(null)
+  const [pdfType, setPdfType] = useState(null) // 'orden' o 'documento'
+  const [currentOrden, setCurrentOrden] = useState(null)
   const [formData, setFormData] = useState({
     clienteId: '',
     equipoId: '',
@@ -89,15 +93,11 @@ const handleVerPDF = async (ordenId) => {
     
     toast.dismiss(loadingToast)
     
-    // Abrir en nueva pestaña
-    window.open(url, '_blank')
-    
-    toast.success('PDF generado exitosamente')
-    
-    // Limpiar URL después de un tiempo
-    setTimeout(() => {
-      window.URL.revokeObjectURL(url)
-    }, 100)
+    // Abrir en modal
+    setPdfUrl(url)
+    setPdfType('orden')
+    setCurrentOrden(ordenes.find(o => o.id === ordenId))
+    setShowPDFModal(true)
     
   } catch (error) {
     console.error('Error al generar PDF:', error)
@@ -105,20 +105,20 @@ const handleVerPDF = async (ordenId) => {
   }
 }
 
-// ⭐ DESCARGAR PDF CON NOMBRE PERSONALIZADO
-const handleDescargarPDF = async (orden) => {
+
+// ⭐ DESCARGAR PDF DE ORDEN
+const handleDescargarPDF = async (ordenId) => {
   try {
     const loadingToast = toast.loading('Descargando PDF...')
     
-    const blob = await generarPDFOrden(orden.id)
-    
-    // Crear nombre personalizado
-    const clienteNombre = orden.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-    const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `OT-${orden.id.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
-    
-    // Crear enlace de descarga
+    const blob = await generarPDFOrden(ordenId)
     const url = window.URL.createObjectURL(blob)
+    
+    const orden = ordenes.find(o => o.id === ordenId)
+    const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+    const fecha = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+    
     const a = document.createElement('a')
     a.href = url
     a.download = nombreArchivo
@@ -135,6 +135,17 @@ const handleDescargarPDF = async (orden) => {
     console.error('Error al descargar PDF:', error)
     toast.error('Error al descargar el PDF')
   }
+}
+
+// ⭐ CERRAR MODAL PDF
+const handleClosePDFModal = () => {
+  if (pdfUrl) {
+    window.URL.revokeObjectURL(pdfUrl)
+  }
+  setPdfUrl(null)
+  setPdfType(null)
+  setCurrentOrden(null)
+  setShowPDFModal(false)
 }
 
 // ⭐ SUBIR DOCUMENTO FIRMADO
@@ -174,17 +185,43 @@ const handleUploadDocument = (ordenId) => {
 }
 
 // ⭐ DESCARGAR DOCUMENTO FIRMADO
-const handleDownloadDocument = async (ordenId) => {
+// ⭐ VER DOCUMENTO FIRMADO EN MODAL
+const handleVerDocumentoFirmado = async (ordenId) => {
+  try {
+    const loadingToast = toast.loading('Cargando documento...')
+    
+    const blob = await descargarDocumentoFirmado(ordenId)
+    const url = window.URL.createObjectURL(blob)
+    
+    toast.dismiss(loadingToast)
+    
+    // Abrir en modal
+    setPdfUrl(url)
+    setPdfType('documento')
+    setCurrentOrden(ordenes.find(o => o.id === ordenId))
+    setShowPDFModal(true)
+    
+  } catch (error) {
+    console.error('Error al cargar documento:', error)
+    toast.error('Error al cargar el documento')
+  }
+}
+
+// ⭐ DESCARGAR DOCUMENTO FIRMADO
+const handleDescargarDocumentoFirmado = async (ordenId) => {
   try {
     const loadingToast = toast.loading('Descargando documento...')
     
     const blob = await descargarDocumentoFirmado(ordenId)
     const url = window.URL.createObjectURL(blob)
     
-    // Crear enlace de descarga
+    const orden = ordenes.find(o => o.id === ordenId)
+    const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+    const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-Firmada.pdf`
+    
     const a = document.createElement('a')
     a.href = url
-    a.download = `orden-${ordenId}-firmada.pdf`
+    a.download = nombreArchivo
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -480,25 +517,16 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {/* ⭐ VISTA PREVIA PDF */}
+                        {/* ⭐ VER PDF */}
                         <button
                           onClick={() => handleVerPDF(orden.id)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
-                          title="Vista previa PDF"
+                          title="Ver PDF"
                         >
-                          <Eye size={18} />
+                          <FileText size={18} />
                         </button>
 
-                        {/* ⭐ DESCARGAR PDF */}
-                        <button
-                          onClick={() => handleDescargarPDF(orden)}
-                          className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                          title="Descargar PDF"
-                        >
-                          <Download size={18} />
-                        </button>
-
-                        {/* SUBIR DOCUMENTO */}
+                        {/* ⭐ SUBIR DOCUMENTO */}
                         <button
                           onClick={() => handleUploadDocument(orden.id)}
                           className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
@@ -507,15 +535,24 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           <Upload size={18} />
                         </button>
 
-                        {/* INDICADOR DE DOCUMENTO FIRMADO */}
+                        {/* ⭐ VER/DESCARGAR DOCUMENTO FIRMADO */}
                         {orden.documentoFirmado && (
-                          <button
-                            onClick={() => handleDownloadDocument(orden.id)}
-                            className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                            title="Descargar documento firmado"
-                          >
-                            <FileText size={18} />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleVerDocumentoFirmado(orden.id)}
+                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                              title="Ver documento firmado"
+                            >
+                              <Eye size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDescargarDocumentoFirmado(orden.id)}
+                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                              title="Descargar documento firmado"
+                            >
+                              <Download size={18} />
+                            </button>
+                          </>
                         )}
 
                         {/* COMPLETAR */}
@@ -706,6 +743,82 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
         </div>
       )}
 
+      {/* ⭐ MODAL DE VISUALIZACIÓN DE PDF */}
+      {showPDFModal && pdfUrl && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-3">
+                <FileText className="text-blue-600" size={24} />
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {pdfType === 'orden' 
+                      ? `Orden de Trabajo #${currentOrden?.id.toString().padStart(6, '0')}` 
+                      : `Documento Firmado - OT #${currentOrden?.id.toString().padStart(6, '0')}`
+                    }
+                  </h2>
+                  {currentOrden && (
+                    <p className="text-sm text-gray-600">
+                      Cliente: {currentOrden.cliente?.nombre}
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {/* ⭐ BOTÓN DESCARGAR */}
+                <button
+                  onClick={() => pdfType === 'orden' 
+                    ? handleDescargarPDF(currentOrden?.id) 
+                    : handleDescargarDocumentoFirmado(currentOrden?.id)
+                  }
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Download size={18} />
+                  Descargar
+                </button>
+
+                {/* ⭐ BOTÓN NUEVA PESTAÑA */}
+                <button
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Eye size={18} />
+                  Nueva Pestaña
+                </button>
+
+                {/* ⭐ BOTÓN CERRAR */}
+                <button
+                  onClick={handleClosePDFModal}
+                  className="text-gray-500 hover:text-gray-700 text-2xl leading-none p-2"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* ⭐ IFRAME DEL PDF */}
+            <div className="flex-1 p-4 overflow-hidden">
+              <iframe
+                src={pdfUrl}
+                className="w-full h-full border-0 rounded-lg shadow-inner"
+                title={pdfType === 'orden' ? 'Vista previa PDF Orden' : 'Vista previa Documento Firmado'}
+              />
+            </div>
+
+            {/* ⭐ TIP EN EL FOOTER */}
+            <div className="p-3 bg-yellow-50 border-t border-yellow-200 text-center">
+              <p className="text-sm text-yellow-800 flex items-center justify-center gap-2">
+                <span>💡</span>
+                <span>
+                  <strong>Tip:</strong> Usa el botón "Descargar" para guardar el PDF con el nombre correcto
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
