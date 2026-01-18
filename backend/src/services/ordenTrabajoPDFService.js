@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { decryptSensitiveFields } from '../utils/encryption.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,6 +19,30 @@ const COLORES = {
 export const generarPDFOrdenTrabajo = async (orden) => {
   return new Promise((resolve, reject) => {
     try {
+      console.log(`📄 Generando PDF de orden de trabajo #${orden.id}...`)
+
+      // ⭐ VALIDAR DATOS MÍNIMOS REQUERIDOS
+      if (!orden.cliente) {
+        throw new Error('La orden de trabajo debe tener un cliente asociado')
+      }
+
+      // ⭐ DESCIFRAR DATOS DEL CLIENTE
+      let clienteDescifrado = orden.cliente
+      
+      try {
+        if (orden.cliente.rut_encrypted || 
+            orden.cliente.email_encrypted || 
+            orden.cliente.telefono_encrypted ||
+            orden.cliente.direccion_encrypted) {
+          console.log('🔓 Descifrando datos del cliente...')
+          clienteDescifrado = decryptSensitiveFields(orden.cliente)
+          console.log('✅ Datos descifrados exitosamente')
+        }
+      } catch (error) {
+        console.log('⚠️  Error al descifrar datos del cliente:', error.message)
+        // Continuar con datos sin descifrar
+      }
+
       const doc = new PDFDocument({
         size: 'letter',
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
@@ -25,8 +50,14 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       const chunks = []
       doc.on('data', chunk => chunks.push(chunk))
-      doc.on('end', () => resolve(Buffer.concat(chunks)))
-      doc.on('error', reject)
+      doc.on('end', () => {
+        console.log('✅ PDF de orden generado exitosamente')
+        resolve(Buffer.concat(chunks))
+      })
+      doc.on('error', (err) => {
+        console.error('❌ Error en stream de PDF:', err)
+        reject(err)
+      })
 
       // ========================================
       // ENCABEZADO CON LOGO
@@ -39,17 +70,28 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         path.resolve(__dirname, '../../..', 'frontend', 'public', 'logo-kmts.png'),
       ]
 
-      let logoPath = null
-      for (const p of possibleLogoPaths) {
-        if (fs.existsSync(p)) {
-          logoPath = p
-          console.log('✅ Logo encontrado en:', logoPath)
-          break
+      let logoLoaded = false
+      for (const logoPath of possibleLogoPaths) {
+        if (fs.existsSync(logoPath)) {
+          try {
+            doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+            console.log('✅ Logo cargado desde:', logoPath)
+            logoLoaded = true
+            break
+          } catch (error) {
+            console.log('❌ Error al cargar logo:', error.message)
+          }
         }
       }
 
-      if (logoPath) {
-        doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+      if (!logoLoaded) {
+        console.log('⚠️  Logo no encontrado, usando texto')
+        // Usar texto como fallback
+        doc.fontSize(9)
+           .fillColor(COLORES.azul)
+           .font('Helvetica-Bold')
+           .text('KMTS', 50, 50)
+           .text('POWERTECH', 50, 62)
       }
 
       // Información de la empresa
@@ -105,9 +147,11 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          .font('Helvetica')
          .text('Fecha:', colIzq, yPos)
       
+      // ⭐ MANEJO SEGURO DE FECHA
+      const fechaOrden = orden.fecha || orden.fechaInicio || orden.createdAt || new Date()
       doc.fillColor(COLORES.texto)
          .font('Helvetica-Bold')
-         .text(new Date(orden.fecha).toLocaleDateString('es-CL'), colIzq + 100, yPos)
+         .text(new Date(fechaOrden).toLocaleDateString('es-CL'), colIzq + 100, yPos)
 
       doc.fillColor(COLORES.gris)
          .font('Helvetica')
@@ -115,9 +159,9 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       
       const tipoTexto = {
         instalacion: 'Instalación',
-        mantenimiento: 'Mantenimiento',
+        mantencion: 'Mantención',
         reparacion: 'Reparación'
-      }[orden.tipo] || orden.tipo
+      }[orden.tipo] || (orden.tipo || 'N/A')
 
       doc.fillColor(COLORES.texto)
          .font('Helvetica-Bold')
@@ -133,6 +177,8 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          .font('Helvetica-Bold')
          .text(orden.tecnico || 'Por asignar', colIzq + 100, yPos)
 
+      // ⭐ MANEJO SEGURO DE URGENCIA
+      const urgencia = orden.urgencia || orden.prioridad || 'media'
       doc.fillColor(COLORES.gris)
          .font('Helvetica')
          .text('Urgencia:', colDer, yPos)
@@ -140,12 +186,13 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       const urgenciaColor = {
         baja: '#10B981',
         media: '#F59E0B',
+        alta: '#EF4444',
         critica: '#EF4444'
-      }[orden.urgencia] || COLORES.texto
+      }[urgencia] || COLORES.texto
 
       doc.fillColor(urgenciaColor)
          .font('Helvetica-Bold')
-         .text((orden.urgencia || 'media').toUpperCase(), colDer + 100, yPos)
+         .text(urgencia.toUpperCase(), colDer + 100, yPos)
 
       yPos += 20
 
@@ -156,14 +203,16 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       const estadoColor = {
         pendiente: '#F59E0B',
         en_proceso: '#3B82F6',
-        completado: '#10B981'
+        completado: '#10B981',
+        completada: '#10B981'
       }[orden.estado] || COLORES.texto
 
       const estadoTexto = {
         pendiente: 'Pendiente',
         en_proceso: 'En Proceso',
-        completado: 'Completado'
-      }[orden.estado] || orden.estado
+        completado: 'Completado',
+        completada: 'Completada'
+      }[orden.estado] || (orden.estado || 'Pendiente')
 
       doc.fillColor(estadoColor)
          .font('Helvetica-Bold')
@@ -189,54 +238,55 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       
       doc.fillColor(COLORES.texto)
          .font('Helvetica-Bold')
-         .text(orden.cliente.nombre, colIzq + 100, yPos)
+         .text(clienteDescifrado.nombre || 'Cliente', colIzq + 100, yPos)
 
       yPos += 20
 
-      if (orden.cliente.rut) {
+      // ⭐ MANEJO SEGURO DE CAMPOS OPCIONALES DEL CLIENTE
+      if (clienteDescifrado.rut) {
         doc.fillColor(COLORES.gris)
            .font('Helvetica')
            .text('RUT:', colIzq, yPos)
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica-Bold')
-           .text(orden.cliente.rut, colIzq + 100, yPos)
+           .text(clienteDescifrado.rut, colIzq + 100, yPos)
 
         yPos += 20
       }
 
-      if (orden.cliente.telefono) {
+      if (clienteDescifrado.telefono) {
         doc.fillColor(COLORES.gris)
            .font('Helvetica')
            .text('Teléfono:', colIzq, yPos)
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica-Bold')
-           .text(orden.cliente.telefono, colIzq + 100, yPos)
+           .text(clienteDescifrado.telefono, colIzq + 100, yPos)
 
         yPos += 20
       }
 
-      if (orden.cliente.email) {
+      if (clienteDescifrado.email) {
         doc.fillColor(COLORES.gris)
            .font('Helvetica')
            .text('Email:', colIzq, yPos)
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica')
-           .text(orden.cliente.email, colIzq + 100, yPos)
+           .text(clienteDescifrado.email, colIzq + 100, yPos, { width: 400 })
 
         yPos += 20
       }
 
-      if (orden.cliente.direccion) {
+      if (clienteDescifrado.direccion) {
         doc.fillColor(COLORES.gris)
            .font('Helvetica')
            .text('Dirección:', colIzq, yPos)
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica')
-           .text(orden.cliente.direccion, colIzq + 100, yPos, { width: 400 })
+           .text(clienteDescifrado.direccion, colIzq + 100, yPos, { width: 400 })
 
         yPos += 30
       }
@@ -272,7 +322,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica-Bold')
-           .text(orden.equipo.marca, colIzq + 100, yPos)
+           .text(orden.equipo.marca || 'N/A', colIzq + 100, yPos)
 
         doc.fillColor(COLORES.gris)
            .font('Helvetica')
@@ -280,7 +330,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         
         doc.fillColor(COLORES.texto)
            .font('Helvetica-Bold')
-           .text(orden.equipo.modelo, colDer + 100, yPos)
+           .text(orden.equipo.modelo || 'N/A', colDer + 100, yPos)
 
         yPos += 20
 
@@ -312,10 +362,13 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       }
 
       // ========================================
-      // NOTAS
+      // DESCRIPCIÓN/NOTAS
       // ========================================
       
-      if (orden.notas) {
+      // ⭐ MANEJO DE MÚLTIPLES CAMPOS DE DESCRIPCIÓN
+      const descripcion = orden.descripcion || orden.notas || orden.trabajoRealizado
+      
+      if (descripcion) {
         doc.fontSize(14)
            .fillColor(COLORES.azul)
            .font('Helvetica-Bold')
@@ -326,9 +379,80 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         doc.fontSize(10)
            .fillColor(COLORES.texto)
            .font('Helvetica')
-           .text(orden.notas, 50, yPos, { width: 512, align: 'justify' })
+           .text(descripcion, 50, yPos, { width: 512, align: 'justify' })
 
-        yPos += Math.max(60, doc.heightOfString(orden.notas, { width: 512 }) + 20)
+        yPos += Math.max(60, doc.heightOfString(descripcion, { width: 512 }) + 20)
+      }
+
+      // ========================================
+      // MATERIALES USADOS (si existen)
+      // ========================================
+      
+      if (orden.materialesUsados) {
+        doc.fontSize(14)
+           .fillColor(COLORES.azul)
+           .font('Helvetica-Bold')
+           .text('MATERIALES UTILIZADOS', 50, yPos)
+
+        yPos += 25
+
+        doc.fontSize(10)
+           .fillColor(COLORES.texto)
+           .font('Helvetica')
+           .text(orden.materialesUsados, 50, yPos, { width: 512 })
+
+        yPos += Math.max(40, doc.heightOfString(orden.materialesUsados, { width: 512 }) + 20)
+      }
+
+      // ========================================
+      // COSTOS (si existen)
+      // ========================================
+      
+      if (orden.costoTotal || orden.costoManoObra || orden.costoMateriales) {
+        doc.fontSize(14)
+           .fillColor(COLORES.azul)
+           .font('Helvetica-Bold')
+           .text('COSTOS', 50, yPos)
+
+        yPos += 25
+
+        doc.fontSize(10)
+
+        if (orden.costoManoObra) {
+          doc.fillColor(COLORES.gris)
+             .font('Helvetica')
+             .text('Mano de Obra:', colIzq, yPos)
+          
+          doc.fillColor(COLORES.texto)
+             .font('Helvetica-Bold')
+             .text(`$${orden.costoManoObra.toLocaleString('es-CL')}`, colIzq + 100, yPos)
+
+          yPos += 20
+        }
+
+        if (orden.costoMateriales) {
+          doc.fillColor(COLORES.gris)
+             .font('Helvetica')
+             .text('Materiales:', colIzq, yPos)
+          
+          doc.fillColor(COLORES.texto)
+             .font('Helvetica-Bold')
+             .text(`$${orden.costoMateriales.toLocaleString('es-CL')}`, colIzq + 100, yPos)
+
+          yPos += 20
+        }
+
+        if (orden.costoTotal) {
+          doc.fillColor(COLORES.azul)
+             .font('Helvetica-Bold')
+             .text('TOTAL:', colIzq, yPos)
+          
+          doc.fillColor(COLORES.azulClaro)
+             .fontSize(12)
+             .text(`$${orden.costoTotal.toLocaleString('es-CL')}`, colIzq + 100, yPos)
+
+          yPos += 30
+        }
       }
 
       // ========================================
@@ -402,7 +526,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          .font('Helvetica')
          .text('Firma del Cliente', firmaCol2, yPos + 75, { align: 'center', width: 150 })
       
-      doc.text(orden.cliente.nombre, firmaCol2, yPos + 90, { align: 'center', width: 150 })
+      doc.text(clienteDescifrado.nombre || 'Cliente', firmaCol2, yPos + 90, { align: 'center', width: 150 })
 
       yPos += 120
 
@@ -449,7 +573,8 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       doc.end()
 
     } catch (error) {
-      console.error('Error al generar PDF:', error)
+      console.error('❌ Error al generar PDF de orden de trabajo:', error)
+      console.error('Stack:', error.stack)
       reject(error)
     }
   })
