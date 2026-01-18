@@ -517,23 +517,58 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {/* ⭐ VER PDF */}
+                        {/* VER PDF DE ORDEN */}
                         <button
                           onClick={() => handleVerPDF(orden.id)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
-                          title="Ver PDF"
+                          title="Ver orden de trabajo"
                         >
-                          <FileText size={18} />
+                          <Eye size={18} />
                         </button>
 
-                        {/* ⭐ SUBIR DOCUMENTO */}
-                        <button
-                          onClick={() => handleUploadDocument(orden.id)}
-                          className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
-                          title="Subir documento firmado"
-                        >
-                          <Upload size={18} />
-                        </button>
+                        {/* DOCUMENTO FIRMADO O SUBIR */}
+                        {orden.documentoFirmado ? (
+                          <div className="relative group">
+                            <button
+                              className="relative text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                              title="Documento firmado disponible"
+                            >
+                              <FileText size={18} />
+                              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                              </span>
+                            </button>
+                            
+                            <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="px-4 py-2 bg-green-50 border-b">
+                                <p className="text-xs font-semibold text-green-800">Documento Firmado</p>
+                              </div>
+                              <button
+                                onClick={() => handleVerDocumentoFirmado(orden.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700"
+                              >
+                                <Eye size={16} />
+                                Ver documento
+                              </button>
+                              <button
+                                onClick={() => handleDescargarDocumentoFirmado(orden.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700 rounded-b-lg"
+                              >
+                                <Download size={16} />
+                                Descargar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleUploadDocument(orden.id)}
+                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
+                            title="Subir documento firmado"
+                          >
+                            <Upload size={18} />
+                          </button>
+                        )}
 
                         {/* ⭐ VER/DESCARGAR DOCUMENTO FIRMADO */}
                         {orden.documentoFirmado && (
