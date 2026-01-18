@@ -315,55 +315,92 @@ function Cotizaciones() {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    try {
-      const dataToSend = {
-        tipo: formData.tipo,
-        clienteId: parseInt(formData.clienteId),
-        precioOfertado: parseFloat(formData.precioOfertado),
-        costoInstalacion: parseFloat(formData.costoInstalacion) || 0,
-        costoMaterial: parseFloat(formData.costoMaterial) || 0,
-        descuento: parseFloat(formData.descuento) || 0,
-        notas: formData.notas,
-        agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
-        direccionInstalacion: formData.direccionInstalacion,
-        materiales: materiales
+  try {
+    // ⭐ USAR TUS FUNCIONES DE CÁLCULO
+    const totalEquipos = formData.tipo === 'instalacion' && equipos.length > 0 
+      ? calcularTotalEquipos() 
+      : parseFloat(formData.precioOfertado) || 0
+
+    const totalMateriales = calcularTotalMateriales()
+    const costoInstalacion = parseFloat(formData.costoInstalacion) || 0
+    const descuento = parseFloat(formData.descuento) || 0
+    
+    // Calcular subtotal y precio final
+    const subtotal = totalEquipos + totalMateriales + costoInstalacion
+    const montoDescuento = subtotal * (descuento / 100)
+    const precioFinal = subtotal - montoDescuento
+
+    // ⭐ DATOS A ENVIAR (con TODOS los campos requeridos)
+    const dataToSend = {
+      tipo: formData.tipo,
+      clienteId: parseInt(formData.clienteId),
+      precioOfertado: totalEquipos,           // ⭐ Total de equipos
+      costoInstalacion: costoInstalacion,     // ⭐ Costo instalación
+      costoMaterial: totalMateriales,         // ⭐ Total materiales
+      subtotal: subtotal,                     // ⭐ REQUERIDO
+      descuento: descuento,                   // ⭐ % de descuento
+      precioFinal: precioFinal,               // ⭐ REQUERIDO
+      notas: formData.notas,
+      agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
+      direccionInstalacion: formData.direccionInstalacion,
+      materiales: materiales.map(mat => ({
+        nombre: mat.nombre,
+        cantidad: parseFloat(mat.cantidad),
+        unidad: mat.unidad,
+        precioUnitario: parseFloat(mat.precioUnitario),
+        subtotal: parseFloat(mat.subtotal),
+        descripcion: mat.descripcion || ''
+      }))
+    }
+
+    // ⭐ AGREGAR EQUIPOS SEGÚN TIPO
+    if (formData.tipo === 'instalacion') {
+      if (equipos.length > 0) {
+        // Múltiples equipos
+        dataToSend.equipos = equipos.map(eq => ({
+          inventarioId: parseInt(eq.inventarioId),
+          cantidad: parseInt(eq.cantidad),
+          precioUnitario: parseFloat(eq.precioUnitario),
+          subtotal: parseFloat(eq.subtotal)
+        }))
+      } else if (formData.inventarioId) {
+        // Sistema antiguo - un solo equipo
+        dataToSend.inventarioId = parseInt(formData.inventarioId)
       }
-
-      if (formData.tipo === 'instalacion') {
-        if (equipos.length > 0) {
-          dataToSend.equipos = equipos.map(eq => ({
-            inventarioId: eq.inventarioId,
-            cantidad: eq.cantidad,
-            precioUnitario: eq.precioUnitario
-          }))
-        } else {
-          dataToSend.inventarioId = parseInt(formData.inventarioId)
-        }
-      } else {
+    } else {
+      // Mantención/Reparación - usa equipo existente del cliente
+      if (formData.equipoId) {
         dataToSend.equipoId = parseInt(formData.equipoId)
       }
-
-      if (editingCotizacion) {
-        await updateCotizacion(editingCotizacion.id, {
-          ...dataToSend,
-          estado: formData.estado
-        })
-        toast.success('Cotización actualizada exitosamente')
-      } else {
-        await createCotizacion(dataToSend)
-        toast.success('Cotización creada exitosamente')
-      }
-      
-      fetchData()
-      handleCloseModal()
-    } catch (error) {
-      console.error('Error completo:', error)
-      const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Error al guardar la cotización'
-      toast.error(errorMessage)
     }
+
+    console.log('📤 Enviando cotización:', dataToSend)
+
+    // ⭐ GUARDAR
+    if (editingCotizacion) {
+      await updateCotizacion(editingCotizacion.id, {
+        ...dataToSend,
+        estado: formData.estado
+      })
+      toast.success('Cotización actualizada exitosamente')
+    } else {
+      await createCotizacion(dataToSend)
+      toast.success('Cotización creada exitosamente')
+    }
+    
+    fetchData()
+    handleCloseModal()
+    
+  } catch (error) {
+    console.error('Error completo:', error)
+    const errorMessage = error.response?.data?.error || 
+                        error.response?.data?.details || 
+                        'Error al guardar la cotización'
+    toast.error(errorMessage)
   }
+}
 
   const handleEdit = (cotizacion) => {
     setEditingCotizacion(cotizacion)
