@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Sparkles, Eye, CheckCircle, FileText, Upload, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Eye, CheckCircle, FileText, Upload, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Navbar from '../components/Navbar'
 import { isAuthenticated } from '../services/authService'
@@ -38,7 +38,7 @@ function OrdenesTrabajo() {
     notas: '',
     tecnico: '',
     estado: 'pendiente',
-    urgencia: 'media'
+    
   })
 
   useEffect(() => {
@@ -102,6 +102,38 @@ const handleVerPDF = async (ordenId) => {
   } catch (error) {
     console.error('Error al generar PDF:', error)
     toast.error('Error al generar el PDF')
+  }
+}
+
+// ⭐ DESCARGAR PDF CON NOMBRE PERSONALIZADO
+const handleDescargarPDF = async (orden) => {
+  try {
+    const loadingToast = toast.loading('Descargando PDF...')
+    
+    const blob = await generarPDFOrden(orden.id)
+    
+    // Crear nombre personalizado
+    const clienteNombre = orden.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+    const fecha = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `OT-${orden.id.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+    
+    // Crear enlace de descarga
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = nombreArchivo
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    
+    window.URL.revokeObjectURL(url)
+    
+    toast.dismiss(loadingToast)
+    toast.success(`PDF descargado: ${nombreArchivo}`)
+    
+  } catch (error) {
+    console.error('Error al descargar PDF:', error)
+    toast.error('Error al descargar el PDF')
   }
 }
 
@@ -273,7 +305,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
       notas: '',
       tecnico: '',
       estado: 'pendiente',
-      urgencia: 'media'
+      
     })
   }
 
@@ -328,24 +360,6 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
         {labels[tipo] || tipo}
-      </span>
-    )
-  }
-
-  const getUrgenciaBadge = (urgencia) => {
-    const badges = {
-      baja: 'bg-green-100 text-green-800',
-      media: 'bg-yellow-100 text-yellow-800',
-      critica: 'bg-red-100 text-red-800'
-    }
-    const labels = {
-      baja: `🟢 ${t('workOrders.urgencies.low')}`,
-      media: `🟡 ${t('workOrders.urgencies.medium')}`,
-      critica: `🔴 ${t('workOrders.urgencies.critical')}`
-    }
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[urgencia]}`}>
-        {labels[urgencia]}
       </span>
     )
   }
@@ -459,9 +473,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getTipoBadge(orden.tipo)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getUrgenciaBadge(orden.urgencia)}
-                      </td>
+  
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                         {orden.tecnico || t('workOrders.unassigned')}
                       </td>
@@ -470,39 +482,48 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {/* ⭐ BOTÓN VER PDF */}
+                        {/* ⭐ VISTA PREVIA PDF */}
                         <button
                           onClick={() => handleVerPDF(orden.id)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
-                          title="Ver PDF"
+                          title="Vista previa PDF"
                         >
-                          <FileText size={18} />
+                          <Eye size={18} />
                         </button>
 
-                        {/* ⭐ BOTÓN SUBIR DOCUMENTO */}
+                        {/* ⭐ DESCARGAR PDF */}
+                        <button
+                          onClick={() => handleDescargarPDF(orden)}
+                          className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                          title="Descargar PDF"
+                        >
+                          <Download size={18} />
+                        </button>
+
+                        {/* SUBIR DOCUMENTO */}
                         <button
                           onClick={() => handleUploadDocument(orden.id)}
-                          className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                          className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
                           title="Subir documento firmado"
                         >
                           <Upload size={18} />
                         </button>
 
-                        {/* ⭐ INDICADOR DE DOCUMENTO FIRMADO */}
+                        {/* INDICADOR DE DOCUMENTO FIRMADO */}
                         {orden.documentoFirmado && (
                           <button
                             onClick={() => handleDownloadDocument(orden.id)}
                             className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
                             title="Descargar documento firmado"
                           >
-                            <Download size={18} />
+                            <FileText size={18} />
                           </button>
                         )}
 
-                        {/* BOTONES EXISTENTES - MANTENER */}
+                        {/* COMPLETAR */}
                         {orden.estado === 'pendiente' && (
                           <button
-                            onClick={() => handleCompletar(orden.id)}
+                            onClick={() => handleCompletar(orden)}
                             className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
                             title="Completar"
                           >
@@ -510,6 +531,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           </button>
                         )}
 
+                        {/* EDITAR */}
                         <button
                           onClick={() => handleEdit(orden)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
@@ -518,6 +540,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                           <Edit size={18} />
                         </button>
 
+                        {/* ELIMINAR */}
                         <button
                           onClick={() => handleDelete(orden.id)}
                           className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full transition-colors"
@@ -525,19 +548,6 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                         >
                           <Trash2 size={18} />
                         </button>
-
-                        {orden.analisisIA && (
-                          <button
-                            onClick={() => {
-                              setAnalisisSeleccionado(JSON.parse(orden.analisisIA))
-                              setShowAnalisisModal(true)
-                            }}
-                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
-                            title="Ver análisis IA"
-                          >
-                            <Eye size={18} />
-                          </button>
-                        )}
                       </div>
                     </td>
                     </tr>

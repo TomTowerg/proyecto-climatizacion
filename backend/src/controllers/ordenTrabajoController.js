@@ -361,17 +361,13 @@ export const generarPDF = async (req, res) => {
       return res.status(400).json({ error: 'ID de orden inválido' })
     }
 
-    // ⭐ INCLUIR COTIZACIÓN CON EQUIPOS Y MATERIALES
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
         cliente: true,
         equipo: {
-          include: {
-            inventario: true
-          }
+          include: { inventario: true }
         },
-        // ⭐ AGREGAR COTIZACIÓN
         cotizacion: {
           include: {
             equipos: {
@@ -398,7 +394,7 @@ export const generarPDF = async (req, res) => {
       return res.status(404).json({ error: 'Orden de trabajo no encontrada' })
     }
 
-    // ⭐ DESCIFRAR DATOS DEL CLIENTE
+    // ⭐ Descifrar datos
     if (orden.cliente) {
       try {
         if (orden.cliente.rut_encrypted || 
@@ -410,7 +406,7 @@ export const generarPDF = async (req, res) => {
           console.log('✅ Datos descifrados exitosamente')
         }
       } catch (decryptError) {
-        console.log('⚠️  Error al descifrar, usando datos sin cifrar:', decryptError.message)
+        console.log('⚠️  Error al descifrar:', decryptError.message)
       }
     }
 
@@ -418,8 +414,13 @@ export const generarPDF = async (req, res) => {
 
     const pdfBuffer = await generarPDFOrdenTrabajo(orden)
 
+    // ⭐ NOMBRE PERSONALIZADO
+    const clienteNombre = orden.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+    const fecha = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `OT-${orden.id.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+
     res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `inline; filename=orden-trabajo-${orden.id}.pdf`)
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`)
     res.send(pdfBuffer)
 
   } catch (error) {
