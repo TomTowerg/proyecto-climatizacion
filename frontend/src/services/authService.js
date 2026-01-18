@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+// ⭐ CORREGIDO: Puerto 3001 para desarrollo local
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+console.log('🌐 API URL:', API_URL)
 
 // Configurar axios
 const api = axios.create({
@@ -20,6 +22,21 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// ⭐ AGREGAR: Interceptor para manejar errores de autenticación
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Si el token expiró o es inválido, hacer logout automático
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      // Opcional: redirigir al login
+      // window.location.href = '/'
+    }
     return Promise.reject(error)
   }
 )

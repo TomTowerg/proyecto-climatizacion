@@ -218,25 +218,41 @@ const handleDownloadDocument = async (ordenId) => {
     }
   }
 
-  const handleCompletar = async (orden) => {
-    if (orden.estado === 'completado') {
-      toast.error(t('workOrders.messages.alreadyCompleted'))
-      return
-    }
-
-    if (!window.confirm(t('workOrders.messages.completeConfirm', { id: orden.id }))) {
-      return
-    }
-
-    try {
-      await completarOrden(orden.id)
-      toast.success(t('workOrders.messages.completeSuccess'))
-      fetchData()
-    } catch (error) {
-      console.error('Error:', error)
-      toast.error(t('workOrders.messages.completeError'))
-    }
+  // Reemplazar desde línea 229
+const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
+  console.log('🔍 Completando orden ID:', ordenId)
+  
+  if (!ordenId) {
+    toast.error('Error: ID de orden inválido')
+    return
   }
+
+  // Buscar la orden para verificar estado
+  const orden = ordenes.find(o => o.id === ordenId)
+  
+  if (!orden) {
+    toast.error('Orden no encontrada')
+    return
+  }
+
+  if (orden.estado === 'completado') {
+    toast.error(t('workOrders.messages.alreadyCompleted'))
+    return
+  }
+
+  if (!window.confirm(t('workOrders.messages.completeConfirm', { id: ordenId }))) {
+    return
+  }
+
+  try {
+    await completarOrden(ordenId)
+    toast.success(t('workOrders.messages.completeSuccess'))
+    fetchData()
+  } catch (error) {
+    console.error('Error:', error)
+    toast.error(t('workOrders.messages.completeError'))
+  }
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()

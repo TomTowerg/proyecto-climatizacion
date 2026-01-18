@@ -1,6 +1,6 @@
 import api from './authService'
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api'
+// ⭐ NO NECESITAS API_URL - axios ya lo tiene configurado
 
 // Obtener todas las órdenes de trabajo
 export const getOrdenesTrabajo = async () => {
@@ -44,58 +44,32 @@ export const getEstadisticas = async () => {
   return response.data
 }
 
-// ⭐ GENERAR PDF DE ORDEN DE TRABAJO
+// ⭐ GENERAR PDF DE ORDEN DE TRABAJO (CORREGIDO)
 export const generarPDFOrden = async (id) => {
-  const token = localStorage.getItem('token')
-  
-  const response = await fetch(`${API_URL}/ordenes-trabajo/${id}/pdf`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+  const response = await api.get(`/ordenes-trabajo/${id}/pdf`, {
+    responseType: 'blob'  // ⭐ Importante para recibir el PDF
   })
-  
-  if (!response.ok) {
-    throw new Error('Error al generar PDF')
-  }
-  
-  return await response.blob()
+  return response.data
 }
 
-// ⭐ SUBIR DOCUMENTO FIRMADO
+// ⭐ SUBIR DOCUMENTO FIRMADO (CORREGIDO)
 export const subirDocumentoFirmado = async (id, file) => {
-  const token = localStorage.getItem('token')
   const formData = new FormData()
   formData.append('documento', file)
   
-  const response = await fetch(`${API_URL}/ordenes-trabajo/${id}/documento-firmado`, {
-    method: 'POST',
+  const response = await api.post(`/ordenes-trabajo/${id}/documento-firmado`, formData, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    },
-    body: formData
-  })
-  
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Error al subir documento')
-  }
-  
-  return await response.json()
-}
-
-// ⭐ DESCARGAR DOCUMENTO FIRMADO
-export const descargarDocumentoFirmado = async (id) => {
-  const token = localStorage.getItem('token')
-  
-  const response = await fetch(`${API_URL}/ordenes-trabajo/${id}/documento-firmado`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'multipart/form-data'
     }
   })
   
-  if (!response.ok) {
-    throw new Error('Error al descargar documento')
-  }
-  
-  return await response.blob()
+  return response.data
+}
+
+// ⭐ DESCARGAR DOCUMENTO FIRMADO (CORREGIDO)
+export const descargarDocumentoFirmado = async (id) => {
+  const response = await api.get(`/ordenes-trabajo/${id}/documento-firmado`, {
+    responseType: 'blob'
+  })
+  return response.data
 }
