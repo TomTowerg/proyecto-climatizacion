@@ -185,7 +185,7 @@ model OrdenTrabajo {
   updatedAt     DateTime @updatedAt
 }
 
-// ⭐ NUEVO: Tabla para múltiples equipos en cotizaciones
+// Tabla para múltiples equipos en cotizaciones
 model EquipoCotizacion {
   id            Int      @id @default(autoincrement())
   cotizacionId  Int
@@ -206,15 +206,42 @@ model MaterialCotizacion {
   id              Int        @id @default(autoincrement())
   cotizacionId    Int
   cotizacion      Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
-  nombre          String     // "Cañería de cobre 1/2", "Soporte metálico", etc.
-  cantidad        Float      // Puede ser decimal: 2.5 metros, 15 unidades
-  unidad          String     // "metros", "unidades", "kg", "litros"
-  precioUnitario  Float      // Precio por unidad
-  subtotal        Float      // cantidad * precioUnitario
-  descripcion     String?    // Opcional: descripción adicional
+  materialInventarioId Int?
+  materialInventario   MaterialInventario? @relation(fields: [materialInventarioId], references: [id])
+  nombre          String
+  cantidad        Float
+  unidad          String
+  precioUnitario  Float
+  subtotal        Float
+  descripcion     String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-
   @@index([cotizacionId])
+  @@index([materialInventarioId])
+}
+
+// ⭐ NUEVO: Inventario de Materiales
+model MaterialInventario {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  categoria       String
+  unidad          String
+  precioNeto      Float
+  precioConIVA    Float
+  stock           Int      @default(0)
+  stockMinimo     Int      @default(5)
+  proveedor       String?
+  codigoProducto  String?  @unique
+  descripcion     String?
+  imagen          String?
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relación con materiales usados en cotizaciones
+  materialesUsados MaterialCotizacion[]
+
+  @@index([categoria])
+  @@index([activo])
 }

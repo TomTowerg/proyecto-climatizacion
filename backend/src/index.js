@@ -20,7 +20,8 @@ import ordenesTrabajoRoutes from './routes/ordenesTrabajo.js'
 import inventarioRoutes from './routes/inventario.js'
 import cotizacionesRoutes from './routes/cotizaciones.js'
 import iaRoutes from './routes/ia.js'
-import indicatorRoutes from './routes/indicators.js' // ⭐ 1. NUEVO IMPORT
+import indicatorRoutes from './routes/indicators.js'
+import materialInventarioRoutes from './routes/materialInventarioRoutes.js'
 
 dotenv.config()
 
@@ -49,7 +50,8 @@ const allowedOrigins = [
   'https://kmtspowertech.com',
   'https://www.kmtspowertech.com',
   'http://localhost:5173',
-  'http://localhost:5000'
+  'http://localhost:5000',
+  'http://localhost:3000'
 ].filter(Boolean) // Remover valores undefined
 
 app.use(cors({
@@ -99,7 +101,9 @@ app.use('/api/ordenes-trabajo', ordenesTrabajoRoutes)
 app.use('/api/inventario', inventarioRoutes)
 app.use('/api/cotizaciones', cotizacionesRoutes)
 app.use('/api/ia', iaRoutes)
-app.use('/api/indicators', indicatorRoutes) // ⭐ 2. NUEVA RUTA AGREGADA
+app.use('/api/indicators', indicatorRoutes)
+app.use('/api/materiales-inventario', materialInventarioRoutes)
+
 
 // Ruta 404
 app.use('*', (req, res) => {
