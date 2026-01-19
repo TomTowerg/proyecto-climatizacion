@@ -517,13 +517,13 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        {/* ⭐ VER PDF DE ORDEN (ojo azul) */}
+                        {/* ⭐ VER PDF DE ORDEN (Papel azul) */}
                         <button
                           onClick={() => handleVerPDF(orden.id)}
                           className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
                           title="Ver orden de trabajo"
                         >
-                          <Eye size={18} />
+                          <FileText size={18} />{/* ✅ Papel azul */}
                         </button>
 
                         {/* ⭐ DOCUMENTO FIRMADO (papel verde con menú) O SUBIR */}
@@ -571,7 +571,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                         {/* ⭐ COMPLETAR (solo si está pendiente) */}
                         {orden.estado === 'pendiente' && (
                           <button
-                            onClick={() => handleCompletar(orden)}
+                            onClick={() => handleCompletar(orden.id)}
                             className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
                             title="Completar"
                           >
