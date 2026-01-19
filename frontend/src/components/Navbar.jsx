@@ -53,7 +53,7 @@ function Navbar() {
     { path: '/equipos', label: t('nav.equipment'), icon: Wind },
     { path: '/ordenes-trabajo', label: t('nav.workOrders'), icon: ClipboardList },
     { path: '/inventario', label: t('nav.inventory'), icon: Package },
-    { path: '/inventario-materiales', label: 'Materiales', icon: Drill},
+    { path: '/inventario-materiales', label: 'Materiales', icon: Drill },
     { path: '/cotizaciones', label: t('nav.quotes'), icon: FileText },
     { path: '/calendario', label: t('nav.calendar'), icon: Calendar },
     { path: '/stock-panel', label: t('nav.stockPanel'), icon: TrendingUp },
