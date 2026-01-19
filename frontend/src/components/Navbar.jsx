@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
   Home, Users, Wind, ClipboardList, Package, FileText, Calendar, TrendingUp, 
-  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown, Drill
+  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown, Box, Drill
 } from 'lucide-react'
 import { logout } from '../services/authService'
 import LanguageSelector from './LanguageSelector' 
