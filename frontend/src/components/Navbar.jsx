@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { 
   Home, Users, Wind, ClipboardList, Package, FileText, Calendar, TrendingUp, 
-  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown, Box, Drill
+  LogOut, Menu, X, MoreVertical, Globe, Check, ChevronRight, ChevronDown, Boxes
 } from 'lucide-react'
 import { logout } from '../services/authService'
 import LanguageSelector from './LanguageSelector' 
@@ -53,7 +53,7 @@ function Navbar() {
     { path: '/equipos', label: t('nav.equipment'), icon: Wind },
     { path: '/ordenes-trabajo', label: t('nav.workOrders'), icon: ClipboardList },
     { path: '/inventario', label: t('nav.inventory'), icon: Package },
-    { path: '/inventario-materiales', label: 'Materiales', icon: Drill },
+    { path: '/inventario-materiales', label: 'Materiales', icon: Boxes },
     { path: '/cotizaciones', label: t('nav.quotes'), icon: FileText },
     { path: '/calendario', label: t('nav.calendar'), icon: Calendar },
     { path: '/stock-panel', label: t('nav.stockPanel'), icon: TrendingUp },
