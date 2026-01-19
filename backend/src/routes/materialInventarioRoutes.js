@@ -1,5 +1,5 @@
 import express from 'express'
-import { authenticateToken } from '../middleware/auth.js'
+import { authenticate } from '../middleware/auth.js'  // ⭐ CORREGIDO
 import {
   getMateriales,
   getMaterialById,
@@ -20,34 +20,34 @@ const router = express.Router()
 
 // ⭐ OBTENER TODOS LOS MATERIALES
 // GET /api/materiales-inventario
-router.get('/', authenticateToken, getMateriales)
+router.get('/', authenticate, getMateriales)
 
 // ⭐ OBTENER ESTADÍSTICAS
 // GET /api/materiales-inventario/estadisticas
-router.get('/estadisticas', authenticateToken, getEstadisticas)
+router.get('/estadisticas', authenticate, getEstadisticas)
 
 // ⭐ OBTENER MATERIALES CON STOCK BAJO
 // GET /api/materiales-inventario/stock-bajo
-router.get('/stock-bajo', authenticateToken, getMaterialesStockBajo)
+router.get('/stock-bajo', authenticate, getMaterialesStockBajo)
 
 // ⭐ OBTENER MATERIAL POR ID
 // GET /api/materiales-inventario/:id
-router.get('/:id', authenticateToken, getMaterialById)
+router.get('/:id', authenticate, getMaterialById)
 
 // ⭐ CREAR MATERIAL
 // POST /api/materiales-inventario
-router.post('/', authenticateToken, createMaterial)
+router.post('/', authenticate, createMaterial)
 
 // ⭐ ACTUALIZAR MATERIAL
 // PUT /api/materiales-inventario/:id
-router.put('/:id', authenticateToken, updateMaterial)
+router.put('/:id', authenticate, updateMaterial)
 
 // ⭐ AJUSTAR STOCK
 // PATCH /api/materiales-inventario/:id/ajustar-stock
-router.patch('/:id/ajustar-stock', authenticateToken, ajustarStock)
+router.patch('/:id/ajustar-stock', authenticate, ajustarStock)
 
 // ⭐ ELIMINAR/DESACTIVAR MATERIAL
 // DELETE /api/materiales-inventario/:id
-router.delete('/:id', authenticateToken, deleteMaterial)
+router.delete('/:id', authenticate, deleteMaterial)
 
 export default router
