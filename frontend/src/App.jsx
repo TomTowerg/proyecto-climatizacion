@@ -85,7 +85,7 @@ function App() {
             <Route path="/equipos" element={<ProtectedRoute><Equipos /></ProtectedRoute>} />
             <Route path="/ordenes-trabajo" element={<ProtectedRoute><OrdenesTrabajo /></ProtectedRoute>} />
             <Route path="/inventario" element={<ProtectedRoute><Inventario /></ProtectedRoute>} />
-            <Route path="/inventario-materiales" element={<InventarioMateriales />} />
+            <Route path="/inventario-materiales" element={<ProtectedRoute><InventarioMateriales /></ProtectedRoute>} />
             <Route path="/cotizaciones" element={<ProtectedRoute><Cotizaciones /></ProtectedRoute>} />
             <Route path="/calendario" element={<ProtectedRoute><CalendarioOT /></ProtectedRoute>} />
             <Route path="/stock-panel" element={<ProtectedRoute><StockPanel /></ProtectedRoute>} />
