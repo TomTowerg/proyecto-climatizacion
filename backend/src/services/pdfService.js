@@ -387,6 +387,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       
       // Calcular la altura necesaria para condiciones + desglose
+      // IMPORTANTE: Las condiciones y desglose van lado a lado, así que usamos el MAYOR de ambos
       const condicionesHeight = 70  // Altura de las condiciones generales
       const desgloseHeight = 
         25 +  // Base
@@ -396,37 +397,30 @@ export const generarPDFCotizacion = async (cotizacion) => {
         (cotizacion.descuento > 0 ? 15 : 0) +
         45    // Total y espaciado
 
-      const totalBottomSectionHeight = Math.max(condicionesHeight, desgloseHeight) + 20
+      // Usar el mayor + margen de seguridad
+      const totalBottomSectionHeight = Math.max(condicionesHeight, desgloseHeight) + 40
       
-      // ✅ CORRECCIÓN: Calcular bottomSectionY después de todos los contenidos
+      // ✅ CORRECCIÓN: Calcular finalBottomY después de todos los contenidos
       let finalBottomY = equipoY + 10
 
-      // ✅ Si no hay espacio suficiente para TODA la sección bottom, crear nueva página
-      if (finalBottomY + totalBottomSectionHeight > 680) {
+      // ✅ LÍMITE MÁS CONSERVADOR: Si no hay espacio suficiente, crear nueva página
+      // Usar 640 en lugar de 680 para ser más conservador
+      if (finalBottomY + totalBottomSectionHeight > 640) {
         console.log('⚠️  Creando nueva página para condiciones y desglose')
         doc.addPage()
         finalBottomY = 60  // ✅ Empieza desde arriba en la nueva página
       }
 
-     // ============================================
-      // CONDICIONES Y DESGLOSE
-      // ============================================
-      const bottomSectionY = equipoY + 10
-
-      if (bottomSectionY > 560) {
-        doc.addPage()
-        equipoY = 60
-      }
-
+      // CONDICIONES GENERALES
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('CONDICIONES GENERALES', 50, bottomSectionY)
+        .text('CONDICIONES GENERALES', 50, finalBottomY)
 
-      const condicionesY = bottomSectionY + 18
+      const condicionesY = finalBottomY + 18
 
-      doc
+     doc
         .roundedRect(40, condicionesY - 8, 260, 90, 5) // (x, y, ancho, alto, radio del borde)
         .fill('#eff6ff'); // Un azul muy claro y elegante para no opacar el texto
       // --- FIN: Fondo Rectángulo Azul ---
@@ -441,14 +435,14 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text('• Los precios incluyen IVA.', 50, condicionesY + 36, { width: 240 })
         .text('• La instalación cuenta con una garantía de 1 año, aplicable únicamente a defectos o inconvenientes atribuibles al proceso de instalación.', 50, condicionesY + 48, { width: 240 })
               
-
+      // DESGLOSE DE COSTOS
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('DESGLOSE DE COSTOS', 320, bottomSectionY)
+        .text('DESGLOSE DE COSTOS', 320, finalBottomY)
 
-      const desgloseY = bottomSectionY + 18
+      const desgloseY = finalBottomY + 18
 
       doc
         .rect(320, desgloseY, 242, desgloseHeight)

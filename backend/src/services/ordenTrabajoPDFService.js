@@ -228,7 +228,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         orden.cotizacion.equipos.forEach((equipoItem, index) => {
           const inv = equipoItem.inventario
 
-          if (currentY > 650) {
+          if (currentY > 680) {
             doc.addPage()
             currentY = 60
 
@@ -341,7 +341,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         let currentY = matTableTop + 25
 
         orden.cotizacion.materiales.forEach((material, index) => {
-          if (currentY > 650) {
+          if (currentY > 680) {
             doc.addPage()
             currentY = 60
 
@@ -388,39 +388,13 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       }
 
       // ============================================
-      // CONDICIONES Y DESGLOSE
+      // ✅ MEJORA CRÍTICA: CONDICIONES Y DESGLOSE
       // ============================================
-      const bottomSectionY = equipoY + 10
-
-      if (bottomSectionY > 560) {
-        doc.addPage()
-        equipoY = 60
-      }
-
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .fillColor('#1e3a8a')
-         .text('CONDICIONES GENERALES', 50, bottomSectionY)
-
-      const condicionesY = bottomSectionY + 18
-
-      doc.fontSize(7.5)
-         .font('Helvetica')
-         .fillColor('#374151')
-         .text('• Forma de pago: 50% al aprobar, 50% al finalizar', 50, condicionesY, { width: 240 })
-         .text('• Validez de la orden: 30 días', 50, condicionesY + 12, { width: 240 })
-         .text('• Garantía del equipo: 1 año por defectos de fábrica', 50, condicionesY + 24, { width: 240 })
-         .text('• Garantía de instalación: 6 meses', 50, condicionesY + 36, { width: 240 })
-         .text('• Los precios incluyen IVA', 50, condicionesY + 48, { width: 240 })
-
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .fillColor('#1e3a8a')
-         .text('DESGLOSE DE COSTOS', 320, bottomSectionY)
-
-      const desgloseY = bottomSectionY + 18
-
-      // ⭐ OBTENER COSTOS DE LA COTIZACIÓN
+      
+      // Calcular la altura necesaria para condiciones + desglose
+      const condicionesHeight = 70
+      
+      // Obtener costos primero (movido aquí para calcular desgloseHeight)
       const cotizacion = orden.cotizacion
       const precioOfertado = cotizacion?.precioOfertado || orden.costoManoObra || 0
       const costoInstalacion = cotizacion?.costoInstalacion || 100000
@@ -436,6 +410,50 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         15 + 
         (descuento > 0 ? 15 : 0) +
         45
+
+      // Usar el mayor + margen de seguridad
+      const totalBottomSectionHeight = Math.max(condicionesHeight, desgloseHeight) + 40
+      
+      // ✅ CORRECCIÓN: Calcular finalBottomY después de todos los contenidos
+      let finalBottomY = equipoY + 10
+
+      // ✅ LÍMITE MÁS CONSERVADOR: Si no hay espacio suficiente, crear nueva página
+      // Usar 640 en lugar de 680 para ser más conservador
+      if (finalBottomY + totalBottomSectionHeight > 640) {
+        console.log('⚠️  Creando nueva página para condiciones y desglose')
+        doc.addPage()
+        finalBottomY = 60  // ✅ Empieza desde arriba en la nueva página
+      }
+
+      doc.fontSize(10)
+         .font('Helvetica-Bold')
+         .fillColor('#1e3a8a')
+         .text('CONDICIONES GENERALES', 50, finalBottomY)
+
+      const condicionesY = finalBottomY + 18
+      
+      doc
+        .roundedRect(40, condicionesY - 8, 260, 90, 5) // (x, y, ancho, alto, radio del borde)
+        .fill('#eff6ff'); // Un azul muy claro y elegante para no opacar el texto
+      // --- FIN: Fondo Rectángulo Azul ---
+
+      doc
+        .fontSize(7.5)
+        .font('Helvetica')
+        .fillColor('#374151') // Tu color de texto original
+        .text('• Forma de pago: Efectivo, Tarjeta, Transferencia. Abono inicial (70%).', 50, condicionesY, { width: 240 })
+        .text(`• Validez de la oferta: ${cotizacion.validez || 5} días hábiles o hasta agotar stock.`, 50, condicionesY + 12, { width: 240 })
+        .text('• Garantía del equipo: Según lo estipulado por el fabricante.', 50, condicionesY + 24, { width: 240 })
+        .text('• Los precios incluyen IVA.', 50, condicionesY + 36, { width: 240 })
+        .text('• La instalación cuenta con una garantía de 1 año, aplicable únicamente a defectos o inconvenientes atribuibles al proceso de instalación.', 50, condicionesY + 48, { width: 240 })
+              
+
+      doc.fontSize(10)
+         .font('Helvetica-Bold')
+         .fillColor('#1e3a8a')
+         .text('DESGLOSE DE COSTOS', 320, finalBottomY)
+
+      const desgloseY = finalBottomY + 18
 
       doc.rect(320, desgloseY, 242, desgloseHeight)
          .fillAndStroke('#ffffff', '#e5e7eb')
