@@ -199,13 +199,25 @@ function InventarioMateriales() {
     }
   }
 
-  const handlePrecioNetoChange = (value) => {
+    const handlePrecioNetoChange = (value) => {
+    const neto = value ? parseFloat(value) : 0
     setFormData({
       ...formData,
       precioNeto: value,
-      precioConIVA: value ? (parseFloat(value) * 1.19).toFixed(2) : ''
+      precioConIVA: neto > 0 ? (neto * 1.19).toFixed(2) : ''
     })
   }
+
+  const handlePrecioConIVAChange = (value) => {
+    const conIVA = value ? parseFloat(value) : 0
+    setFormData({
+      ...formData,
+      precioConIVA: value,
+      precioNeto: conIVA > 0 ? (conIVA / 1.19).toFixed(2) : ''
+    })
+  }
+
+  
 
   const getCategoriaColor = (categoria) => {
     const colores = {
@@ -487,18 +499,22 @@ function InventarioMateriales() {
                   />
                 </div>
 
-                <div>
+                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Precio con IVA
                   </label>
                   <input
                     type="number"
                     value={formData.precioConIVA}
-                    onChange={(e) => setFormData({ ...formData, precioConIVA: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                    readOnly
+                    onChange={(e) => handlePrecioConIVAChange(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    min="0"
                     step="0.01"
+                    placeholder="También puedes ingresar el precio con IVA"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Puedes ingresar el precio neto o con IVA, el otro se calcula automáticamente
+                  </p>
                 </div>
 
                 <div>
