@@ -74,25 +74,55 @@ export const getInventarioById = async (req, res) => {
 // Crear item en inventario
 export const createInventario = async (req, res) => {
   try {
-    const { tipo, marca, modelo, numeroSerie, capacidad, tipoGas, ano, precioCompra, precioVenta, stock } = req.body
+    const { 
+      tipo, 
+      marca, 
+      modelo, 
+      numeroSerie, 
+      capacidad,
+      capacidadBTU, 
+      tipoGas, 
+      precioCompra,
+      precioCliente, 
+      precioInstalacion,
+      stock,
+      stockMinimo,
+      estado,
+      ubicacion,
+      proveedor,
+      caracteristicas,
+      metrosCuadrados
+    } = req.body
 
     // Validar campos requeridos
-    if (!tipo || !marca || !modelo || !numeroSerie || !capacidad || !tipoGas || !ano || !precioCompra || !precioVenta) {
+    if (!tipo || !marca || !modelo || !tipoGas) {
       return res.status(400).json({ 
-        error: 'Todos los campos son requeridos' 
+        error: 'Tipo, marca, modelo y tipo de gas son requeridos' 
       })
     }
 
-    // Verificar que el número de serie no exista
-    const existingItem = await prisma.inventario.findUnique({
-      where: { numeroSerie }
-    })
-
-    if (existingItem) {
-      return res.status(400).json({ 
-        error: 'El número de serie ya está registrado' 
+    // Verificar que el número de serie no exista si se proporciona
+    if (numeroSerie) {
+      const existingItem = await prisma.inventario.findFirst({
+        where: { 
+          numeroSerie: numeroSerie,
+          NOT: { numeroSerie: null }
+        }
       })
+
+      if (existingItem) {
+        return res.status(400).json({ 
+          error: 'El número de serie ya está registrado' 
+        })
+      }
     }
+
+    // Calcular precios con IVA (19%)
+    const precioNeto = parseFloat(precioCompra) || 0
+    const precioConIVA = precioNeto * 1.19
+    const precioClienteVal = parseFloat(precioCliente) || 0
+    const precioClienteNeto = precioClienteVal / 1.19
+    const precioClienteIVA = precioClienteVal
 
     // Crear item
     const item = await prisma.inventario.create({
@@ -100,13 +130,31 @@ export const createInventario = async (req, res) => {
         tipo,
         marca,
         modelo,
-        numeroSerie,
-        capacidad,
+        numeroSerie: numeroSerie || null,
+        capacidad: capacidad || null,
+        capacidadBTU: capacidadBTU || null,
         tipoGas,
-        ano: parseInt(ano),
-        precioCompra: parseFloat(precioCompra),
-        precioVenta: parseFloat(precioVenta),
-        stock: stock ? parseInt(stock) : 1
+        metrosCuadrados: metrosCuadrados || null,
+        caracteristicas: caracteristicas || null,
+        
+        // Precios
+        precioNeto,
+        precioConIVA,
+        precioMaterial: precioNeto, // Para compatibilidad
+        valorLogistica: 0,
+        valorMaterial: precioNeto,
+        precioCliente: precioClienteVal,
+        precioClienteNeto,
+        precioClienteIVA,
+        valorEquipoMaterialIVA: precioConIVA,
+        gananciaDescontandoIVA: precioClienteNeto - precioNeto,
+        gananciaDescontandoTecnicos: precioClienteNeto - precioNeto,
+        
+        // Stock
+        stock: stock ? parseInt(stock) : 0,
+        
+        // Estado
+        estado: estado || 'disponible'
       }
     })
 
@@ -116,7 +164,10 @@ export const createInventario = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear item:', error)
-    res.status(500).json({ error: 'Error al crear item' })
+    res.status(500).json({ 
+      error: 'Error al crear item',
+      details: error.message 
+    })
   }
 }
 
@@ -124,7 +175,25 @@ export const createInventario = async (req, res) => {
 export const updateInventario = async (req, res) => {
   try {
     const { id } = req.params
-    const { tipo, marca, modelo, numeroSerie, capacidad, tipoGas, ano, precioCompra, precioVenta, stock, estado } = req.body
+    const { 
+      tipo, 
+      marca, 
+      modelo, 
+      numeroSerie, 
+      capacidad,
+      capacidadBTU, 
+      tipoGas, 
+      precioCompra,
+      precioCliente, 
+      precioInstalacion,
+      stock,
+      stockMinimo,
+      estado,
+      ubicacion,
+      proveedor,
+      caracteristicas,
+      metrosCuadrados
+    } = req.body
 
     const existingItem = await prisma.inventario.findUnique({
       where: { id: parseInt(id) }
@@ -136,8 +205,13 @@ export const updateInventario = async (req, res) => {
 
     // Verificar número de serie si cambió
     if (numeroSerie && numeroSerie !== existingItem.numeroSerie) {
-      const serieExists = await prisma.inventario.findUnique({
-        where: { numeroSerie }
+      const serieExists = await prisma.inventario.findFirst({
+        where: { 
+          numeroSerie,
+          NOT: { 
+            id: parseInt(id)
+          }
+        }
       })
 
       if (serieExists) {
@@ -147,21 +221,47 @@ export const updateInventario = async (req, res) => {
       }
     }
 
+    // Calcular precios con IVA si cambiaron
+    const precioNeto = precioCompra !== undefined ? parseFloat(precioCompra) : existingItem.precioNeto
+    const precioConIVA = precioNeto * 1.19
+    const precioClienteVal = precioCliente !== undefined ? parseFloat(precioCliente) : existingItem.precioCliente
+    const precioClienteNeto = precioClienteVal / 1.19
+    const precioClienteIVA = precioClienteVal
+
+    // Preparar datos para actualizar
+    const updateData = {
+      tipo: tipo || existingItem.tipo,
+      marca: marca || existingItem.marca,
+      modelo: modelo || existingItem.modelo,
+      numeroSerie: numeroSerie !== undefined ? numeroSerie : existingItem.numeroSerie,
+      capacidad: capacidad !== undefined ? capacidad : existingItem.capacidad,
+      capacidadBTU: capacidadBTU !== undefined ? capacidadBTU : existingItem.capacidadBTU,
+      tipoGas: tipoGas || existingItem.tipoGas,
+      metrosCuadrados: metrosCuadrados !== undefined ? metrosCuadrados : existingItem.metrosCuadrados,
+      caracteristicas: caracteristicas !== undefined ? caracteristicas : existingItem.caracteristicas,
+      
+      // Precios
+      precioNeto,
+      precioConIVA,
+      precioMaterial: precioNeto,
+      valorMaterial: precioNeto,
+      precioCliente: precioClienteVal,
+      precioClienteNeto,
+      precioClienteIVA,
+      valorEquipoMaterialIVA: precioConIVA,
+      gananciaDescontandoIVA: precioClienteNeto - precioNeto,
+      gananciaDescontandoTecnicos: precioClienteNeto - precioNeto,
+      
+      // Stock
+      stock: stock !== undefined ? parseInt(stock) : existingItem.stock,
+      
+      // Estado
+      estado: estado || existingItem.estado
+    }
+
     const item = await prisma.inventario.update({
       where: { id: parseInt(id) },
-      data: {
-        tipo,
-        marca,
-        modelo,
-        numeroSerie,
-        capacidad,
-        tipoGas,
-        ano: ano ? parseInt(ano) : existingItem.ano,
-        precioCompra: precioCompra ? parseFloat(precioCompra) : existingItem.precioCompra,
-        precioVenta: precioVenta ? parseFloat(precioVenta) : existingItem.precioVenta,
-        stock: stock !== undefined ? parseInt(stock) : existingItem.stock,
-        estado: estado || existingItem.estado
-      }
+      data: updateData
     })
 
     res.json({
@@ -170,7 +270,10 @@ export const updateInventario = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar item:', error)
-    res.status(500).json({ error: 'Error al actualizar item' })
+    res.status(500).json({ 
+      error: 'Error al actualizar item',
+      details: error.message 
+    })
   }
 }
 
