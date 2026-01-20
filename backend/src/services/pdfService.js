@@ -408,7 +408,26 @@ export const generarPDFCotizacion = async (cotizacion) => {
       if (finalBottomY + totalBottomSectionHeight > 640) {
         console.log('⚠️  Creando nueva página para condiciones y desglose')
         doc.addPage()
-        finalBottomY = 60  // ✅ Empieza desde arriba en la nueva página
+        
+        // ✅ Agregar mini encabezado en página 2
+        doc
+          .fontSize(9)
+          .font('Helvetica')
+          .fillColor('#6b7280')
+          .text(`Cotización N° ${cotizacion.id} - ${cotizacion.cliente.nombre}`, 50, 50, { 
+            width: 512, 
+            align: 'center' 
+          })
+        
+        // Línea separadora
+        doc
+          .strokeColor('#e5e7eb')
+          .lineWidth(1)
+          .moveTo(50, 70)
+          .lineTo(562, 70)
+          .stroke()
+        
+        finalBottomY = 90  // ✅ Inicia después del mini encabezado
       }
 
       // CONDICIONES GENERALES
@@ -420,7 +439,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
       const condicionesY = finalBottomY + 18
 
-     doc
+      doc
         .roundedRect(40, condicionesY - 8, 260, 90, 5) // (x, y, ancho, alto, radio del borde)
         .fill('#eff6ff'); // Un azul muy claro y elegante para no opacar el texto
       // --- FIN: Fondo Rectángulo Azul ---
