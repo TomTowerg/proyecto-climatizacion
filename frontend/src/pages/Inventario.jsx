@@ -87,7 +87,7 @@ function Inventario() {
     try {
       const dataToSend = {
         ...formData,
-        capacidadBTU: parseInt(formData.capacidadBTU) || 0,
+        capacidadBTU: formData.capacidadBTU ? String(formData.capacidadBTU) : null,
         stock: parseInt(formData.stock) || 0,
         stockMinimo: parseInt(formData.stockMinimo) || 1,
         precioCompra: parseFloat(formData.precioCompra) || 0,
