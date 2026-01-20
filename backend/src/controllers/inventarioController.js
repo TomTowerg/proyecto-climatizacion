@@ -23,9 +23,14 @@ export const getInventarioPublic = async (req, res) => {
         estado: true,
         caracteristicas: true
       },
-      orderBy: {
-        marca: 'asc'
-      }
+      orderBy: [
+        {
+          marca: 'asc'  // Primero por marca alfabéticamente
+        },
+        {
+          capacidadBTU: 'asc'  // Luego por capacidad de menor a mayor
+        }
+      ]
     })
 
     res.json(inventario)
@@ -39,9 +44,14 @@ export const getInventarioPublic = async (req, res) => {
 export const getInventario = async (req, res) => {
   try {
     const inventario = await prisma.inventario.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: [
+        {
+          marca: 'asc'  // Primero por marca alfabéticamente
+        },
+        {
+          capacidadBTU: 'asc'  // Luego por capacidad de menor a mayor
+        }
+      ]
     })
 
     res.json(inventario)
