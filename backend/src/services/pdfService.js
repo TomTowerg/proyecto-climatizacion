@@ -441,14 +441,20 @@ export const generarPDFCotizacion = async (cotizacion) => {
       const condicionesY = bottomSectionY + 18
 
       doc
+        .roundedRect(40, condicionesY - 8, 260, 90, 5) // (x, y, ancho, alto, radio del borde)
+        .fill('#eff6ff'); // Un azul muy claro y elegante para no opacar el texto
+      // --- FIN: Fondo Rectángulo Azul ---
+
+      doc
         .fontSize(7.5)
         .font('Helvetica')
-        .fillColor('#374151')
-        .text('• Forma de pago: 50% al aprobar, 50% al finalizar', 50, condicionesY, { width: 240 })
-        .text(`• Validez de la oferta: ${cotizacion.validez || 15} días`, 50, condicionesY + 12, { width: 240 })
-        .text('• Garantía del equipo: 1 año por defectos de fábrica', 50, condicionesY + 24, { width: 240 })
-        .text('• Garantía de instalación: 6 meses', 50, condicionesY + 36, { width: 240 })
-        .text('• Los precios incluyen IVA', 50, condicionesY + 48, { width: 240 })
+        .fillColor('#374151') // Tu color de texto original
+        .text('• Forma de pago: Efectivo, Tarjeta, Transferencia. Abono inicial (70%).', 50, condicionesY, { width: 240 })
+        .text(`• Validez de la oferta: ${cotizacion.validez || 5} días hábiles o hasta agotar stock.`, 50, condicionesY + 12, { width: 240 })
+        .text('• Garantía del equipo: Según lo estipulado por el fabricante.', 50, condicionesY + 24, { width: 240 })
+        .text('• Los precios incluyen IVA.', 50, condicionesY + 36, { width: 240 })
+        .text('• La instalación cuenta con una garantía de 1 año, aplicable únicamente a defectos o inconvenientes atribuibles al proceso de instalación.', 50, condicionesY + 48, { width: 240 })
+              
 
       doc
         .fontSize(10)
