@@ -13,6 +13,7 @@ import {
   aprobarCotizacion,
   rechazarCotizacion
 } from '../services/cotizacionService'
+import { getMateriales } from '../services/materialInventarioService'
 import { getClientes, createCliente } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
 import { getEquiposByCliente } from '../services/equipoService'
@@ -36,6 +37,7 @@ function Cotizaciones() {
   const [approving, setApproving] = useState(false)
   const [showClientModal, setShowClientModal] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
+  const [materialesInventario, setMaterialesInventario] = useState([])
   const [newClientData, setNewClientData] = useState({
     nombre: '',
     rut: '',
@@ -133,6 +135,20 @@ function Cotizaciones() {
     }))
   }, [materiales])
 
+  useEffect(() => {
+    const fetchMaterialesInventario = async () => {
+      try {
+        const materialesData = await getMateriales()
+        // Filtrar solo materiales activos y con stock
+        const materialesActivos = materialesData.filter(m => m.activo)
+        setMaterialesInventario(materialesActivos)
+      } catch (error) {
+        console.error('Error al cargar materiales del inventario:', error)
+      }
+    }
+    fetchMaterialesInventario()
+  }, [])
+
   // Calcular precio total de equipos
   useEffect(() => {
     if (formData.tipo === 'instalacion' && equipos.length > 0) {
@@ -224,35 +240,65 @@ function Cotizaciones() {
     })
 
   const agregarMaterial = () => {
-    if (!nuevoMaterial.nombre.trim()) {
-      toast.error('Ingresa el nombre del material')
-      return
-    }
-    if (nuevoMaterial.cantidad <= 0) {
-      toast.error('La cantidad debe ser mayor a 0')
-      return
-    }
-    if (nuevoMaterial.precioUnitario <= 0) {
-      toast.error('El precio unitario debe ser mayor a 0')
-      return
-    }
+  // Validación
+  if (!nuevoMaterial.nombre) {
+    toast.error('Selecciona un material')
+    return
+  }
+  if (!nuevoMaterial.cantidad || nuevoMaterial.cantidad <= 0) {
+    toast.error('Ingresa una cantidad válida')
+    return
+  }
+  if (!nuevoMaterial.precioUnitario || nuevoMaterial.precioUnitario <= 0) {
+    toast.error('El precio debe ser mayor a 0')
+    return
+  }
 
-    const materialConSubtotal = {
-      ...nuevoMaterial,
-      subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
-    }
+  const materialConSubtotal = {
+    ...nuevoMaterial,
+    subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
+  }
 
-    setMateriales([...materiales, materialConSubtotal])
-    
+  setMateriales([...materiales, materialConSubtotal])
+  
+  // Resetear formulario
+  setNuevoMaterial({
+    materialInventarioId: null,
+    nombre: '',
+    cantidad: 1,
+    unidad: 'unidades',
+    precioUnitario: 0
+  })
+  
+  toast.success('Material agregado')
+  }
+
+  const handleMaterialSelect = (e) => {
+  const materialId = parseInt(e.target.value)
+  
+  if (!materialId) {
     setNuevoMaterial({
+      materialInventarioId: null,
       nombre: '',
       cantidad: 1,
       unidad: 'unidades',
       precioUnitario: 0
     })
-
-    toast.success('Material agregado')
+    return
   }
+
+  const materialSeleccionado = materialesInventario.find(m => m.id === materialId)
+  
+  if (materialSeleccionado) {
+    setNuevoMaterial({
+      materialInventarioId: materialSeleccionado.id,
+      nombre: materialSeleccionado.nombre,
+      cantidad: 1,
+      unidad: materialSeleccionado.unidad,
+      precioUnitario: materialSeleccionado.precioConIVA
+    })
+  }
+}
 
   const eliminarMaterial = (index) => {
     setMateriales(materiales.filter((_, i) => i !== index))
@@ -1259,81 +1305,113 @@ function Cotizaciones() {
 
                 {/* Formulario para agregar material */}
                 <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                  <div className="grid grid-cols-4 gap-3 mb-3">
+                  <div className="grid grid-cols-5 gap-3 mb-3">
+                    {/* ⭐ SELECTOR DE MATERIAL DEL INVENTARIO */}
                     <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Nombre del Material
+                        Material del Inventario *
                       </label>
-                      <input
-                        type="text"
-                        value={nuevoMaterial.nombre}
-                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, nombre: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        placeholder="Ej: Cañería de cobre 1/2"
-                      />
+                      <select
+                        value={nuevoMaterial.materialInventarioId || ''}
+                        onChange={handleMaterialSelect}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seleccionar material...</option>
+                        {materialesInventario.map(material => (
+                          <option key={material.id} value={material.id}>
+                            {material.nombre} - ${material.precioConIVA.toLocaleString('es-CL')} 
+                            {material.stock > 0 ? ` (Stock: ${material.stock})` : ' (Sin stock)'}
+                          </option>
+                        ))}
+                      </select>
+                      {materialesInventario.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⚠️ No hay materiales en el inventario
+                        </p>
+                      )}
                     </div>
 
+                    {/* CANTIDAD */}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Cantidad
+                        Cantidad *
                       </label>
                       <input
                         type="number"
                         value={nuevoMaterial.cantidad}
                         onChange={(e) => setNuevoMaterial({...nuevoMaterial, cantidad: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                         min="0"
                         step="0.1"
+                        disabled={!nuevoMaterial.materialInventarioId}
                       />
                     </div>
 
+                    {/* UNIDAD (AUTO-COMPLETADA) */}
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Unidad
                       </label>
-                      <select
-                        value={nuevoMaterial.unidad}
-                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, unidad: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      >
-                        <option value="unidades">Unidades</option>
-                        <option value="metros">Metros</option>
-                        <option value="kilogramos">Kilogramos</option>
-                        <option value="litros">Litros</option>
-                        <option value="cajas">Cajas</option>
-                        <option value="paquetes">Paquetes</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Precio Unitario ($)
-                      </label>
                       <input
-                        type="number"
-                        value={nuevoMaterial.precioUnitario}
-                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, precioUnitario: parseFloat(e.target.value) || 0})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        min="0"
-                        step="1"
-                        placeholder="0"
+                        type="text"
+                        value={nuevoMaterial.unidad}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100"
+                        disabled
+                        readOnly
                       />
                     </div>
 
-                    <div className="col-span-2 flex items-end">
+                    {/* BOTÓN AGREGAR */}
+                    <div className="flex items-end">
                       <button
                         type="button"
                         onClick={agregarMaterial}
-                        className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
-                        disabled={!nuevoMaterial.nombre || nuevoMaterial.precioUnitario <= 0}
+                        className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!nuevoMaterial.materialInventarioId || nuevoMaterial.cantidad <= 0}
                       >
                         <Plus size={16} />
-                        Agregar Material
+                        Agregar
                       </button>
                     </div>
                   </div>
+
+                  {/* INFO DEL PRECIO */}
+                  {nuevoMaterial.materialInventarioId && (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-blue-800">Precio Unitario:</span>
+                          <span className="text-sm font-bold text-blue-900">
+                            ${nuevoMaterial.precioUnitario.toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-medium text-blue-800">Subtotal:</span>
+                          <span className="text-sm font-bold text-blue-900">
+                            ${(nuevoMaterial.cantidad * nuevoMaterial.precioUnitario).toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNuevoMaterial({
+                              materialInventarioId: null,
+                              nombre: '',
+                              cantidad: 1,
+                              unidad: 'unidades',
+                              precioUnitario: 0
+                            })
+                          }}
+                          className="text-sm text-gray-600 hover:text-gray-800 underline"
+                        >
+                          Limpiar selección
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Lista de materiales agregados */}

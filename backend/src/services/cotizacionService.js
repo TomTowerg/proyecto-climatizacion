@@ -90,6 +90,38 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
       ordenTrabajo = resultado.ordenTrabajo
     }
 
+  // ⭐ REDUCIR STOCK DE MATERIALES
+  console.log('📦 Reduciendo stock de materiales...')
+
+  for (const materialCot of cotizacion.materiales) {
+    // Si el material tiene relación con inventario, reducir stock
+    if (materialCot.materialInventarioId) {
+      const materialInventario = await prisma.materialInventario.findUnique({
+        where: { id: materialCot.materialInventarioId }
+      })
+
+      if (materialInventario) {
+        const nuevoStock = materialInventario.stock - materialCot.cantidad
+
+        if (nuevoStock < 0) {
+          console.log(`⚠️  Advertencia: Stock insuficiente para ${materialInventario.nombre}`)
+          console.log(`   Stock actual: ${materialInventario.stock}, Solicitado: ${materialCot.cantidad}`)
+          // Continuar de todas formas, pero registrar advertencia
+        }
+
+        await prisma.materialInventario.update({
+          where: { id: materialInventario.id },
+          data: { stock: Math.max(0, nuevoStock) } // No permitir stock negativo
+        })
+
+        console.log(`📦 Stock reducido: ${materialInventario.nombre}`)
+        console.log(`   ${materialInventario.stock} → ${Math.max(0, nuevoStock)} ${materialInventario.unidad}`)
+      }
+    }
+  }
+
+  console.log('✅ Stock de materiales actualizado')
+
     // 5. ACTUALIZAR COTIZACIÓN COMO APROBADA
     const cotizacionAprobada = await prisma.cotizacion.update({
       where: { id: cotizacionId },
