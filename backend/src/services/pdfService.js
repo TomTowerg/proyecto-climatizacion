@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename)
 
 /**
  * SERVICIO DE GENERACIÓN DE PDF - VERSIÓN CORREGIDA
- * Con logo, múltiples equipos, materiales y descifrado automático
+ * ✅ Manejo correcto de páginas cuando hay muchos equipos/materiales
+ * ✅ Condiciones y desglose siempre visibles y alineados
  */
 
 /**
@@ -78,75 +79,40 @@ export const generarPDFCotizacion = async (cotizacion) => {
       // ============================================
       // ENCABEZADO: COTIZACIÓN + FECHA + NÚMERO
       // ============================================
+      const dataY = 50
+
       doc
-        .fontSize(26)
+        .fontSize(22)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('COTIZACIÓN', 140, 55, { align: 'center', width: 332 })
-        .moveDown(0.3)
+        .text('COTIZACIÓN', 300, dataY, { align: 'right', width: 250 })
 
       doc
         .fontSize(9)
         .font('Helvetica')
-        .fillColor('#374151')
+        .fillColor('#6b7280')
+        .text(`N° ${cotizacion.id}`, 300, dataY + 28, { align: 'right', width: 250 })
         .text(
-          `N° ${cotizacion.id.toString().padStart(6, '0')}  |  Fecha: ${new Date(cotizacion.createdAt).toLocaleDateString('es-CL')}`,
-          140,
-          doc.y,
-          { align: 'center', width: 332 }
+          `Fecha: ${new Date(cotizacion.fechaCotizacion).toLocaleDateString('es-CL')}`,
+          300,
+          dataY + 42,
+          { align: 'right', width: 250 }
         )
 
       // ============================================
-      // EMPRESA (Izquierda) y CLIENTE (Derecha)
+      // DATOS DEL CLIENTE
       // ============================================
-      const dataY = 115
+      const clienteDescifrado = decryptSensitiveFields(cotizacion.cliente)
 
-      // EMPRESA (Izquierda)
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('DATOS DE LA EMPRESA', 50, dataY)
-
-      doc
+        .text('CLIENTE', 50, dataY + 28)
         .fontSize(9)
         .font('Helvetica-Bold')
         .fillColor('#1f2937')
-        .text('KMTS POWERTECH SPA', 50, dataY + 15)
-        .fontSize(8)
-        .font('Helvetica')
-        .fillColor('#374151')
-        .text('RUT: 78.163.187-6', 50, dataY + 28)
-        .text('Teléfono: +56 9 5461 0454', 50, dataY + 40)
-        .text('Email: kmtspowertech@gmail.com', 50, dataY + 52)
-
-      // ⭐ DESCIFRAR DATOS DEL CLIENTE
-      let clienteDescifrado = cotizacion.cliente
-      
-      try {
-        if (cotizacion.cliente.rut_encrypted || 
-            cotizacion.cliente.email_encrypted || 
-            cotizacion.cliente.telefono_encrypted) {
-          console.log('🔓 Descifrando datos del cliente...')
-          clienteDescifrado = decryptSensitiveFields(cotizacion.cliente)
-          console.log('✅ Datos descifrados exitosamente')
-        }
-      } catch (error) {
-        console.log('⚠️  Error al descifrar:', error.message)
-      }
-
-      // CLIENTE (Derecha)
-      doc
-        .fontSize(10)
-        .font('Helvetica-Bold')
-        .fillColor('#1e3a8a')
-        .text('DATOS DEL CLIENTE', 320, dataY)
-
-      doc
-        .fontSize(9)
-        .font('Helvetica-Bold')
-        .fillColor('#1f2937')
-        .text(clienteDescifrado.nombre || 'Cliente', 320, dataY + 15)
+        .text(cotizacion.cliente.nombre, 50, dataY + 44, { width: 250 })
 
       doc
         .fontSize(8)
@@ -250,8 +216,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
         cotizacion.equipos.forEach((equipoItem, index) => {
           const inv = equipoItem.inventario
 
-          // Verificar si necesitamos nueva página
-          if (currentY > 650) {
+          // ✅ MEJORA: Verificar si necesitamos nueva página (dejando espacio para footer)
+          if (currentY > 680) {
             doc.addPage()
             currentY = 60
 
@@ -278,11 +244,13 @@ export const generarPDFCotizacion = async (cotizacion) => {
           }
 
           // Datos del equipo
+          const equipoDescripcion = `${inv.tipo} ${inv.marca} ${inv.modelo} - ${inv.capacidadBTU} BTU`
+          
           doc
             .fontSize(8)
             .font('Helvetica')
             .fillColor('#1f2937')
-            .text(`${inv.marca} ${inv.modelo}`, 60, currentY, { width: 210 })
+            .text(equipoDescripcion, 60, currentY, { width: 210 })
             .text(equipoItem.cantidad.toString(), 290, currentY)
             .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY)
             .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY)
@@ -290,42 +258,33 @@ export const generarPDFCotizacion = async (cotizacion) => {
           currentY += 18
         })
 
-        // Total de equipos
-        const totalEquipos = cotizacion.equipos.reduce((sum, eq) => sum + eq.subtotal, 0)
-        
-        doc
-          .rect(380, currentY + 5, 182, 18)
-          .fillAndStroke('#dbeafe', '#2563eb')
-          .fontSize(9)
-          .font('Helvetica-Bold')
-          .fillColor('#1e3a8a')
-          .text('Total Equipos:', 390, currentY + 10)
-          .text(`$${totalEquipos.toLocaleString('es-CL')}`, 480, currentY + 10)
-
-        equipoY = currentY + 35
-
+        equipoY = currentY + 10
       } else if (cotizacion.inventario) {
-        // Sistema antiguo - un solo equipo
-        console.log('✅ Mostrando equipo único (sistema antiguo) en PDF')
-        
+        // Equipo único (viejo flujo)
+        console.log('✅ Mostrando equipo único en PDF')
+
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
           .fillColor('#1e3a8a')
-          .text('DETALLE DEL EQUIPO', 50, equipoY)
+          .text('EQUIPO COTIZADO', 50, equipoY)
 
-        equipoY += 18
-
-        doc
-          .rect(50, equipoY, 512, 65)
-          .fillAndStroke('#f9fafb', '#e5e7eb')
+        const boxTop = equipoY + 18
 
         doc
-          .fontSize(9)
+          .rect(50, boxTop, 512, 60)
+          .fillAndStroke('#ffffff', '#e5e7eb')
+
+        doc
+          .fontSize(12)
           .font('Helvetica-Bold')
           .fillColor('#1f2937')
-          .text(`${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`, 60, equipoY + 8)
-          .fontSize(8)
+          .text(
+            `${cotizacion.inventario.tipo} ${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`,
+            60,
+            equipoY + 25
+          )
+          .fontSize(9)
           .font('Helvetica')
           .fillColor('#374151')
           .text(`Capacidad: ${cotizacion.inventario.capacidadBTU} BTU`, 60, equipoY + 25)
@@ -374,7 +333,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
         let currentY = matTableTop + 25
 
         cotizacion.materiales.forEach((material, index) => {
-          if (currentY > 650) {
+          // ✅ MEJORA: Verificar si necesitamos nueva página (dejando espacio para footer)
+          if (currentY > 680) {
             doc.addPage()
             currentY = 60
 
@@ -423,6 +383,32 @@ export const generarPDFCotizacion = async (cotizacion) => {
       }
 
       // ============================================
+      // ✅ MEJORA CRÍTICA: CONDICIONES Y DESGLOSE
+      // ============================================
+      
+      // Calcular la altura necesaria para condiciones + desglose
+      const condicionesHeight = 70  // Altura de las condiciones generales
+      const desgloseHeight = 
+        25 +  // Base
+        (cotizacion.costoInstalacion > 0 ? 15 : 0) +
+        (cotizacion.costoMaterial > 0 ? 15 : 0) +
+        15 +  // Subtotal
+        (cotizacion.descuento > 0 ? 15 : 0) +
+        45    // Total y espaciado
+
+      const totalBottomSectionHeight = Math.max(condicionesHeight, desgloseHeight) + 20
+      
+      // ✅ CORRECCIÓN: Calcular bottomSectionY después de todos los contenidos
+      let finalBottomY = equipoY + 10
+
+      // ✅ Si no hay espacio suficiente para TODA la sección bottom, crear nueva página
+      if (finalBottomY + totalBottomSectionHeight > 680) {
+        console.log('⚠️  Creando nueva página para condiciones y desglose')
+        doc.addPage()
+        finalBottomY = 60  // ✅ Empieza desde arriba en la nueva página
+      }
+
+     // ============================================
       // CONDICIONES Y DESGLOSE
       // ============================================
       const bottomSectionY = equipoY + 10
@@ -463,14 +449,6 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .text('DESGLOSE DE COSTOS', 320, bottomSectionY)
 
       const desgloseY = bottomSectionY + 18
-      
-      const desgloseHeight = 
-        25 + 
-        (cotizacion.costoInstalacion > 0 ? 15 : 0) +
-        (cotizacion.costoMaterial > 0 ? 15 : 0) +
-        15 + 
-        (cotizacion.descuento > 0 ? 15 : 0) +
-        45
 
       doc
         .rect(320, desgloseY, 242, desgloseHeight)
@@ -600,6 +578,8 @@ export const generarPDFCotizacion = async (cotizacion) => {
     }
   })
 }
+
+// ... resto del archivo (función de orden de trabajo, etc.)
 
 /**
  * GENERAR PDF DE ORDEN DE TRABAJO

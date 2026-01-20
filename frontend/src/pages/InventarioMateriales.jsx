@@ -510,10 +510,9 @@ function InventarioMateriales() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     min="0"
                     step="0.01"
-                    placeholder="También puedes ingresar el precio con IVA"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    💡 Puedes ingresar el precio neto o con IVA, el otro se calcula automáticamente
+                    💡 Ingresa el precio neto o con IVA; el sistema calculará automáticamente el otro valor.
                   </p>
                 </div>
 
