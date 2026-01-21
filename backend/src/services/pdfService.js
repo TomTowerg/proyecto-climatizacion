@@ -55,7 +55,7 @@ export const generarPDFCotizacion = async (cotizacion) => {
       for (const logoPath of possibleLogoPaths) {
         if (fs.existsSync(logoPath)) {
           try {
-            doc.image(logoPath, 50, 45, { width: 80, height: 80 })
+            doc.image(logoPath, 50, 45, { width: 70, height: 70 })
             console.log('✅ Logo cargado desde:', logoPath)
             logoLoaded = true
             break
@@ -69,79 +69,102 @@ export const generarPDFCotizacion = async (cotizacion) => {
       if (!logoLoaded) {
         console.log('⚠️  Logo no encontrado, usando texto')
         doc
-          .fontSize(9)
+          .fontSize(10)
           .font('Helvetica-Bold')
           .fillColor('#1e3a8a')
           .text('KMTS', 50, 50)
-          .text('POWERTECH', 50, 62)
+          .text('POWERTECH', 50, 64)
       }
 
       // ============================================
-      // ENCABEZADO: COTIZACIÓN + FECHA + NÚMERO
+      // TÍTULO: COTIZACIÓN (CENTRADO Y GRANDE)
       // ============================================
-      const dataY = 50
-
       doc
-        .fontSize(22)
+        .fontSize(28)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('COTIZACIÓN', 300, dataY, { align: 'right', width: 250 })
+        .text('COTIZACIÓN', 0, 50, { align: 'center', width: 612 })
 
+      // Número y Fecha debajo del título (centrado)
       doc
-        .fontSize(9)
+        .fontSize(10)
         .font('Helvetica')
-        .fillColor('#6b7280')
-        .text(`N° ${cotizacion.id}`, 300, dataY + 28, { align: 'right', width: 250 })
+        .fillColor('#374151')
         .text(
-          `Fecha: ${new Date(cotizacion.fechaCotizacion).toLocaleDateString('es-CL')}`,
-          300,
-          dataY + 42,
-          { align: 'right', width: 250 }
+          `N° ${String(cotizacion.id).padStart(6, '0')} | Fecha: ${new Date(cotizacion.fechaCotizacion).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+          0,
+          85,
+          { align: 'center', width: 612 }
         )
 
       // ============================================
-      // DATOS DEL CLIENTE
+      // SECCIÓN DE DOS COLUMNAS: EMPRESA Y CLIENTE
       // ============================================
-      const clienteDescifrado = decryptSensitiveFields(cotizacion.cliente)
-
+      const dataY = 110
+      
+      // ⬅️ COLUMNA IZQUIERDA: DATOS DE LA EMPRESA
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('CLIENTE', 50, dataY + 28)
+        .text('DATOS DE LA EMPRESA', 50, dataY)
+      
+      doc
         .fontSize(9)
         .font('Helvetica-Bold')
         .fillColor('#1f2937')
-        .text(cotizacion.cliente.nombre, 50, dataY + 44, { width: 250 })
-
+        .text('KMTS POWERTECH SPA', 50, dataY + 18)
+      
       doc
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
+        .text('RUT: 78.163.187-6', 50, dataY + 32)
+        .text('Teléfono: +56 9 5451 0454', 50, dataY + 44)
+        .text('Email: kmtspowertech@gmail.com', 50, dataY + 56)
 
-      let clienteY = dataY + 28
-
+      // ➡️ COLUMNA DERECHA: DATOS DEL CLIENTE
+      const clienteDescifrado = decryptSensitiveFields(cotizacion.cliente)
+      
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor('#1e3a8a')
+        .text('DATOS DEL CLIENTE', 320, dataY)
+      
+      doc
+        .fontSize(9)
+        .font('Helvetica-Bold')
+        .fillColor('#1f2937')
+        .text(cotizacion.cliente.nombre, 320, dataY + 18, { width: 242 })
+      
+      let clienteY = dataY + 32
+      doc
+        .fontSize(8)
+        .font('Helvetica')
+        .fillColor('#374151')
+      
       if (clienteDescifrado.rut) {
         doc.text(`RUT: ${clienteDescifrado.rut}`, 320, clienteY)
         clienteY += 12
       }
-
+      
       if (clienteDescifrado.telefono) {
         doc.text(`Teléfono: ${clienteDescifrado.telefono}`, 320, clienteY)
         clienteY += 12
       }
-
+      
       if (clienteDescifrado.email) {
-        doc.text(`Email: ${clienteDescifrado.email}`, 320, clienteY, { width: 230 })
+        doc.text(`Email: ${clienteDescifrado.email}`, 320, clienteY, { width: 242 })
         clienteY += 12
       }
 
-      // LÍNEA SEPARADORA
+      // LÍNEA SEPARADORA AZUL GRUESA
       doc
         .strokeColor('#1e3a8a')
-        .lineWidth(2)
-        .moveTo(50, dataY + 70)
-        .lineTo(562, dataY + 70)
+        .lineWidth(3)
+        .moveTo(50, dataY + 78)
+        .lineTo(562, dataY + 78)
         .stroke()
 
       // ============================================
@@ -155,11 +178,11 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('DIRECCIÓN DEL SERVICIO', 50, dataY + 85)
+        .text('DIRECCIÓN DEL SERVICIO', 50, dataY + 95)
         .fontSize(8)
         .font('Helvetica')
         .fillColor('#374151')
-        .text(direccion, 50, dataY + 100, { width: 500 })
+        .text(direccion, 50, dataY + 110, { width: 500 })
 
       // ============================================
       // TIPO DE SERVICIO
@@ -174,15 +197,16 @@ export const generarPDFCotizacion = async (cotizacion) => {
         .fontSize(10)
         .font('Helvetica-Bold')
         .fillColor('#1e3a8a')
-        .text('TIPO DE SERVICIO', 50, dataY + 120)
+        .text('TIPO DE SERVICIO', 50, dataY + 135)
         .fontSize(9)
+        .font('Helvetica')
         .fillColor('#1f2937')
-        .text(tipoTexto[cotizacion.tipo] || 'SERVICIO', 50, dataY + 135)
+        .text(tipoTexto[cotizacion.tipo] || 'SERVICIO', 50, dataY + 150)
 
       // ============================================
       // ⭐ EQUIPOS (MÚLTIPLES O ÚNICO)
       // ============================================
-      let equipoY = dataY + 160
+      let equipoY = dataY + 170
 
       // ⭐ NUEVO: Verificar si hay múltiples equipos
       if (cotizacion.equipos && cotizacion.equipos.length > 0) {
@@ -239,26 +263,50 @@ export const generarPDFCotizacion = async (cotizacion) => {
           // Fila alternada
           if (index % 2 === 0) {
             doc
-              .rect(50, currentY - 3, 512, 18)
+              .rect(50, currentY - 3, 512, 22)  // ✅ Altura aumentada de 18 a 22
               .fillAndStroke('#f9fafb', '#f9fafb')
           }
 
-          // Datos del equipo
-          const equipoDescripcion = `${inv.tipo} ${inv.marca} ${inv.modelo} - ${inv.capacidadBTU} BTU`
+          // Datos del equipo - LÍNEA 1: Marca y modelo
+          const lineaUno = `${inv.marca} ${inv.modelo}`
+          // LÍNEA 2: Tipo y capacidad
+          const lineaDos = `${inv.tipo} - ${inv.capacidadBTU} BTU`
           
+          doc
+            .fontSize(8)
+            .font('Helvetica-Bold')
+            .fillColor('#1f2937')
+            .text(lineaUno, 60, currentY, { width: 210 })
+            .fontSize(7)
+            .font('Helvetica')
+            .fillColor('#6b7280')
+            .text(lineaDos, 60, currentY + 10, { width: 210 })
+          
+          // Cantidad, Precio y Subtotal (centrados verticalmente)
           doc
             .fontSize(8)
             .font('Helvetica')
             .fillColor('#1f2937')
-            .text(equipoDescripcion, 60, currentY, { width: 210 })
-            .text(equipoItem.cantidad.toString(), 290, currentY)
-            .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY)
-            .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY)
+            .text(equipoItem.cantidad.toString(), 290, currentY + 4)
+            .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY + 4)
+            .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY + 4)
 
-          currentY += 18
+          currentY += 22  // ✅ Aumentado de 18 a 22
         })
 
-        equipoY = currentY + 10
+        // ✅ AGREGAR TOTAL DE EQUIPOS
+        const totalEquipos = cotizacion.equipos.reduce((sum, eq) => sum + eq.subtotal, 0)
+        
+        doc
+          .rect(380, currentY + 5, 182, 18)
+          .fillAndStroke('#dbeafe', '#2563eb')
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('Total Equipos:', 390, currentY + 10)
+          .text(`$${totalEquipos.toLocaleString('es-CL')}`, 480, currentY + 10)
+
+        equipoY = currentY + 35
       } else if (cotizacion.inventario) {
         // Equipo único (viejo flujo)
         console.log('✅ Mostrando equipo único en PDF')
@@ -409,25 +457,61 @@ export const generarPDFCotizacion = async (cotizacion) => {
         console.log('⚠️  Creando nueva página para condiciones y desglose')
         doc.addPage()
         
-        // ✅ Agregar mini encabezado en página 2
-        doc
-          .fontSize(9)
-          .font('Helvetica')
-          .fillColor('#6b7280')
-          .text(`Cotización N° ${cotizacion.id} - ${cotizacion.cliente.nombre}`, 50, 50, { 
-            width: 512, 
-            align: 'center' 
-          })
+        // ============================================
+        // ✅ ENCABEZADO PÁGINA 2 (MISMO FORMATO QUE PÁGINA 1)
+        // ============================================
         
-        // Línea separadora
+        // LOGO
+        let logoLoadedPage2 = false
+        for (const logoPath of possibleLogoPaths) {
+          if (fs.existsSync(logoPath)) {
+            try {
+              doc.image(logoPath, 50, 45, { width: 70, height: 70 })
+              logoLoadedPage2 = true
+              break
+            } catch (error) {
+              // Continuar si falla
+            }
+          }
+        }
+        
+        if (!logoLoadedPage2) {
+          doc
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .fillColor('#1e3a8a')
+            .text('KMTS', 50, 50)
+            .text('POWERTECH', 50, 64)
+        }
+        
+        // TÍTULO CENTRADO
         doc
-          .strokeColor('#e5e7eb')
-          .lineWidth(1)
-          .moveTo(50, 70)
-          .lineTo(562, 70)
+          .fontSize(28)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('COTIZACIÓN', 0, 50, { align: 'center', width: 612 })
+        
+        // Número y Fecha
+        doc
+          .fontSize(10)
+          .font('Helvetica')
+          .fillColor('#374151')
+          .text(
+            `N° ${String(cotizacion.id).padStart(6, '0')} | Fecha: ${new Date(cotizacion.fechaCotizacion).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+            0,
+            85,
+            { align: 'center', width: 612 }
+          )
+        
+        // LÍNEA SEPARADORA
+        doc
+          .strokeColor('#1e3a8a')
+          .lineWidth(3)
+          .moveTo(50, 110)
+          .lineTo(562, 110)
           .stroke()
         
-        finalBottomY = 90  // ✅ Inicia después del mini encabezado
+        finalBottomY = 130  // ✅ Inicia después del encabezado
       }
 
       // CONDICIONES GENERALES

@@ -15,8 +15,6 @@ export const generarPDFOrdenTrabajo = async (orden) => {
   return new Promise((resolve, reject) => {
     try {
       console.log(`📄 Generando PDF de orden #${orden.id}...`)
-      console.log(`📦 Equipos múltiples: ${orden.cotizacion?.equipos?.length || 0}`)
-      console.log(`📦 Materiales: ${orden.cotizacion?.materiales?.length || 0}`)
 
       // Validar datos mínimos
       if (!orden.cliente) {
@@ -43,12 +41,10 @@ export const generarPDFOrdenTrabajo = async (orden) => {
             orden.cliente.email_encrypted || 
             orden.cliente.telefono_encrypted ||
             orden.cliente.direccion_encrypted) {
-          console.log('🔓 Descifrando datos del cliente...')
           clienteDescifrado = decryptSensitiveFields(orden.cliente)
-          console.log('✅ Datos descifrados exitosamente')
         }
       } catch (error) {
-        console.log('⚠️  Error al descifrar:', error.message)
+        console.log('⚠️  Error al descifrar datos del cliente:', error.message)
       }
 
       // ============================================
@@ -65,12 +61,12 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         if (fs.existsSync(logoPath)) {
           try {
             doc.image(logoPath, 50, 45, { width: 80, height: 80 })
-            console.log('✅ Logo cargado desde:', logoPath)
             logoLoaded = true
             break
           } catch (error) {
-            console.log('❌ Error al cargar logo:', error.message)
+            // Error al cargar logo, continuar con siguiente ruta
           }
+          
         }
       }
 
@@ -163,10 +159,27 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       // ============================================
       // DIRECCIÓN DEL SERVICIO
       // ============================================
-      const direccion = orden.cotizacion?.direccionInstalacion ||
-                       orden.notas?.split('Dirección:')[1]?.trim() ||
-                       clienteDescifrado.direccion || 
-                       'No especificada'
+      // Buscar dirección válida (no vacía ni placeholder)
+      let direccion = 'No especificada'
+      
+      if (orden.direccion && orden.direccion.trim() !== '') {
+        direccion = orden.direccion.trim()
+      } else if (orden.cotizacion?.direccionInstalacion && orden.cotizacion.direccionInstalacion.trim() !== '') {
+        direccion = orden.cotizacion.direccionInstalacion.trim()
+      } else if (orden.cotizacion?.direccion && orden.cotizacion.direccion.trim() !== '') {
+        direccion = orden.cotizacion.direccion.trim()
+      } else if (orden.notas && orden.notas.includes('Dirección:')) {
+        const extracted = orden.notas.split('Dirección:')[1]?.trim()
+        // Verificar que no sea vacío Y que no sea "No especificada"
+        if (extracted && extracted !== '' && extracted !== 'No especificada') {
+          direccion = extracted
+        } else if (clienteDescifrado.direccion && clienteDescifrado.direccion.trim() !== '') {
+          // Fallback: usar dirección del cliente
+          direccion = clienteDescifrado.direccion.trim()
+        }
+      } else if (clienteDescifrado.direccion && clienteDescifrado.direccion.trim() !== '') {
+        direccion = clienteDescifrado.direccion.trim()
+      }
 
       doc.fontSize(10)
          .font('Helvetica-Bold')
@@ -201,7 +214,6 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       // ⭐ VERIFICAR SI HAY MÚLTIPLES EQUIPOS (desde cotización)
       if (orden.cotizacion?.equipos && orden.cotizacion.equipos.length > 0) {
-        console.log('✅ Mostrando múltiples equipos en PDF')
         
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -246,19 +258,31 @@ export const generarPDFOrdenTrabajo = async (orden) => {
           }
 
           if (index % 2 === 0) {
-            doc.rect(50, currentY - 3, 512, 18)
+            doc.rect(50, currentY - 3, 512, 22)  // ✅ Altura aumentada
                .fillAndStroke('#f9fafb', '#f9fafb')
           }
 
+          // Línea 1: Marca y modelo
+          const lineaUno = `${inv.marca} ${inv.modelo}`
+          // Línea 2: Tipo y capacidad
+          const lineaDos = `${inv.tipo || ''} ${inv.capacidadBTU ? '- ' + inv.capacidadBTU + ' BTU' : ''}`
+
           doc.fontSize(8)
+             .font('Helvetica-Bold')
+             .fillColor('#1f2937')
+             .text(lineaUno, 60, currentY, { width: 210 })
+             .fontSize(7)
+             .font('Helvetica')
+             .fillColor('#6b7280')
+             .text(lineaDos, 60, currentY + 10, { width: 210 })
+             .fontSize(8)
              .font('Helvetica')
              .fillColor('#1f2937')
-             .text(`${inv.marca} ${inv.modelo}`, 60, currentY, { width: 210 })
-             .text(equipoItem.cantidad.toString(), 290, currentY)
-             .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY)
-             .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY)
+             .text(equipoItem.cantidad.toString(), 290, currentY + 4)
+             .text(`$${equipoItem.precioUnitario.toLocaleString('es-CL')}`, 370, currentY + 4)
+             .text(`$${equipoItem.subtotal.toLocaleString('es-CL')}`, 480, currentY + 4)
 
-          currentY += 18
+          currentY += 22  // ✅ Aumentado
         })
 
         const totalEquipos = orden.cotizacion.equipos.reduce((sum, eq) => sum + eq.subtotal, 0)
@@ -275,7 +299,6 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       } else if (orden.equipo) {
         // Sistema antiguo - un solo equipo
-        console.log('✅ Mostrando equipo único en PDF')
         
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -316,7 +339,6 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       // ⭐ MATERIALES INCLUIDOS
       // ============================================
       if (orden.cotizacion?.materiales && orden.cotizacion.materiales.length > 0) {
-        console.log('✅ Mostrando materiales en PDF')
         
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -420,28 +442,63 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       // ✅ LÍMITE MÁS CONSERVADOR: Si no hay espacio suficiente, crear nueva página
       // Usar 640 en lugar de 680 para ser más conservador
       if (finalBottomY + totalBottomSectionHeight > 640) {
-        console.log('⚠️  Creando nueva página para condiciones y desglose')
         doc.addPage()
         
-        // ✅ Agregar mini encabezado en página 2
-        doc
-          .fontSize(9)
-          .font('Helvetica')
-          .fillColor('#6b7280')
-          .text(`Orden de Trabajo N° ${orden.id} - ${orden.cliente.nombre}`, 50, 50, { 
-            width: 512, 
-            align: 'center' 
-          })
+        // ============================================
+        // ✅ ENCABEZADO COMPLETO EN PÁGINA 2
+        // ============================================
         
-        // Línea separadora
+        // LOGO (intentar cargar)
+        let logoLoadedPage2 = false
+        for (const logoPath of possibleLogoPaths) {
+          if (fs.existsSync(logoPath)) {
+            try {
+              doc.image(logoPath, 50, 45, { width: 60, height: 60 })
+              logoLoadedPage2 = true
+              break
+            } catch (error) {
+              // Continuar si falla
+            }
+          }
+        }
+        
+        if (!logoLoadedPage2) {
+          doc
+            .fontSize(8)
+            .font('Helvetica-Bold')
+            .fillColor('#1e3a8a')
+            .text('KMTS', 50, 50)
+            .text('POWERTECH', 50, 60)
+        }
+        
+        // TÍTULO CENTRADO
         doc
-          .strokeColor('#e5e7eb')
-          .lineWidth(1)
-          .moveTo(50, 70)
-          .lineTo(562, 70)
+          .fontSize(28)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('ORDEN DE TRABAJO', 0, 50, { align: 'center', width: 612 })
+        
+        // Número y Fecha
+        doc
+          .fontSize(10)
+          .font('Helvetica')
+          .fillColor('#374151')
+          .text(
+            `N° ${String(orden.id).padStart(6, '0')}`,
+            0,
+            85,
+            { align: 'center', width: 612 }
+          )
+        
+        // LÍNEA SEPARADORA
+        doc
+          .strokeColor('#1e3a8a')
+          .lineWidth(3)
+          .moveTo(50, 110)
+          .lineTo(562, 110)
           .stroke()
         
-        finalBottomY = 90  // ✅ Inicia después del mini encabezado
+        finalBottomY = 130  // ✅ Inicia después del encabezado completo
       }
 
       doc.fontSize(10)
@@ -451,21 +508,20 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       const condicionesY = finalBottomY + 18
 
+      // Fondo azul claro para las condiciones
       doc
-        .roundedRect(40, condicionesY - 8, 260, 90, 5) // (x, y, ancho, alto, radio del borde)
-        .fill('#eff6ff'); // Un azul muy claro y elegante para no opacar el texto
-      // --- FIN: Fondo Rectángulo Azul ---
+        .roundedRect(40, condicionesY - 8, 260, 90, 5)
+        .fill('#eff6ff')
 
-      doc
-        .fontSize(7.5)
-        .font('Helvetica')
-        .fillColor('#374151') // Tu color de texto original
-        .text('• Forma de pago: Efectivo, Tarjeta, Transferencia. Abono inicial (70%).', 50, condicionesY, { width: 240 })
-        .text(`• Validez de la oferta: ${cotizacion.validez || 5} días hábiles o hasta agotar stock.`, 50, condicionesY + 12, { width: 240 })
-        .text('• Garantía del equipo: Según lo estipulado por el fabricante.', 50, condicionesY + 24, { width: 240 })
-        .text('• Los precios incluyen IVA.', 50, condicionesY + 36, { width: 240 })
-        .text('• La instalación cuenta con una garantía de 1 año, aplicable únicamente a defectos o inconvenientes atribuibles al proceso de instalación.', 50, condicionesY + 48, { width: 240 })
-              
+      doc.fontSize(7.5)
+         .font('Helvetica')
+         .fillColor('#374151')
+         .text('• Forma de pago: Efectivo, Tarjeta, Transferencia. Abono inicial (70%).', 50, condicionesY, { width: 240 })
+         .text(`• Validez de la oferta: ${orden.cotizacion?.validez || 5} días hábiles o hasta agotar stock.`, 50, condicionesY + 12, { width: 240 })
+         .text('• Garantía del equipo: Según lo estipulado por el fabricante.', 50, condicionesY + 24, { width: 240 })
+         .text('• Los precios incluyen IVA.', 50, condicionesY + 36, { width: 240 })
+         .text('• La instalación cuenta con una garantía de 1 año, aplicable únicamente a defectos o inconvenientes atribuibles al proceso de instalación.', 50, condicionesY + 48, { width: 240 })
+
       doc.fontSize(10)
          .font('Helvetica-Bold')
          .fillColor('#1e3a8a')
@@ -555,39 +611,76 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          })
 
       // ============================================
-      // ⭐ SECCIÓN DE FIRMAS (NUEVA)
+      // ⭐ SECCIÓN COMPLETA: FIRMAS Y OBSERVACIONES
       // ============================================
-      let firmasY = bottomSectionY + desgloseHeight + 40
+      let seccionY = finalBottomY + desgloseHeight + 40
 
-      if (firmasY > 620) {
+      if (seccionY > 550) {
         doc.addPage()
-        firmasY = 60
+        seccionY = 60
       }
 
-      // Línea divisoria
-      doc.moveTo(50, firmasY)
-         .lineTo(562, firmasY)
-         .strokeColor('#1e3a8a')
-         .lineWidth(2)
-         .stroke()
+      // ✅ TÍTULO PRINCIPAL (VA PRIMERO)
+      doc
+        .fontSize(14)
+        .fillColor('#1e3a8a')
+        .font('Helvetica-Bold')
+        .text('FIRMAS Y OBSERVACIONES', 50, seccionY)
 
-      firmasY += 30
+      seccionY += 35
 
-      doc.fontSize(14)
-         .fillColor('#1e3a8a')
-         .font('Helvetica-Bold')
-         .text('FIRMAS Y CONFORMIDAD', 50, firmasY)
+      // Obtener observaciones de la cotización o de la orden
+      const observaciones = orden.cotizacion?.observaciones || 
+                           orden.cotizacion?.notas || 
+                           orden.notas || 
+                           orden.descripcion || 
+                           ''
 
-      firmasY += 40
+      // ✅ SUBSECCIÓN: OBSERVACIONES (si existen)
+      if (observaciones && observaciones.trim() !== '') {
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('OBSERVACIONES', 50, seccionY)
+
+        seccionY += 18
+
+        // Calcular altura del recuadro
+        const observacionesHeight = Math.min(
+          doc.heightOfString(observaciones, { width: 512, align: 'justify' }) + 20,
+          100
+        )
+
+        // Recuadro para las observaciones
+        doc
+          .rect(50, seccionY, 512, observacionesHeight)
+          .fillAndStroke('#f9fafb', '#e5e7eb')
+
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#374151')
+          .text(observaciones, 60, seccionY + 10, { 
+            width: 492, 
+            align: 'justify',
+            lineGap: 2
+          })
+
+        seccionY += observacionesHeight + 25
+      }
+
+      // ✅ FIRMAS (después de observaciones o directamente después del título)
+      let firmasY = seccionY
 
       const firmaCol1 = 80
       const firmaCol2 = 350
 
-      // FIRMA DEL TÉCNICO
+      // FIRMA DE LA EMPRESA
       doc.fontSize(10)
          .fillColor('#6b7280')
          .font('Helvetica-Bold')
-         .text('TÉCNICO', firmaCol1, firmasY, { align: 'center', width: 150 })
+         .text('EMPRESA', firmaCol1, firmasY, { align: 'center', width: 150 })
 
       doc.moveTo(firmaCol1, firmasY + 65)
          .lineTo(firmaCol1 + 150, firmasY + 65)
@@ -598,9 +691,9 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       doc.fontSize(9)
          .fillColor('#6b7280')
          .font('Helvetica')
-         .text('Firma del Técnico', firmaCol1, firmasY + 75, { align: 'center', width: 150 })
+         .text('Firma Empresa', firmaCol1, firmasY + 75, { align: 'center', width: 150 })
       
-      doc.text(orden.tecnico || 'Por asignar', firmaCol1, firmasY + 90, { align: 'center', width: 150 })
+      doc.text('KMTS POWERTECH SPA', firmaCol1, firmasY + 90, { align: 'center', width: 150 })
 
       // FIRMA DEL CLIENTE
       doc.fontSize(10)
