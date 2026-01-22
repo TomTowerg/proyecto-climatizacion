@@ -492,18 +492,28 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{orden.cliente?.nombre}</div>
-                        {orden.equipo && (
-                          <div className="text-sm text-gray-500 mt-1">
-                            <span className="font-medium">{orden.equipo.tipo}</span>
-                            {' • '}
-                            {orden.equipo.marca} {orden.equipo.modelo}
-                            {orden.equipo.capacidad && (
-                              <span className="text-blue-600 ml-1">
-                                ({orden.equipo.capacidad})
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div className="text-sm text-gray-500 mt-1">
+                          <span className="font-medium capitalize">
+                            {orden.tipo === 'instalacion' && 'Instalación'}
+                            {orden.tipo === 'mantencion' && 'Mantención'}
+                            {orden.tipo === 'reparacion' && 'Reparación'}
+                          </span>
+                          {' • '}
+                          {(() => {
+                            // Calcular cantidad de equipos
+                            if (orden.cotizacion?.equipos && orden.cotizacion.equipos.length > 0) {
+                              // Orden nueva con cotización
+                              const totalEquipos = orden.cotizacion.equipos.reduce((sum, eq) => sum + (eq.cantidad || 1), 0)
+                              return <span>{totalEquipos} {totalEquipos === 1 ? 'equipo' : 'equipos'}</span>
+                            } else if (orden.equipo) {
+                              // Orden antigua con un solo equipo
+                              return <span>1 equipo</span>
+                            } else {
+                              // Sin equipos
+                              return <span className="text-gray-400">Sin equipos</span>
+                            }
+                          })()}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getTipoBadge(orden.tipo)}

@@ -43,6 +43,11 @@ export const getOrdenesTrabajo = async (req, res) => {
               }
             }
           }
+        },
+        cotizacion: {
+          include: {
+            equipos: true
+          }
         }
       },
       orderBy: {

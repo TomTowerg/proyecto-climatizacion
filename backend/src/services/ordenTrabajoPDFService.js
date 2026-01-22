@@ -66,7 +66,6 @@ export const generarPDFOrdenTrabajo = async (orden) => {
           } catch (error) {
             // Error al cargar logo, continuar con siguiente ruta
           }
-          
         }
       }
 
@@ -636,27 +635,25 @@ export const generarPDFOrdenTrabajo = async (orden) => {
                            orden.descripcion || 
                            ''
 
-      // ✅ SUBSECCIÓN: OBSERVACIONES (si existen)
+      // ✅ SUBSECCIÓN: OBSERVACIONES (siempre se muestra con altura fija)
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor('#1e3a8a')
+        .text('OBSERVACIONES', 50, seccionY)
+
+      seccionY += 18
+
+      // ✅ Altura fija de 80pt para poder escribir a mano
+      const observacionesHeight = 80
+
+      // Recuadro con altura fija
+      doc
+        .rect(50, seccionY, 512, observacionesHeight)
+        .fillAndStroke('#f9fafb', '#e5e7eb')
+
+      // Si hay observaciones digitales, mostrarlas dentro del recuadro
       if (observaciones && observaciones.trim() !== '') {
-        doc
-          .fontSize(10)
-          .font('Helvetica-Bold')
-          .fillColor('#1e3a8a')
-          .text('OBSERVACIONES', 50, seccionY)
-
-        seccionY += 18
-
-        // Calcular altura del recuadro
-        const observacionesHeight = Math.min(
-          doc.heightOfString(observaciones, { width: 512, align: 'justify' }) + 20,
-          100
-        )
-
-        // Recuadro para las observaciones
-        doc
-          .rect(50, seccionY, 512, observacionesHeight)
-          .fillAndStroke('#f9fafb', '#e5e7eb')
-
         doc
           .fontSize(8)
           .font('Helvetica')
@@ -664,11 +661,12 @@ export const generarPDFOrdenTrabajo = async (orden) => {
           .text(observaciones, 60, seccionY + 10, { 
             width: 492, 
             align: 'justify',
-            lineGap: 2
+            lineGap: 2,
+            height: observacionesHeight - 20  // Limitar a la altura del recuadro
           })
-
-        seccionY += observacionesHeight + 25
       }
+
+      seccionY += observacionesHeight + 25
 
       // ✅ FIRMAS (después de observaciones o directamente después del título)
       let firmasY = seccionY
