@@ -609,16 +609,20 @@ export const generarPDFOrdenTrabajo = async (orden) => {
            width: 100
          })
 
+
       // ============================================
       // ⭐ SECCIÓN COMPLETA: FIRMAS Y OBSERVACIONES
       // ============================================
-      let seccionY = finalBottomY + desgloseHeight + 40
+      // ✅ USAR LA POSICIÓN ACTUAL DEL DOCUMENTO en lugar de cálculo fijo
+      // Asegurarse de que las firmas siempre se posicionen correctamente
+      let seccionY = Math.max(doc.y + 20, finalBottomY + desgloseHeight + 40)
 
-      if (seccionY > 550) {
+      // ✅ Verificar si hay espacio suficiente (mínimo 280pt para todo el contenido de firmas)
+      const espacioNecesarioFirmas = 280
+      if (seccionY + espacioNecesarioFirmas > 720) {
         doc.addPage()
         seccionY = 60
       }
-
       // ✅ TÍTULO PRINCIPAL (VA PRIMERO)
       doc
         .fontSize(14)
