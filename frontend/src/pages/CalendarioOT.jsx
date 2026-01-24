@@ -6,7 +6,8 @@ import { es } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { Calendar, Clock, MapPin, User, AlertCircle, X, CheckCircle, TrendingUp } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
+import MainLayout from '../components/MainLayout'
+import { Download, Filter } from 'lucide-react'
 import { isAuthenticated } from '../services/authService'
 import { getOrdenesTrabajo } from '../services/ordenTrabajoService'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -159,33 +160,53 @@ function CalendarioOT() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-pink-600"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Calendar className="text-blue-600" size={32} />
-            {t('calendar.title')}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {t('calendar.subtitle')}
-          </p>
+    <MainLayout>
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Calendar className="text-white" size={22} />
+                </div>
+                {t('calendar.title')}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {t('calendar.subtitle')} • {ordenes.length} órdenes programadas
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download size={18} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+              
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Filter size={18} />
+                <span className="hidden md:inline">Filtros</span>
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
 
         {/* Estadísticas Rápidas */}
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          <div className="card">
+        <div className="grid grid-cols-5 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
             <p className="text-sm text-gray-600">{t('inventory.stats.total')}</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
@@ -208,7 +229,7 @@ function CalendarioOT() {
         </div>
 
         {/* Leyenda */}
-        <div className="card mb-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('calendar.legend')}:</h3>
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
@@ -231,7 +252,7 @@ function CalendarioOT() {
         </div>
 
         {/* Calendario */}
-        <div className="card" style={{ height: '700px' }}>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100" style={{ height: '700px' }}>
           <BigCalendar
             localizer={localizer}
             events={eventos}
@@ -249,12 +270,12 @@ function CalendarioOT() {
             tooltipAccessor={(evento) => `${evento.title} - ${evento.resource.estado}`}
           />
         </div>
-      </main>
+      </div>
 
       {/* Modal de Detalles */}
       {showModal && selectedEvento && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
                 {getEstadoIcon(selectedEvento.estado)}
@@ -361,13 +382,13 @@ function CalendarioOT() {
                     setShowModal(false)
                     navigate('/ordenes-trabajo')
                   }}
-                  className="flex-1 btn-primary"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-xl hover:from-pink-700 hover:to-rose-700 transition-all font-medium shadow-lg"
                 >
                   {t('calendar.viewAll')}
                 </button>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="flex-1 btn-secondary"
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
                 >
                   {t('common.close')}
                 </button>
@@ -376,7 +397,7 @@ function CalendarioOT() {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }
 

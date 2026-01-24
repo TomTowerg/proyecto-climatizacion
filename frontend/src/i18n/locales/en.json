@@ -78,6 +78,7 @@
   },
   "clients": {
     "title": "Clients",
+    "subtitle": "Customer and contact management",
     "add": "Add Client",
     "edit": "Edit Client",
     "deleteConfirm": "Are you sure you want to delete this client?",

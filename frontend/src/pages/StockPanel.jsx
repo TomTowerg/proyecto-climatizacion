@@ -12,7 +12,8 @@ import {
   Box
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
+import MainLayout from '../components/MainLayout'
+import { Download, Filter } from 'lucide-react'
 import { isAuthenticated } from '../services/authService'
 import { getInventario, updateInventario } from '../services/inventarioService'
 import { getCotizaciones } from '../services/cotizacionService'
@@ -126,42 +127,56 @@ function StockPanel() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Package className="text-blue-600" size={32} />
-              {t('stockPanel.title')}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {t('stockPanel.subtitle')}
-            </p>
+    <MainLayout>
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <TrendingUp className="text-white" size={22} />
+                </div>
+                {t('stockPanel.title')}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {t('stockPanel.subtitle')} • {stats.stockBajo} alertas activas
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download size={18} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+              
+              <button 
+                onClick={() => navigate('/inventario')}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Package size={20} />
+                {t('stockPanel.viewFullInventory')}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => navigate('/inventario')}
-            className="flex items-center gap-2 btn-primary"
-          >
-            <Package size={20} />
-            {t('stockPanel.viewFullInventory')}
-          </button>
         </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-5 gap-4 mb-6">
-          <div className="card">
+        <div className="grid grid-cols-5 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Package className="text-blue-600" size={20} />
@@ -225,8 +240,7 @@ function StockPanel() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Productos con Stock Bajo */}
-          <div className="card">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <AlertTriangle className="text-orange-600" size={24} />
@@ -285,7 +299,7 @@ function StockPanel() {
                       </div>
                       <button
                         onClick={() => handleReponer(item)}
-                        className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
+                        className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 text-sm transition-all shadow-md"
                       >
                         <RefreshCw size={16} />
                         {t('stockPanel.actions.restock')}
@@ -297,8 +311,7 @@ function StockPanel() {
             </div>
           </div>
 
-          {/* Movimientos Recientes */}
-          <div className="card">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <TrendingDown className="text-blue-600" size={24} />
@@ -390,7 +403,7 @@ function StockPanel() {
                   </div>
                   <button
                     onClick={() => handleReponer(item)}
-                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg hover:from-red-700 hover:to-rose-700 text-sm transition-all shadow-md"
                   >
                     <RefreshCw size={16} />
                     {t('stockPanel.actions.restock')}
@@ -412,12 +425,12 @@ function StockPanel() {
             )}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Modal de Reposición */}
       {showReponerModal && productoReponer && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <RefreshCw className="text-blue-600" size={24} />
@@ -447,7 +460,7 @@ function StockPanel() {
                   value={cantidadReponer}
                   onChange={(e) => setCantidadReponer(e.target.value)}
                   min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                   placeholder={t('stockPanel.modal.placeholder')}
                   autoFocus
                 />
@@ -472,14 +485,14 @@ function StockPanel() {
                   setProductoReponer(null)
                   setCantidadReponer('')
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium"
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={confirmarReposicion}
                 disabled={!cantidadReponer || parseInt(cantidadReponer) <= 0}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-xl hover:from-orange-700 hover:to-amber-700 transition-all font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <RefreshCw size={18} />
                 {t('stockPanel.actions.confirmRestock')}
@@ -488,7 +501,7 @@ function StockPanel() {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }
 

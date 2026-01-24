@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
+import MainLayout from '../components/MainLayout'
+import { Boxes, Filter, Download } from 'lucide-react'
 import { isAuthenticated } from '../services/authService'
 import {
   getMateriales,
@@ -251,37 +252,57 @@ function InventarioMateriales() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-600"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            📦 Inventario de Materiales
-          </h1>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 btn-primary"
-          >
-            <Plus size={20} />
-            Agregar Material
-          </button>
+    <MainLayout>
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Boxes className="text-white" size={22} />
+                </div>
+                Inventario de Materiales
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Control de materiales y consumibles • Total: {materiales.length} items
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download size={18} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+              
+              <button 
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Plus size={20} />
+                Agregar Material
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
 
         {/* Estadísticas */}
         {estadisticas && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="card">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Materiales</p>
@@ -325,32 +346,38 @@ function InventarioMateriales() {
           </div>
         )}
 
-        {/* Buscador */}
-        <div className="card mb-6">
-          <div className="flex items-center gap-2">
-            <Search size={20} className="text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar material..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
-            />
+        {/* Barra de búsqueda */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Buscar material..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              <Filter size={20} className="text-gray-600" />
+              <span className="text-gray-700">Filtros</span>
+            </button>
           </div>
         </div>
 
         {/* Tabla */}
-        <div className="card overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Material</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Proveedor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Material</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Categoría</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Stock</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Precio</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Proveedor</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -362,7 +389,7 @@ function InventarioMateriales() {
                   </tr>
                 ) : (
                   filteredMateriales.map((material) => (
-                    <tr key={material.id} className="hover:bg-gray-50">
+                    <tr key={material.id} className="hover:bg-green-50/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{material.nombre}</div>
                         {material.codigoProducto && (
@@ -395,7 +422,7 @@ function InventarioMateriales() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenStockModal(material)}
-                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full"
+                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-lg transition-colors"
                             title="Ajustar stock"
                           >
                             <Package size={18} />
@@ -403,7 +430,7 @@ function InventarioMateriales() {
                           
                           <button
                             onClick={() => handleEdit(material)}
-                            className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full"
+                            className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-lg transition-colors"
                             title="Editar"
                           >
                             <Edit size={18} />
@@ -411,7 +438,7 @@ function InventarioMateriales() {
 
                           <button
                             onClick={() => handleDelete(material.id)}
-                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full"
+                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-lg transition-colors"
                             title="Eliminar"
                           >
                             <Trash2 size={18} />
@@ -425,12 +452,12 @@ function InventarioMateriales() {
             </table>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Modal Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             <h2 className="text-2xl font-bold mb-4">
               {editingMaterial ? 'Editar Material' : 'Agregar Material'}
             </h2>
@@ -445,7 +472,7 @@ function InventarioMateriales() {
                     type="text"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
@@ -457,7 +484,7 @@ function InventarioMateriales() {
                   <select
                     value={formData.categoria}
                     onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     required
                   >
                     <option value="">Seleccionar...</option>
@@ -474,7 +501,7 @@ function InventarioMateriales() {
                   <select
                     value={formData.unidad}
                     onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     required
                   >
                     <option value="">Seleccionar...</option>
@@ -492,7 +519,7 @@ function InventarioMateriales() {
                     type="number"
                     value={formData.precioNeto}
                     onChange={(e) => handlePrecioNetoChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     required
                     min="0"
                     step="0.01"
@@ -507,7 +534,7 @@ function InventarioMateriales() {
                     type="number"
                     value={formData.precioConIVA}
                     onChange={(e) => handlePrecioConIVAChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     min="0"
                     step="0.01"
                   />
@@ -524,7 +551,7 @@ function InventarioMateriales() {
                     type="number"
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     min="0"
                   />
                 </div>
@@ -537,7 +564,7 @@ function InventarioMateriales() {
                     type="number"
                     value={formData.stockMinimo}
                     onChange={(e) => setFormData({ ...formData, stockMinimo: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     min="0"
                   />
                 </div>
@@ -550,7 +577,7 @@ function InventarioMateriales() {
                     type="text"
                     value={formData.proveedor}
                     onChange={(e) => setFormData({ ...formData, proveedor: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -562,7 +589,7 @@ function InventarioMateriales() {
                     type="text"
                     value={formData.codigoProducto}
                     onChange={(e) => setFormData({ ...formData, codigoProducto: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   />
                 </div>
 
@@ -574,7 +601,7 @@ function InventarioMateriales() {
                     value={formData.descripcion}
                     onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
                     rows="3"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -583,13 +610,13 @@ function InventarioMateriales() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 btn-secondary"
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 btn-primary"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-lg"
                 >
                   {editingMaterial ? 'Actualizar' : 'Crear'}
                 </button>
@@ -602,7 +629,7 @@ function InventarioMateriales() {
       {/* Modal Ajustar Stock */}
       {showStockModal && materialStock && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h2 className="text-2xl font-bold mb-4">
               Ajustar Stock
             </h2>
@@ -620,7 +647,7 @@ function InventarioMateriales() {
                 <select
                   value={stockForm.tipo}
                   onChange={(e) => setStockForm({ ...stockForm, tipo: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                 >
                   <option value="aumentar">➕ Aumentar Stock</option>
                   <option value="disminuir">➖ Disminuir Stock</option>
@@ -635,7 +662,7 @@ function InventarioMateriales() {
                   type="number"
                   value={stockForm.cantidad}
                   onChange={(e) => setStockForm({ ...stockForm, cantidad: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   required
                   min="1"
                 />
@@ -649,7 +676,7 @@ function InventarioMateriales() {
                   type="text"
                   value={stockForm.motivo}
                   onChange={(e) => setStockForm({ ...stockForm, motivo: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   placeholder="Ej: Compra, Uso en instalación, Ajuste de inventario..."
                 />
               </div>
@@ -661,13 +688,13 @@ function InventarioMateriales() {
                     setShowStockModal(false)
                     setMaterialStock(null)
                   }}
-                  className="flex-1 btn-secondary"
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 btn-primary"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-lg"
                 >
                   Ajustar
                 </button>
@@ -676,7 +703,7 @@ function InventarioMateriales() {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }
 

@@ -15,18 +15,39 @@ import {
   ArrowRight,
   FileText,
   DollarSign,
-  BarChart3
+  BarChart3,
+  TrendingDown,
+  Activity,
+  Zap,
+  Target,
+  Bell,
+  Search
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
-// ⭐ 1. IMPORTAR EL COMPONENTE DE INDICADORES
+import MainLayout from '../components/MainLayout'
 import EconomicIndicators from '../components/EconomicIndicators'
 import { isAuthenticated } from '../services/authService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
 import { getOrdenesTrabajo } from '../services/ordenTrabajoService'
 import { getCotizaciones, getEstadisticas } from '../services/cotizacionService'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ResponsiveContainer, 
+  Legend, 
+  Tooltip, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from 'recharts'
 
 function Dashboard() {
   const { t } = useTranslation()
@@ -127,30 +148,6 @@ function Dashboard() {
     }
   }
 
-  const getUrgenciaIcon = (urgencia) => {
-    const icons = {
-      critica: '🔴',
-      media: '🟡',
-      baja: '🟢'
-    }
-    return icons[urgencia] || '🟡'
-  }
-
-  const getEstadoInfo = (estado) => {
-    const info = {
-      pendiente: { icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-100' },
-      en_proceso: { icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-100' },
-      completado: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' }
-    }
-    return info[estado] || info.pendiente
-  }
-
-  const cotizacionesChartData = cotizacionStats ? [
-    { name: t('workOrders.statuses.pending'), value: cotizacionStats.pendientes, color: '#0ea5e9' },
-    { name: t('dashboard.approved'), value: cotizacionStats.aprobadas, color: '#2563eb' },
-    { name: t('dashboard.rejected'), value: cotizacionStats.rechazadas, color: '#94a3b8' }
-  ].filter(item => item.value > 0) : []
-
   const getCotizacionesPorMes = () => {
     if (!cotizaciones || cotizaciones.length === 0) return []
 
@@ -181,370 +178,442 @@ function Dashboard() {
 
   const cotizacionesMensuales = getCotizacionesPorMes()
 
+  // Calcular porcentaje de completadas
+  const porcentajeCompletadas = stats.ordenes > 0 
+    ? Math.round((stats.ordenesCompletadas / stats.ordenes) * 100) 
+    : 0
+
+  // Datos para el gráfico de área
+  const marketData = cotizacionesMensuales.map((mes, idx) => ({
+    name: mes.mes,
+    aprobadas: mes.aprobadas,
+    pendientes: mes.pendientes,
+    total: mes.total
+  }))
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <Zap className="text-indigo-600 animate-pulse" size={24} />
+            </div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Header con Bienvenida */}
+    <MainLayout>
+      {/* Top Header - Barra superior con título, búsqueda y notificaciones */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {t('nav.dashboard')}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {new Date().toLocaleDateString('es-CL', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+            </div>
+
+            {/* Barra de búsqueda y acciones */}
+            <div className="flex items-center gap-3">
+              {/* Búsqueda */}
+              <div className="relative hidden md:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64"
+                />
+              </div>
+
+              {/* Notificaciones */}
+              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <Bell size={20} className="text-gray-600" />
+                {stats.urgenciasCriticas > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
+        {/* Indicadores Económicos */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-             {t('dashboard.welcome', { name: userName })}
-          </h1>
-          <p className="text-gray-600">
-            {t('dashboard.summary')}
-          </p>
+          <EconomicIndicators />
         </div>
 
-        {/* ⭐ 2. INSERTAR EL WIDGET AQUÍ */}
-        <EconomicIndicators />
-
-        {/* Estadísticas Principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          {/* Clientes */}
+        {/* ⭐ CARDS DE ESTADÍSTICAS PRINCIPALES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Card 1: Clientes */}
           <div 
-            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-blue-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/clientes')}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.clients')}</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.clientes}</p>
-                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalRegistered')}</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                  <Users className="text-white" size={28} />
+                </div>
+                <div className="flex items-center gap-1 text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                  <TrendingUp size={14} />
+                  <span>25%</span>
+                </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Users className="text-blue-600" size={26} />
+              
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.clients')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.clientes}</p>
+                <p className="text-xs text-gray-400 mt-2">{t('dashboard.totalRegistered')}</p>
               </div>
             </div>
           </div>
 
-          {/* Equipos */}
+          {/* Card 2: Equipos */}
           <div 
-            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-cyan-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/equipos')}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.equipment')}</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.equipos}</p>
-                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalInstalled')}</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <Wind className="text-white" size={28} />
+                </div>
+                <div className="flex items-center gap-1 text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                  <TrendingUp size={14} />
+                  <span>18%</span>
+                </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Wind className="text-cyan-600" size={26} />
+              
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.equipment')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.equipos}</p>
+                <p className="text-xs text-gray-400 mt-2">{t('dashboard.totalInstalled')}</p>
               </div>
             </div>
           </div>
 
-          {/* Órdenes de Trabajo */}
+          {/* Card 3: Órdenes */}
           <div 
-            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-indigo-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/ordenes-trabajo')}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('nav.workOrders')}</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.ordenes}</p>
-                <p className="text-xs text-gray-400 mt-1">{t('dashboard.totalWorks')}</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                  <ClipboardList className="text-white" size={28} />
+                </div>
+                <div className="flex items-center gap-1 text-sm font-semibold text-red-600 bg-red-50 px-3 py-1 rounded-lg">
+                  <TrendingDown size={14} />
+                  <span>15%</span>
+                </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <ClipboardList className="text-indigo-600" size={26} />
+              
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.workOrders')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.ordenes}</p>
+                <p className="text-xs text-gray-400 mt-2">{t('dashboard.totalWorks')}</p>
               </div>
             </div>
           </div>
 
-          {/* Inventario */}
+          {/* Card 4: Inventario */}
           <div 
-            className="bg-white rounded-xl p-5 border border-gray-100 hover:shadow-lg hover:border-emerald-200 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
+            className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/inventario')}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.products')}</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.productos}</p>
-                <p className="text-xs text-gray-400 mt-1">{t('dashboard.inStock')}</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
+            
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <Package className="text-white" size={28} />
+                </div>
+                <div className="text-xs bg-gradient-to-r from-emerald-50 to-green-50 px-3 py-1.5 rounded-lg border border-emerald-200 font-semibold text-emerald-700">
+                  Stock OK
+                </div>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Package className="text-emerald-600" size={26} />
+              
+              <div>
+                <p className="text-gray-500 text-sm font-medium mb-1">{t('dashboard.products')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.productos}</p>
+                <p className="text-xs text-gray-400 mt-2">{t('dashboard.inStock')}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Estadísticas de Cotizaciones */}
-        {cotizacionStats && (
-          <div 
-            className="bg-white rounded-xl p-6 border border-gray-100 mb-8 cursor-pointer hover:shadow-lg hover:border-indigo-200 transition-all duration-300 group"
-            onClick={() => navigate('/cotizaciones')}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg flex items-center justify-center">
-                  <FileText className="text-indigo-600" size={18} />
+        {/* ⭐ SECCIÓN DE GRÁFICOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Market Overview - Gráfico de Barras */}
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Activity className="text-indigo-600" size={20} />
+                  Market Overview
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Cotizaciones últimos 6 meses</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                  <span className="text-gray-600">Aprobadas</span>
                 </div>
-                {t('nav.quotes')}
-              </h2>
-              <ArrowRight className="text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all duration-300" size={20} />
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-cyan-400 rounded-full"></div>
+                  <span className="text-gray-600">Pendientes</span>
+                </div>
+              </div>
+            </div>
+            
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={marketData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#9ca3af" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="#9ca3af" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
+                  }}
+                  labelStyle={{ color: '#1f2937', fontWeight: 600 }}
+                />
+                <Bar dataKey="aprobadas" fill="#6366f1" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="pendientes" fill="#22d3ee" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Sales Overview - Gráfico Circular */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Target className="text-indigo-600" size={20} />
+                Sales Overview
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">Progreso mensual</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {/* Total */}
-              <div className="text-center p-3 rounded-lg bg-gray-50">
-                <p className="text-2xl font-bold text-gray-900">{cotizacionStats.total}</p>
-                <p className="text-xs text-gray-500 mt-1">Total</p>
-              </div>
-
-              {/* Pendientes */}
-              <div className="text-center p-3 rounded-lg bg-sky-50">
-                <p className="text-2xl font-bold text-sky-600">{cotizacionStats.pendientes}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('workOrders.statuses.pending')}</p>
-              </div>
-
-              {/* Aprobadas */}
-              <div className="text-center p-3 rounded-lg bg-blue-50">
-                <p className="text-2xl font-bold text-blue-600">{cotizacionStats.aprobadas}</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.approved')}</p>
-              </div>
-
-              {/* Tasa */}
-              <div className="text-center p-3 rounded-lg bg-indigo-50">
-                <p className="text-2xl font-bold text-indigo-600">{cotizacionStats.tasaAprobacion}%</p>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.approvalRate')}</p>
-              </div>
-
-              {/* Valor */}
-              <div className="text-center p-3 rounded-lg bg-emerald-50">
-                <div className="flex items-center justify-center gap-1">
-                  <DollarSign className="text-emerald-600" size={18} />
-                  <p className="text-xl font-bold text-emerald-600">
-                    {(cotizacionStats.valorTotalAprobadas / 1000000).toFixed(1)}M
-                  </p>
+            <div className="relative">
+              <div className="flex items-center justify-center">
+                <div className="relative w-48 h-48">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#e5e7eb"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="url(#gradient)"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={`${porcentajeCompletadas * 2.51} 251`}
+                      className="transition-all duration-1000 ease-out"
+                    />
+                    <defs>
+                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#22d3ee" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+                      {porcentajeCompletadas}%
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">Completado</p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{t('dashboard.totalValue')}</p>
               </div>
+
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Completadas</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">{stats.ordenesCompletadas}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
+                    <span className="text-sm text-gray-600">En Proceso</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">{stats.ordenesEnProceso}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
+                    <span className="text-sm text-gray-600">Pendientes</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">{stats.ordenesPendientes}</span>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">System status</span>
+                  <span className="flex items-center gap-1 text-green-600 font-semibold">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    OPTIMUM
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ⭐ ACTIVIDADES RECIENTES */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Clock className="text-purple-600" size={20} />
+              {t('dashboard.recentOrders')}
+            </h3>
+            <button 
+              onClick={() => navigate('/ordenes-trabajo')}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
+            >
+              Ver todas
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
+          {ordenesRecientes.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-sm">{t('dashboard.noOrders')}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ordenesRecientes.map((orden, index) => {
+                const getIconoBg = (estado) => {
+                  if (estado === 'completado') return 'bg-green-100'
+                  if (estado === 'en_proceso') return 'bg-blue-100'
+                  return 'bg-yellow-100'
+                }
+                
+                const getIconoColor = (estado) => {
+                  if (estado === 'completado') return 'text-green-600'
+                  if (estado === 'en_proceso') return 'text-blue-600'
+                  return 'text-yellow-600'
+                }
+
+                return (
+                  <div 
+                    key={orden.id}
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer group border border-transparent hover:border-gray-200"
+                    onClick={() => navigate('/ordenes-trabajo')}
+                  >
+                    <div className="flex flex-col items-center">
+                      <div className={`w-10 h-10 ${getIconoBg(orden.estado)} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                        {orden.estado === 'completado' && <CheckCircle className={getIconoColor(orden.estado)} size={20} />}
+                        {orden.estado === 'en_proceso' && <TrendingUp className={getIconoColor(orden.estado)} size={20} />}
+                        {orden.estado === 'pendiente' && <Clock className={getIconoColor(orden.estado)} size={20} />}
+                      </div>
+                      {index < ordenesRecientes.length - 1 && (
+                        <div className="w-0.5 h-8 bg-gray-200 mt-2"></div>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-gray-900">{orden.cliente?.nombre}</span>
+                        {orden.urgencia === 'critica' && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                            Urgente
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {orden.tipo?.charAt(0).toUpperCase() + orden.tipo?.slice(1)} • {orden.estado.replace('_', ' ')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">
+                        {new Date(orden.fecha).toLocaleDateString('es-CL', { 
+                          day: '2-digit', 
+                          month: 'short' 
+                        })}
+                      </span>
+                      <ArrowRight className="text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" size={18} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Alerta de Urgencias */}
+        {stats.urgenciasCriticas > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="text-red-600 animate-pulse" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-red-900 mb-1">
+                  {stats.urgenciasCriticas} {t('dashboard.criticalAlert', { count: stats.urgenciasCriticas })}
+                </h3>
+                <p className="text-sm text-red-700">
+                  {t('dashboard.attentionRequired')} - Requieren atención inmediata
+                </p>
+              </div>
+              <button 
+                onClick={() => navigate('/ordenes-trabajo')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
+              >
+                Ver órdenes
+              </button>
             </div>
           </div>
         )}
-
-        {/* Gráficos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-          {cotizacionesChartData.length > 0 && (
-            <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="text-indigo-600" size={16} />
-                </div>
-                {t('dashboard.quotesDistribution')}
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={cotizacionesChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    innerRadius={45}
-                    fill="#8884d8"
-                    dataKey="value"
-                    strokeWidth={3}
-                    stroke="#fff"
-                  >
-                    {cotizacionesChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
-                    }} 
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {cotizacionesMensuales.length > 0 && (
-            <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-              <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="text-blue-600" size={16} />
-                </div>
-                {t('dashboard.quotesLast6Months')}
-              </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={cotizacionesMensuales}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                  <XAxis dataKey="mes" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
-                    }} 
-                  />
-                  <Legend />
-                  <Bar dataKey="aprobadas" fill="#2563eb" name={t('dashboard.approved')} radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="pendientes" fill="#0ea5e9" name={t('workOrders.statuses.pending')} radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-          {/* Estado de Órdenes */}
-          <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-            <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="text-blue-600" size={16} />
-              </div>
-              {t('dashboard.ordersStatus')}
-            </h2>
-            
-            <div className="space-y-4">
-              {/* Pendientes */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Clock className="text-sky-500" size={16} />
-                    <span className="text-sm font-medium text-gray-600">{t('workOrders.statuses.pending')}</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{stats.ordenesPendientes}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-sky-400 to-sky-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.ordenes > 0 ? (stats.ordenesPendientes / stats.ordenes) * 100 : 0}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* En Proceso */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="text-blue-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.inProgress')}</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{stats.ordenesEnProceso}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.ordenes > 0 ? (stats.ordenesEnProceso / stats.ordenes) * 100 : 0}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Completadas */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="text-indigo-600" size={18} />
-                    <span className="text-sm font-medium text-gray-700">{t('workOrders.statuses.completed')}</span>
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">{stats.ordenesCompletadas}</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div 
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.ordenes > 0 ? (stats.ordenesCompletadas / stats.ordenes) * 100 : 0}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Alerta de Urgencias Críticas */}
-            {stats.urgenciasCriticas > 0 && (
-              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                <AlertCircle className="text-amber-600 flex-shrink-0" size={20} />
-                <div>
-                  <p className="text-sm font-medium text-amber-900">
-                    {stats.urgenciasCriticas} {t('dashboard.criticalAlert', { count: stats.urgenciasCriticas })}
-                  </p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    {t('dashboard.attentionRequired')}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Órdenes Recientes */}
-          <div className="bg-white rounded-xl p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-            <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg flex items-center justify-center">
-                <Calendar className="text-purple-600" size={16} />
-              </div>
-              {t('dashboard.recentOrders')}
-            </h2>
-            
-            {ordenesRecientes.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <ClipboardList size={40} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm">{t('dashboard.noOrders')}</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {ordenesRecientes.map((orden) => {
-                  const EstadoIcon = getEstadoInfo(orden.estado).icon
-                  return (
-                    <div 
-                      key={orden.id}
-                      className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-sm transition-all duration-200 cursor-pointer border border-gray-100 group"
-                      onClick={() => navigate('/ordenes-trabajo')}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">
-                              {getUrgenciaIcon(orden.urgencia)}
-                            </span>
-                            <span className="font-medium text-gray-900">
-                              {orden.cliente?.nombre}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-600">
-                            <span className="flex items-center gap-1">
-                              <EstadoIcon size={12} className={getEstadoInfo(orden.estado).color} />
-                              {/* Traducir estados dinámicamente sería ideal, por ahora uso reemplazo básico */}
-                              {orden.estado.replace('_', ' ')}
-                            </span>
-                            <span>•</span>
-                            <span>{orden.tipo}</span>
-                            <span>•</span>
-                            <span>{new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}</span>
-                          </div>
-                        </div>
-                        <ArrowRight className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-200" size={18} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   )
 }
 

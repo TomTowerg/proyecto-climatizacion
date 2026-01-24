@@ -78,6 +78,7 @@
   },
   "clients": {
     "title": "Clientes",
+    "subtitle": "Gestión de clientes y contactos",
     "add": "Agregar Cliente",
     "edit": "Editar Cliente",
     "deleteConfirm": "¿Estás seguro de eliminar este cliente?",

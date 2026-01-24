@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
+import MainLayout from '../components/MainLayout'
+import { Download } from 'lucide-react'
 import VisorPDF from '../components/VisorPDF'
 import { isAuthenticated } from '../services/authService'
 import { 
@@ -684,41 +685,56 @@ function Cotizaciones() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Cotizaciones
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Gestión de presupuestos y servicios
-            </p>
+    <MainLayout>
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="text-white" size={22} />
+                </div>
+                Cotizaciones
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Gestión de presupuestos y servicios • Total: {cotizaciones.length}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download size={18} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+              
+              <button 
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Plus size={20} />
+                Nueva Cotización
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 btn-primary"
-          >
-            <Plus size={20} />
-            Nueva Cotización
-          </button>
         </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="card">
+        <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all">
             <p className="text-sm text-gray-600">Total</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           </div>
@@ -737,7 +753,7 @@ function Cotizaciones() {
         </div>
 
         {/* Búsqueda y Filtros */}
-        <div className="card mb-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Search size={20} className="text-gray-400" />
             <input
@@ -745,12 +761,12 @@ function Cotizaciones() {
               placeholder="Buscar por cliente o equipo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
-                showFilters ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
+                showFilters ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <Filter size={18} />
@@ -763,7 +779,7 @@ function Cotizaciones() {
               <select
                 value={filters.estado}
                 onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg"
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Todos los estados</option>
                 <option value="pendiente">Pendiente</option>
@@ -774,7 +790,7 @@ function Cotizaciones() {
               <select
                 value={filters.tipo}
                 onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg"
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="">Todos los tipos</option>
                 <option value="instalacion">Instalación</option>
@@ -796,10 +812,10 @@ function Cotizaciones() {
         </div>
 
         {/* Tabla */}
-        <div className="card overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="tabla-compacta">
-              <thead>
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
                   <th className="text-left">ID</th>
                   <th className="text-left">Tipo</th>
@@ -845,7 +861,7 @@ function Cotizaciones() {
                     }
 
                     return (
-                      <tr key={cotizacion.id}>
+                      <tr key={cotizacion.id} className="hover:bg-purple-50/30 transition-colors border-b border-gray-100">
                         <td className="font-mono">#{cotizacion.id}</td>
                         <td>{getTipoBadge(cotizacion.tipo)}</td>
                         <td>{cotizacion.cliente?.nombre}</td>
@@ -931,12 +947,12 @@ function Cotizaciones() {
         <div className="mt-4 text-sm text-gray-600 text-center">
           Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
         </div>
-      </main>
+      </div>
 
       {/* Modal de Crear/Editar */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg max-w-5xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-5xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto shadow-2xl">
             <h2 className="text-2xl font-bold mb-4">
               {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
@@ -1195,7 +1211,7 @@ function Cotizaciones() {
                   <select
                     value={formData.equipoId}
                     onChange={(e) => setFormData({ ...formData, equipoId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-blue-500"
                     required
                     disabled={editingCotizacion || !formData.clienteId}
                   >
@@ -1253,7 +1269,7 @@ function Cotizaciones() {
                       onChange={(e) => setFormData({ ...formData, costoInstalacion: e.target.value })}
                       step="1"
                       min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required
                     />
                   </div>
@@ -1269,7 +1285,7 @@ function Cotizaciones() {
                     onChange={(e) => setFormData({ ...formData, costoMaterial: e.target.value })}
                     step="1"
                     min="0"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-gray-100"
                     readOnly
                     title="Se calcula automáticamente desde los materiales agregados"
                   />
@@ -1289,7 +1305,7 @@ function Cotizaciones() {
                     step="0.01"
                     min="0"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -1522,7 +1538,7 @@ function Cotizaciones() {
                     type="text"
                     value={formData.direccionInstalacion}
                     onChange={(e) => setFormData({ ...formData, direccionInstalacion: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     placeholder="Dirección donde se realizará la instalación"
                   />
                 </div>
@@ -1536,16 +1552,16 @@ function Cotizaciones() {
                   value={formData.notas}
                   onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
                   rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   placeholder="Información adicional sobre la cotización"
                 />
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={handleCloseModal} className="flex-1 btn-secondary">
+                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium">
                   Cancelar
                 </button>
-                <button type="submit" className="flex-1 btn-primary">
+                <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all font-medium shadow-lg">
                   {editingCotizacion ? 'Guardar Cambios' : 'Crear Cotización'}
                 </button>
               </div>
@@ -1557,7 +1573,7 @@ function Cotizaciones() {
       {/* Modal de Aprobación */}
       {showApproveModal && cotizacionToApprove && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <CheckCircle className="text-green-600" size={24} />
@@ -1658,7 +1674,7 @@ function Cotizaciones() {
       {/* Modal CREAR CLIENTE RÁPIDO */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-2">
                 <UserPlus className="text-green-500" size={24} />
@@ -1683,7 +1699,7 @@ function Cotizaciones() {
                   type="text"
                   value={newClientData.nombre}
                   onChange={(e) => setNewClientData({ ...newClientData, nombre: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
                   placeholder="Nombre del cliente"
                   autoFocus
                 />
@@ -1697,7 +1713,7 @@ function Cotizaciones() {
                   type="text"
                   value={newClientData.rut}
                   onChange={(e) => setNewClientData({ ...newClientData, rut: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
                   placeholder="12.345.678-9"
                 />
               </div>
@@ -1710,7 +1726,7 @@ function Cotizaciones() {
                   type="email"
                   value={newClientData.email}
                   onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
                   placeholder="cliente@email.com"
                 />
               </div>
@@ -1723,7 +1739,7 @@ function Cotizaciones() {
                   type="text"
                   value={newClientData.telefono}
                   onChange={(e) => setNewClientData({ ...newClientData, telefono: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
                   placeholder="+56 9 1234 5678"
                 />
               </div>
@@ -1736,7 +1752,7 @@ function Cotizaciones() {
                   type="text"
                   value={newClientData.direccion}
                   onChange={(e) => setNewClientData({ ...newClientData, direccion: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
                   placeholder="Calle, número, comuna"
                 />
               </div>
@@ -1773,7 +1789,7 @@ function Cotizaciones() {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }
 

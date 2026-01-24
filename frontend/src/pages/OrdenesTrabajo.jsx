@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Eye, CheckCircle, FileText, Upload, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Eye, CheckCircle, FileText, Upload, Download, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
-import Navbar from '../components/Navbar'
+import MainLayout from '../components/MainLayout'
+import { ClipboardList } from 'lucide-react'
 import { isAuthenticated } from '../services/authService'
 import { 
   getOrdenesTrabajo, 
@@ -409,68 +410,94 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
         </div>
-      </div>
+      </MainLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('workOrders.title')}
-          </h1>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 btn-primary"
-          >
-            <Plus size={20} />
-            {t('workOrders.add')}
-          </button>
-        </div>
+    <MainLayout>
+      {/* Top Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 backdrop-blur-sm bg-white/80">
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <ClipboardList className="text-white" size={22} />
+                </div>
+                {t('workOrders.title')}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Gestión de órdenes de trabajo • Total: {ordenes.length}
+              </p>
+            </div>
 
-        <div className="card mb-6">
-          <div className="flex items-center gap-2">
-            <Search size={20} className="text-gray-400" />
-            <input
-              type="text"
-              placeholder={t('workOrders.searchPlaceholder')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 border-0 focus:ring-0 outline-none"
-            />
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                <Download size={18} />
+                <span className="hidden md:inline">Exportar</span>
+              </button>
+              
+              <button 
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <Plus size={20} />
+                {t('workOrders.add')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido Principal */}
+      <div className="p-8">
+        {/* Barra de búsqueda */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder={t('workOrders.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+              <Filter size={20} className="text-gray-600" />
+              <span className="text-gray-700">Filtros</span>
+            </button>
           </div>
         </div>
 
-        <div className="card overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.date')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.client')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.type')}
                   </th>
                   
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.technician')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.status')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.actions')}
                   </th>
                 </tr>
@@ -484,7 +511,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                   </tr>
                 ) : (
                   filteredOrdenes.map((orden) => (
-                    <tr key={orden.id} className="hover:bg-gray-50">
+                    <tr key={orden.id} className="hover:bg-indigo-50/30 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-900">
                           {new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}
@@ -615,7 +642,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
             </table>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Modal de Crear/Editar */}
       {showModal && (
@@ -842,7 +869,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }
 
