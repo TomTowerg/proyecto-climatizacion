@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import RutInput from '../components/RutInput'
+import PhoneInput from '../components/PhoneInput'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -1709,12 +1711,11 @@ function Cotizaciones() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   RUT
                 </label>
-                <input
-                  type="text"
+                <RutInput
                   value={newClientData.rut}
-                  onChange={(e) => setNewClientData({ ...newClientData, rut: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
-                  placeholder="12.345.678-9"
+                  onChange={(valor) => setNewClientData({ ...newClientData, rut: valor })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                  showValidation={true}
                 />
               </div>
 
@@ -1735,12 +1736,11 @@ function Cotizaciones() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Teléfono
                 </label>
-                <input
-                  type="text"
+                <PhoneInput
                   value={newClientData.telefono}
-                  onChange={(e) => setNewClientData({ ...newClientData, telefono: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-green-500"
-                  placeholder="+56 9 1234 5678"
+                  onChange={(valor) => setNewClientData({ ...newClientData, telefono: valor })}
+                  defaultCountry="CL"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                 />
               </div>
 

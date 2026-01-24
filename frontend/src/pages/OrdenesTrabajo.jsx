@@ -18,6 +18,8 @@ import {
 } from '../services/ordenTrabajoService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
+import RutInput from '../components/RutInput'
+import PhoneInput from '../components/PhoneInput'
 
 
 function OrdenesTrabajo() {

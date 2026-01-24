@@ -7,6 +7,8 @@ import MainLayout from '../components/MainLayout'
 import { isAuthenticated } from '../services/authService'
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../services/clienteService'
 import { validarRut, formatearRut } from '../utils/rutValidator'
+import RutInput from '../components/RutInput'
+import PhoneInput from '../components/PhoneInput'
 
 function Clientes() {
   const { t } = useTranslation()
@@ -48,7 +50,8 @@ function Clientes() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!validarRut(formData.rut)) {
+    // ⭐ RutInput ya valida, pero por seguridad verificamos
+    if (!formData.rut || formData.rut.length < 11) {
       toast.error(t('clients.messages.invalidRut'))
       return
     }
@@ -111,10 +114,6 @@ function Clientes() {
     })
   }
 
-  const handleRutChange = (e) => {
-    const formattedRut = formatearRut(e.target.value)
-    setFormData({ ...formData, rut: formattedRut })
-  }
 
   const filteredClientes = clientes.filter(cliente =>
     cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -313,13 +312,12 @@ function Clientes() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('clients.form.rut')} *
                 </label>
-                <input
-                  type="text"
+                <RutInput
                   value={formData.rut}
-                  onChange={handleRutChange}
-                  placeholder="12.345.678-9"
+                  onChange={(valor) => setFormData({ ...formData, rut: valor })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
+                  showValidation={true}
                 />
               </div>
 
@@ -340,10 +338,10 @@ function Clientes() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('clients.form.phone')} *
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  onChange={(valor) => setFormData({ ...formData, telefono: valor })}
+                  defaultCountry="CL"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   required
                 />
