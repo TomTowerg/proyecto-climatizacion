@@ -582,6 +582,7 @@
   .temp-indicator {
     display: none;
   }
+  
 }
 
 /* ============================================
@@ -1582,7 +1583,8 @@
 }
 
 .faq-item.open .faq-answer {
-  max-height: 500px;
+  max-height: 1200px;
+  transition: max-height 0.4s ease-out;
 }
 
 .faq-answer-content {

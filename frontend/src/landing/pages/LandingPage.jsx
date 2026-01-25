@@ -6,12 +6,10 @@ import {
   ServicesSection,
   EquipmentCatalog,
   HowItWorks,
-  Testimonials,
   FAQ,
   ContactSection,
   Footer
 } from '../components';
-import AboutUs from '../components/AboutUs';
 
 // Styles
 import '../styles/landing.css';
@@ -57,8 +55,6 @@ const LandingPage = () => {
         <ServicesSection />
         <EquipmentCatalog />
         <HowItWorks />
-        <AboutUs />
-        <Testimonials />
         <FAQ />
         <ContactSection />
       </main>

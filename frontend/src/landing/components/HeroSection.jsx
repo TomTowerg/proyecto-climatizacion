@@ -60,7 +60,7 @@ const HeroSection = () => {
             <span className="hero-title-gradient">
               {t('landing.hero.titleHighlight', 'Inteligente')}
             </span>{' '}
-            {t('landing.hero.titlePart2', 'para tu Confort')}
+            {t('landing.hero.titlePart2', 'para tu Comodidad')}
           </h1>
 
           <p className="hero-description">

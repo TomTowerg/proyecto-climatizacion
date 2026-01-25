@@ -13,7 +13,7 @@ const FAQ = () => {
       
       <div className="maintenance-plan">
         <h4 style={{ color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', fontSize: '1rem' }}>
-          ✨ Mantenimiento Premium
+           Mantenimiento Premium
         </h4>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '4px' }}>
           <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.9rem' }}>
@@ -57,7 +57,7 @@ const FAQ = () => {
 
       <div className="maintenance-plan" style={{ marginTop: '16px' }}>
         <h4 style={{ color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', fontSize: '1rem' }}>
-          ⭐ Mantenimiento Full
+           Mantenimiento Full
         </h4>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '4px' }}>
           <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.9rem' }}>
@@ -97,7 +97,7 @@ const FAQ = () => {
 
       <div className="maintenance-plan" style={{ marginTop: '16px' }}>
         <h4 style={{ color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', fontSize: '1rem' }}>
-          🔧 Mantenimiento Básico
+           Mantenimiento Básico
         </h4>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '4px' }}>
           <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.9rem' }}>

@@ -2,7 +2,9 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@vercel/analytics": "^1.5.0",
+    "animejs": "^4.3.5",
     "dotenv": "^17.2.3",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "three": "^0.182.0"
   }
 }

@@ -28,7 +28,8 @@
     "react-pdf": "^10.2.0",
     "react-router-dom": "^6.20.0",
     "react-toastify": "^11.0.5",
-    "recharts": "^2.15.4"
+    "recharts": "^2.15.4",
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
