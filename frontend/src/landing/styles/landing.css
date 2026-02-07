@@ -143,7 +143,7 @@
 }
 
 .navbar-logo img {
-  height: 100px;
+  height: 110px;
   width: auto;
   filter: drop-shadow(0 0 15px rgba(14, 165, 233, 0.5)) drop-shadow(0 0 30px rgba(14, 165, 233, 0.3));
   transition: var(--transition-smooth);
