@@ -513,22 +513,30 @@
 /* Hero stats */
 .hero-stats {
   display: flex;
-  gap: 3rem;
+  gap: 2.5rem;
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 1px solid var(--border-glass);
   animation: fadeInUp 0.8s ease-out 0.5s both;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .hero-stat {
   text-align: left;
+  max-width: 220px; /* limita ancho para evitar que textos largos rompan el layout */
 }
 
 .hero-stat-value {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: clamp(1.25rem, 2.5vw, 2rem); /* escalado automático para textos largos */
   font-weight: 700;
   color: var(--landing-secondary);
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: break-word; /* permite quiebres en palabras largas */
+  display: block;
+  margin-bottom: 0.25rem;
 }
 
 .hero-stat-label {
@@ -2263,5 +2271,70 @@
 
   .value-card {
     padding: 1.5rem;
+  }
+}
+
+/* Ajuste para estadística con texto largo */
+.hero-stat-value-text {
+  font-size: 1.75rem !important;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-stat-value-text {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-stat-value-text {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Ajuste para las estadísticas del hero */
+.hero-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 01rem; /* Más espacio entre stats */
+}
+
+.hero-stat {
+  flex: 1;
+  text-align: center;
+  min-width: 150px; /* Ancho mínimo igual para todas */
+}
+
+.hero-stat-value {
+  display: block;
+  text-align: center;
+}
+
+.hero-stat-label {
+  display: block;
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+/* Para la stat de texto largo */
+.hero-stat-multiline .hero-stat-value {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .hero-stats {
+    gap: 2rem;
+  }
+  
+  .hero-stat {
+    min-width: 120px;
+  }
+  
+  .hero-stat-multiline .hero-stat-value {
+    font-size: 1.25rem;
   }
 }

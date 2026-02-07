@@ -83,10 +83,16 @@ const HeroSection = () => {
               <div className="hero-stat-value">500+</div>
               <div className="hero-stat-label">{t('landing.hero.stat1', 'Instalaciones')}</div>
             </div>
-            <div className="hero-stat">
-              <div className="hero-stat-value">24/7</div>
-              <div className="hero-stat-label">{t('landing.hero.stat2', 'Soporte')}</div>
+            
+            <div className="hero-stat" style={{ textAlign: 'center' }}>
+              <div className="hero-stat-value" style={{ fontSize: '1.5rem', lineHeight: '1.1' }}>
+                Lunes a<br/>Domingo
+              </div>
+              <div className="hero-stat-label" style={{ marginTop: '0.5rem' }}>
+                Soporte
+              </div>
             </div>
+            
             <div className="hero-stat">
               <div className="hero-stat-value">100%</div>
               <div className="hero-stat-label">{t('landing.hero.stat3', 'Garantizado')}</div>

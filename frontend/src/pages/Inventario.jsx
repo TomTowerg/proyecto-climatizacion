@@ -492,6 +492,24 @@ function Inventario() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Gas *
+                  </label>
+                  <select
+                    value={formData.tipoGas || ''}
+                    onChange={(e) => setFormData({ ...formData, tipoGas: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="R-410A">R-410A</option>
+                    <option value="R-32">R-32</option>
+                    <option value="R-22">R-22 (Antiguo)</option>
+                    <option value="R-134A">R-134A</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('inventory.form.stock')} *
                   </label>
                   <input
