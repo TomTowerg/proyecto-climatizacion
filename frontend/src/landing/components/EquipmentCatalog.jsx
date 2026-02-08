@@ -29,7 +29,7 @@ const getBaseUrl = () => {
 const equipmentImages = {
   // ANWO
   'anwo-ventana-9000': ['/equipos/anwo-ventana-9000.png'],
-  'anwo-split-9000': ['/equipos/anwo-split-9000.png'],
+  'anwo-split-9000': ['/equipos/anwo-split-9000.png', '/equipos/anwo-split-9000-2.png'],
   'anwo-split-12000': ['/equipos/anwo-split-12000.png'],
   'anwo-split-18000': ['/equipos/anwo-split-18000.png'],
   'anwo-split-24000': ['/equipos/anwo-split-24000.png'],
@@ -577,7 +577,7 @@ const EquipmentCatalog = () => {
                     viewBox="0 0 200 150" 
                     fill="none" 
                     xmlns="http://www.w3.org/2000/svg" 
-                    style={{ width: '70%', height: 'auto', cursor: 'pointer' }}
+                    style={{ width: '85%', height: 'auto', cursor: 'pointer' }}
                     onClick={() => togglePower(item.id)}
                     className={`equipment-svg ${isOn(item) ? 'powered-on' : 'powered-off'}`}
                   >

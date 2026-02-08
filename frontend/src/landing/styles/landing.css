@@ -825,7 +825,7 @@
 
 .equipment-image {
   position: relative;
-  height: 200px;
+  height: 280px;
   background: linear-gradient(135deg, var(--landing-primary-light) 0%, var(--landing-primary) 100%);
   display: flex;
   align-items: center;
@@ -842,8 +842,8 @@
 }
 
 .equipment-image img {
-  max-width: 80%;
-  max-height: 80%;
+  max-width: 95%;
+  max-height: 95%;
   object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
   transition: var(--transition-smooth);

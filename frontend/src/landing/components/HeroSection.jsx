@@ -81,7 +81,7 @@ const HeroSection = () => {
 
           <div className="hero-stats">
             <div className="hero-stat">
-              <div className="hero-stat-value">500+</div>
+              <div className="hero-stat-value">+500</div>
               <div className="hero-stat-label">{t('landing.hero.stat1', 'Instalaciones')}</div>
             </div>
             
