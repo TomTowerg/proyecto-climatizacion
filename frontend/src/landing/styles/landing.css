@@ -819,13 +819,13 @@
 
 .equipment-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(14, 165, 233, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(4, 173, 252, 0.3);
+  box-shadow: 0 20px 40px rgba(4, 185, 235, 0.3);
 }
 
 .equipment-image {
   position: relative;
-  height: 280px;
+  height: 220px;
   background: linear-gradient(135deg, var(--landing-primary-light) 0%, var(--landing-primary) 100%);
   display: flex;
   align-items: center;
@@ -837,7 +837,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(3, 136, 232, 0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -845,7 +845,7 @@
   max-width: 95%;
   max-height: 95%;
   object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 10px 20px rgba(7, 7, 7, 0.3));
   transition: var(--transition-smooth);
 }
 
@@ -2336,5 +2336,431 @@
   
   .hero-stat-multiline .hero-stat-value {
     font-size: 1.25rem;
+  }
+}
+
+/* ============================================
+   EQUIPMENT CATALOG - IMÁGENES REALES
+   ============================================ */
+
+/* Contenedor de imagen real del equipo */
+.equipment-real-image-container {
+  position: relative;
+  width: 100%;
+  height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c4a6f 50%, #3a5f7f 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.equipment-real-image-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(56, 189, 248, 0.15) 0%,
+    transparent 70%
+  );
+  opacity: 0.6;
+  transition: opacity 0.4s ease;
+}
+
+.equipment-real-image-container:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.15),
+    0 10px 10px -5px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(14, 165, 233, 0.3),
+    0 0 30px rgba(14, 165, 233, 0.2);
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+.equipment-real-image-container:hover::before {
+  opacity: 1;
+}
+
+/* Imagen del equipo */
+.equipment-real-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
+  position: relative;
+  z-index: 1;
+}
+
+.equipment-real-image-container:hover .equipment-real-image {
+  transform: scale(1.08) translateY(-4px);
+  filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.4));
+}
+
+/* Overlay de zoom al hacer hover */
+.equipment-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(15, 23, 42, 0.9) 50%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  color: white;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
+.equipment-real-image-container:hover .equipment-image-overlay {
+  opacity: 1;
+}
+
+.equipment-image-overlay svg {
+  color: #0ea5e9;
+  filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.6));
+  animation: pulseIcon 2s ease-in-out infinite;
+}
+
+@keyframes pulseIcon {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.equipment-image-overlay span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
+}
+
+/* Placeholder cuando no hay imagen */
+.equipment-placeholder {
+  width: 100%;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c4a6f 50%, #3a5f7f 100%);
+  border-radius: 16px;
+  color: #64748b;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.equipment-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(56, 189, 248, 0.1) 0%,
+    transparent 70%
+  );
+  border-radius: 16px;
+}
+
+.equipment-placeholder svg {
+  color: #475569;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.equipment-placeholder span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal de zoom de imagen */
+.image-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.image-modal-content {
+  position: relative;
+  background: #0f172a;
+  border-radius: 20px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: zoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Botón cerrar modal */
+.image-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.image-modal-close:hover {
+  background: rgba(239, 68, 68, 0.9);
+  transform: rotate(90deg);
+}
+
+/* Header del modal */
+.image-modal-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  text-align: center;
+}
+
+.image-modal-brand {
+  display: block;
+  color: #0ea5e9;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.image-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.image-modal-capacity {
+  display: inline-block;
+  background: rgba(14, 165, 233, 0.1);
+  color: #7dd3fc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Cuerpo del modal con imagen */
+.image-modal-body {
+  position: relative;
+  padding: 2rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.modal-equipment-image {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  animation: imageZoom 0.5s ease;
+}
+
+@keyframes imageZoom {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Flechas de galería */
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.gallery-arrow:hover {
+  background: rgba(14, 165, 233, 0.9);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.gallery-arrow-left {
+  left: 1rem;
+}
+
+.gallery-arrow-right {
+  right: 1rem;
+}
+
+/* Indicadores de galería */
+.gallery-indicators {
+  position: absolute;
+  top: 1.5rem; /* Parte superior del modal */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gallery-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gallery-dot:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(1.2);
+}
+
+.gallery-dot.active {
+  background: #0ea5e9;
+  width: 24px;
+  border-radius: 5px;
+}
+
+/* Footer del modal */
+.image-modal-footer {
+  padding: 1.5rem;
+  background: #0f172a;
+  border-top: 1px solid rgba(14, 165, 233, 0.2);
+  text-align: center;
+}
+
+.image-modal-footer .equipment-cta {
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .equipment-real-image-container {
+    height: 200px;
+  }
+  
+  .equipment-placeholder {
+    height: 200px;
+  }
+  
+  .modal-equipment-image {
+    max-height: 350px;
+  }
+  
+  .gallery-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .gallery-arrow-left {
+    left: 0.5rem;
+  }
+  
+  .gallery-arrow-right {
+    right: 0.5rem;
+  }
+  
+  .image-modal-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .equipment-real-image-container {
+    height: 180px;
+  }
+  
+  .image-modal-body {
+    padding: 1rem;
+    min-height: 300px;
+  }
+  
+  .modal-equipment-image {
+    max-height: 280px;
+  }
+  
+  .equipment-image-overlay span {
+    font-size: 0.75rem;
   }
 }
