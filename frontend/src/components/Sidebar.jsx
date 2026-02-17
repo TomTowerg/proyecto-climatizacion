@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { 
-  Home, Users, Wind, ClipboardList, Package, FileText, 
-  Calendar, TrendingUp, Boxes, LogOut, ChevronDown, 
+import {
+  Home, Users, Wind, ClipboardList, Package, FileText,
+  Calendar, TrendingUp, Boxes, LogOut, ChevronDown,
   ChevronRight, Globe, Settings, Bell, User
 } from 'lucide-react'
 import { logout } from '../services/authService'
@@ -41,11 +41,11 @@ function Sidebar() {
   const isActive = (path) => {
     // Coincidencia exacta o subrutas con /
     if (location.pathname === path) return true
-    
+
     // Para rutas con subrutas, verificar que siga un /
     // Esto evita que /inventario active /inventario-materiales
     if (location.pathname.startsWith(path + '/')) return true
-    
+
     return false
   }
 
@@ -102,9 +102,9 @@ function Sidebar() {
       <div className="p-6 border-b border-cyan-700/20">
         <Link to="/dashboard" className="flex items-center gap-3 group">
           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300">
-            <img 
-              src="/logo-kmts.png" 
-              alt="KMTS" 
+            <img
+              src="/logo-kmts.png"
+              alt="KMTS"
               className="w-10 h-10 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none'
@@ -161,22 +161,21 @@ function Sidebar() {
                     to={item.path}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
-                      ${active 
-                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/50 font-semibold scale-105' 
+                      ${active
+                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/50 font-semibold scale-105'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white hover:translate-x-1'
                       }
                     `}
                   >
-                    <Icon 
-                      size={20} 
-                      className={`transition-all ${
-                        active 
-                          ? 'text-white' 
+                    <Icon
+                      size={20}
+                      className={`transition-all ${active
+                          ? 'text-white'
                           : 'text-cyan-300 group-hover:text-white group-hover:scale-110'
-                      }`} 
+                        }`}
                     />
                     <span className="text-sm">{item.label}</span>
-                    
+
                     {/* Indicador activo animado */}
                     {active && (
                       <div className="absolute right-3">
@@ -216,9 +215,9 @@ function Sidebar() {
           </button>
 
           {/* Submenu de idiomas con animación suave */}
-          <div 
+          <div
             className="overflow-hidden transition-all duration-300 ease-in-out"
-            style={{ 
+            style={{
               maxHeight: expandedSection === 'language' ? '200px' : '0',
               opacity: expandedSection === 'language' ? '1' : '0'
             }}
@@ -226,13 +225,12 @@ function Sidebar() {
             <div className="mt-2 ml-1 bg-slate-900/50 rounded-xl overflow-hidden border border-cyan-700/20 backdrop-blur-sm">
               <button
                 onClick={() => changeLanguage('es')}
-                className={`w-full text-left px-4 py-3 text-sm transition-all flex items-center gap-3 ${
-                  i18n.language === 'es' 
-                    ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold shadow-lg' 
+                className={`w-full text-left px-4 py-3 text-sm transition-all flex items-center gap-3 ${i18n.language === 'es'
+                    ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold shadow-lg'
                     : 'text-slate-300 hover:bg-cyan-500/10'
-                }`}
+                  }`}
               >
-                <span className="text-lg">🇪🇸</span> 
+                <span className="text-lg">🇪🇸</span>
                 <span>Español</span>
                 {i18n.language === 'es' && (
                   <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
@@ -240,13 +238,12 @@ function Sidebar() {
               </button>
               <button
                 onClick={() => changeLanguage('en')}
-                className={`w-full text-left px-4 py-3 text-sm transition-all flex items-center gap-3 ${
-                  i18n.language === 'en' 
-                    ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold shadow-lg' 
+                className={`w-full text-left px-4 py-3 text-sm transition-all flex items-center gap-3 ${i18n.language === 'en'
+                    ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold shadow-lg'
                     : 'text-slate-300 hover:bg-cyan-500/10'
-                }`}
+                  }`}
               >
-                <span className="text-lg">🇬🇧</span> 
+                <span className="text-lg">🇬🇧</span>
                 <span>English</span>
                 {i18n.language === 'en' && (
                   <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>
@@ -269,7 +266,7 @@ function Sidebar() {
       </div>
 
       {/* CSS personalizado para el scrollbar */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

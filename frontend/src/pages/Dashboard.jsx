@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { 
-  Users, 
-  Wind, 
-  ClipboardList, 
-  Package, 
-  TrendingUp, 
+import {
+  Users,
+  Wind,
+  ClipboardList,
+  Package,
+  TrendingUp,
   Calendar,
   Plus,
   AlertCircle,
@@ -25,23 +25,24 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import EconomicIndicators from '../components/EconomicIndicators'
 import { isAuthenticated } from '../services/authService'
 import { getClientes } from '../services/clienteService'
 import { getEquipos } from '../services/equipoService'
 import { getOrdenesTrabajo } from '../services/ordenTrabajoService'
 import { getCotizaciones, getEstadisticas } from '../services/cotizacionService'
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Legend, 
-  Tooltip, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   CartesianGrid,
   LineChart,
   Line,
@@ -73,7 +74,7 @@ function Dashboard() {
       navigate('/')
       return
     }
-    
+
     try {
       const userStr = localStorage.getItem('user')
       if (userStr) {
@@ -83,14 +84,14 @@ function Dashboard() {
     } catch (e) {
       setUserName('Usuario')
     }
-    
+
     fetchDashboardData()
   }, [navigate])
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      
+
       const [clientes, equipos, ordenes] = await Promise.all([
         getClientes(),
         getEquipos(),
@@ -153,13 +154,13 @@ function Dashboard() {
 
     const ahora = new Date()
     const meses = []
-    
+
     for (let i = 5; i >= 0; i--) {
       const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1)
       const nombreMes = fecha.toLocaleDateString('es-CL', { month: 'short' })
       const mes = fecha.getMonth()
       const año = fecha.getFullYear()
-      
+
       const cotizacionesMes = cotizaciones.filter(c => {
         const fechaCot = new Date(c.createdAt || c.fechaCotizacion)
         return fechaCot.getMonth() === mes && fechaCot.getFullYear() === año
@@ -179,8 +180,8 @@ function Dashboard() {
   const cotizacionesMensuales = getCotizacionesPorMes()
 
   // Calcular porcentaje de completadas
-  const porcentajeCompletadas = stats.ordenes > 0 
-    ? Math.round((stats.ordenesCompletadas / stats.ordenes) * 100) 
+  const porcentajeCompletadas = stats.ordenes > 0
+    ? Math.round((stats.ordenesCompletadas / stats.ordenes) * 100)
     : 0
 
   // Datos para el gráfico de área
@@ -192,18 +193,7 @@ function Dashboard() {
   }))
 
   if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <Zap className="text-indigo-600 animate-pulse" size={24} />
-            </div>
-          </div>
-        </div>
-      </MainLayout>
-    )
+    return <LoadingSkeleton accentColor="indigo" rows={5} columns={4} showStats={true} statCards={4} />
   }
 
   return (
@@ -217,11 +207,11 @@ function Dashboard() {
                 {t('nav.dashboard')}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {new Date().toLocaleDateString('es-CL', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+                {new Date().toLocaleDateString('es-CL', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
                 })}
               </p>
             </div>
@@ -260,12 +250,12 @@ function Dashboard() {
         {/* ⭐ CARDS DE ESTADÍSTICAS PRINCIPALES */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Card 1: Clientes */}
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/clientes')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -276,7 +266,7 @@ function Dashboard() {
                   <span>25%</span>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.clients')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.clientes}</p>
@@ -286,12 +276,12 @@ function Dashboard() {
           </div>
 
           {/* Card 2: Equipos */}
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/equipos')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/30">
@@ -302,7 +292,7 @@ function Dashboard() {
                   <span>18%</span>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.equipment')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.equipos}</p>
@@ -312,12 +302,12 @@ function Dashboard() {
           </div>
 
           {/* Card 3: Órdenes */}
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/ordenes-trabajo')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
@@ -328,7 +318,7 @@ function Dashboard() {
                   <span>15%</span>
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{t('nav.workOrders')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.ordenes}</p>
@@ -338,12 +328,12 @@ function Dashboard() {
           </div>
 
           {/* Card 4: Inventario */}
-          <div 
+          <div
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group cursor-pointer"
             onClick={() => navigate('/inventario')}
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -353,7 +343,7 @@ function Dashboard() {
                   Stock OK
                 </div>
               </div>
-              
+
               <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{t('dashboard.products')}</p>
                 <p className="text-3xl font-bold text-gray-900">{stats.productos}</p>
@@ -386,26 +376,26 @@ function Dashboard() {
                 </div>
               </div>
             </div>
-            
+
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={marketData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#9ca3af" 
-                  fontSize={12} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="name"
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  tickLine={false}
                   axisLine={false}
                 />
-                <YAxis 
-                  stroke="#9ca3af" 
-                  fontSize={12} 
-                  tickLine={false} 
+                <YAxis
+                  stroke="#9ca3af"
+                  fontSize={12}
+                  tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '12px',
                     boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)'
@@ -458,7 +448,7 @@ function Dashboard() {
                       </linearGradient>
                     </defs>
                   </svg>
-                  
+
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-500 bg-clip-text text-transparent">
                       {porcentajeCompletadas}%
@@ -512,7 +502,7 @@ function Dashboard() {
               <Clock className="text-purple-600" size={20} />
               {t('dashboard.recentOrders')}
             </h3>
-            <button 
+            <button
               onClick={() => navigate('/ordenes-trabajo')}
               className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1 hover:gap-2 transition-all"
             >
@@ -534,7 +524,7 @@ function Dashboard() {
                   if (estado === 'en_proceso') return 'bg-blue-100'
                   return 'bg-yellow-100'
                 }
-                
+
                 const getIconoColor = (estado) => {
                   if (estado === 'completado') return 'text-green-600'
                   if (estado === 'en_proceso') return 'text-blue-600'
@@ -542,7 +532,7 @@ function Dashboard() {
                 }
 
                 return (
-                  <div 
+                  <div
                     key={orden.id}
                     className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer group border border-transparent hover:border-gray-200"
                     onClick={() => navigate('/ordenes-trabajo')}
@@ -574,9 +564,9 @@ function Dashboard() {
 
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-gray-500">
-                        {new Date(orden.fecha).toLocaleDateString('es-CL', { 
-                          day: '2-digit', 
-                          month: 'short' 
+                        {new Date(orden.fecha).toLocaleDateString('es-CL', {
+                          day: '2-digit',
+                          month: 'short'
                         })}
                       </span>
                       <ArrowRight className="text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" size={18} />
@@ -603,7 +593,7 @@ function Dashboard() {
                   {t('dashboard.attentionRequired')} - Requieren atención inmediata
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => navigate('/ordenes-trabajo')}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-lg hover:shadow-xl"
               >

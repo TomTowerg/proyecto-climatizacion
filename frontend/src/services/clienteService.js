@@ -1,8 +1,12 @@
 import api from './authService'
 
-// Obtener todos los clientes
-export const getClientes = async () => {
-  const response = await api.get('/clientes')
+// Obtener todos los clientes (con paginación y búsqueda opcional)
+export const getClientes = async ({ page, limit, search } = {}) => {
+  const params = {}
+  if (page) params.page = page
+  if (limit) params.limit = limit
+  if (search) params.search = search
+  const response = await api.get('/clientes', { params })
   return response.data
 }
 

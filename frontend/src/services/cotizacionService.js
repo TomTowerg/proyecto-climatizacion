@@ -4,9 +4,13 @@ import api from './authService'
 // ENDPOINTS ORIGINALES (Mantenidos)
 // ═══════════════════════════════════════════════════════
 
-// Obtener todas las cotizaciones
-export const getCotizaciones = async () => {
-  const response = await api.get('/cotizaciones')
+// Obtener todas las cotizaciones (con paginación y búsqueda opcional)
+export const getCotizaciones = async ({ page, limit, search } = {}) => {
+  const params = {}
+  if (page) params.page = page
+  if (limit) params.limit = limit
+  if (search) params.search = search
+  const response = await api.get('/cotizaciones', { params })
   return response.data
 }
 
@@ -78,10 +82,10 @@ export const generarPDF = async (id) => {
   const response = await api.get(`/cotizaciones/${id}/pdf`, {
     responseType: 'blob'
   })
-  
+
   // Crear URL del blob para visualizar
   const blob = new Blob([response.data], { type: 'application/pdf' })
   const url = window.URL.createObjectURL(blob)
-  
+
   return url
 }

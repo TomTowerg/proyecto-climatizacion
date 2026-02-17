@@ -42,9 +42,9 @@ function Login() {
 
       // Decodificar el JWT de Google para obtener los datos del usuario
       const decoded = jwtDecode(credentialResponse.credential)
-      
+
       // Enviar al backend
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -62,11 +62,11 @@ function Login() {
       }
 
       const data = await response.json()
-      
+
       // Guardar token y usuario en localStorage
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      
+
       toast.success('Login con Google exitoso')
       navigate('/dashboard')
     } catch (error) {
@@ -85,7 +85,7 @@ function Login() {
     <div className="login-page">
       {/* Fondo animado */}
       <div className="login-bg-pattern"></div>
-      
+
       {/* Selector de idioma */}
       <div className="login-language-selector">
         <LanguageSelector />
@@ -102,7 +102,7 @@ function Login() {
           <h1 className="login-title">{t('app.title')}</h1>
           <p className="login-subtitle">{t('auth.welcomeBack', 'Bienvenido de vuelta')}</p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="login-form">
           {/* Email */}
           <div className="login-input-group">
@@ -150,16 +150,16 @@ function Login() {
           </div>
 
           {/* Botón de login */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="login-button"
             disabled={loading}
           >
             {loading ? (
               <span className="login-button-loading">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
                 {t('common.loading')}
               </span>
@@ -182,10 +182,10 @@ function Login() {
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
               text="signin_with"
-              locale={t('auth.loginWithGoogle') === "Iniciar sesión con Google" ? "es" : "en"} 
+              locale={t('auth.loginWithGoogle') === "Iniciar sesión con Google" ? "es" : "en"}
               theme="filled_black"
               size="large"
-              width="100%"
+              width={330}
               shape="pill"
             />
           </div>

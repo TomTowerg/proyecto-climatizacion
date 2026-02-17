@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js'
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
 
 /**
  * CONTROLADOR DE INVENTARIO DE MATERIALES
@@ -7,7 +8,10 @@ import prisma from '../utils/prisma.js'
 // ⭐ OBTENER TODOS LOS MATERIALES
 export const getMateriales = async (req, res) => {
   try {
-    const materiales = await prisma.materialInventario.findMany({
+    const pagination = parsePagination(req.query)
+    const search = parseSearch(req.query)
+
+    const queryOptions = {
       orderBy: [
         { categoria: 'asc' },
         { nombre: 'asc' }
@@ -17,14 +21,41 @@ export const getMateriales = async (req, res) => {
           select: { materialesUsados: true }
         }
       }
-    })
+    }
 
+    // Construir WHERE para búsqueda
+    if (search) {
+      queryOptions.where = {
+        OR: [
+          { nombre: { contains: search, mode: 'insensitive' } },
+          { categoria: { contains: search, mode: 'insensitive' } },
+          { proveedor: { contains: search, mode: 'insensitive' } },
+          { codigoProducto: { contains: search, mode: 'insensitive' } }
+        ]
+      }
+    }
+
+    if (pagination) {
+      const [materiales, total] = await Promise.all([
+        prisma.materialInventario.findMany({
+          ...queryOptions,
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.materialInventario.count({ where: queryOptions.where })
+      ])
+
+      return res.json(paginatedResponse(materiales, total, pagination))
+    }
+
+    // Sin paginación: devolver todo (retrocompatible)
+    const materiales = await prisma.materialInventario.findMany(queryOptions)
     res.json(materiales)
   } catch (error) {
     console.error('Error al obtener materiales:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener materiales',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -64,9 +95,9 @@ export const getMaterialById = async (req, res) => {
     res.json(material)
   } catch (error) {
     console.error('Error al obtener material:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener material',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -124,17 +155,17 @@ export const createMaterial = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear material:', error)
-    
+
     // Error de código duplicado
     if (error.code === 'P2002') {
       return res.status(400).json({
         error: 'Ya existe un material con ese código de producto'
       })
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Error al crear material',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -171,7 +202,7 @@ export const updateMaterial = async (req, res) => {
 
     // Preparar datos para actualizar
     const dataToUpdate = {}
-    
+
     if (nombre !== undefined) dataToUpdate.nombre = nombre
     if (categoria !== undefined) dataToUpdate.categoria = categoria
     if (unidad !== undefined) dataToUpdate.unidad = unidad
@@ -204,16 +235,16 @@ export const updateMaterial = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar material:', error)
-    
+
     if (error.code === 'P2002') {
       return res.status(400).json({
         error: 'Ya existe un material con ese código de producto'
       })
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Error al actualizar material',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -264,9 +295,9 @@ export const deleteMaterial = async (req, res) => {
     res.json({ message: 'Material eliminado exitosamente' })
   } catch (error) {
     console.error('Error al eliminar material:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al eliminar material',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -333,9 +364,9 @@ export const ajustarStock = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al ajustar stock:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al ajustar stock',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -358,9 +389,9 @@ export const getMaterialesStockBajo = async (req, res) => {
     res.json(materiales)
   } catch (error) {
     console.error('Error al obtener materiales con stock bajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener materiales con stock bajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -406,9 +437,9 @@ export const getEstadisticas = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al obtener estadísticas:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener estadísticas',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }

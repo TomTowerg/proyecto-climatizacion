@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Eye, CheckCircle, FileText, Upload, Download, Filter } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Eye, CheckCircle, FileText, Upload, Filter, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
+import Pagination from '../components/Pagination'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { ClipboardList } from 'lucide-react'
 import { isAuthenticated } from '../services/authService'
-import { 
-  getOrdenesTrabajo, 
-  createOrdenTrabajo, 
-  updateOrdenTrabajo, 
-  deleteOrdenTrabajo, 
+import {
+  getOrdenesTrabajo,
+  createOrdenTrabajo,
+  updateOrdenTrabajo,
+  deleteOrdenTrabajo,
   completarOrden,
   generarPDFOrden,
   subirDocumentoFirmado,
@@ -31,12 +33,19 @@ function OrdenesTrabajo() {
   const [equiposFiltrados, setEquiposFiltrados] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({ estado: '', tipo: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingOrden, setEditingOrden] = useState(null)
   const [showPDFModal, setShowPDFModal] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
   const [pdfType, setPdfType] = useState(null) // 'orden' o 'documento'
   const [currentOrden, setCurrentOrden] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
   const [formData, setFormData] = useState({
     clienteId: '',
     equipoId: '',
@@ -45,16 +54,66 @@ function OrdenesTrabajo() {
     notas: '',
     tecnico: '',
     estado: 'pendiente',
-    
+
   })
+
+  const fetchData = useCallback(async (page, search) => {
+    try {
+      setLoading(true)
+      const [ordenesData, clientesData, equiposData] = await Promise.all([
+        getOrdenesTrabajo({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
+        getClientes(),  // Sin paginar: necesita todos para el dropdown
+        getEquipos()
+      ])
+
+      // Manejar respuesta paginada para órdenes
+      if (ordenesData.pagination) {
+        setOrdenes(ordenesData.data)
+        setPaginationInfo(ordenesData.pagination)
+      } else {
+        setOrdenes(ordenesData)
+        setPaginationInfo(null)
+      }
+
+      setClientes(clientesData)
+      setEquipos(equiposData)
+    } catch (error) {
+      console.error('Error al cargar datos:', error)
+      toast.error(t('workOrders.messages.loadError'))
+    } finally {
+      setLoading(false)
+    }
+  }, [t])
 
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/')
       return
     }
-    fetchData()
-  }, [navigate])
+    fetchData(currentPage, debouncedSearch)
+  }, [navigate, fetchData, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     if (formData.clienteId) {
@@ -67,214 +126,195 @@ function OrdenesTrabajo() {
     }
   }, [formData.clienteId, equipos])
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const [ordenesData, clientesData, equiposData] = await Promise.all([
-        getOrdenesTrabajo(),
-        getClientes(),
-        getEquipos()
-      ])
-      setOrdenes(ordenesData)
-      setClientes(clientesData)
-      setEquipos(equiposData)
-    } catch (error) {
-      console.error('Error al cargar datos:', error)
-      toast.error(t('workOrders.messages.loadError'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // ⭐ GENERAR Y VER PDF
-const handleVerPDF = async (ordenId) => {
-  try {
-    const loadingToast = toast.loading('Generando PDF...')
-    
-    const blob = await generarPDFOrden(ordenId)
-    const url = window.URL.createObjectURL(blob)
-    
-    toast.dismiss(loadingToast)
-    
-    // Abrir en modal
-    setPdfUrl(url)
-    setPdfType('orden')
-    setCurrentOrden(ordenes.find(o => o.id === ordenId))
-    setShowPDFModal(true)
-    
-  } catch (error) {
-    console.error('Error al generar PDF:', error)
-    toast.error('Error al generar el PDF')
-  }
-}
-
-
-// ⭐ DESCARGAR PDF DE ORDEN
-const handleDescargarPDF = async (ordenId) => {
-  try {
-    const loadingToast = toast.loading('Descargando PDF...')
-    
-    const blob = await generarPDFOrden(ordenId)
-    const url = window.URL.createObjectURL(blob)
-    
-    const orden = ordenes.find(o => o.id === ordenId)
-    const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-    const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = nombreArchivo
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    
-    window.URL.revokeObjectURL(url)
-    
-    toast.dismiss(loadingToast)
-    toast.success(`PDF descargado: ${nombreArchivo}`)
-    
-  } catch (error) {
-    console.error('Error al descargar PDF:', error)
-    toast.error('Error al descargar el PDF')
-  }
-}
-
-// ⭐ CERRAR MODAL PDF
-const handleClosePDFModal = () => {
-  if (pdfUrl) {
-    window.URL.revokeObjectURL(pdfUrl)
-  }
-  setPdfUrl(null)
-  setPdfType(null)
-  setCurrentOrden(null)
-  setShowPDFModal(false)
-}
-
-// ⭐ SUBIR DOCUMENTO FIRMADO
-const handleUploadDocument = (ordenId) => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.pdf,.jpg,.jpeg,.png'
-  
-  input.onchange = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    
-    // Validar tamaño (10MB máximo)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('El archivo no debe superar los 10MB')
-      return
-    }
-    
+  const handleVerPDF = async (ordenId) => {
     try {
-      const loadingToast = toast.loading('Subiendo documento...')
-      
-      await subirDocumentoFirmado(ordenId, file)
-      
+      const loadingToast = toast.loading('Generando PDF...')
+
+      const blob = await generarPDFOrden(ordenId)
+      const url = window.URL.createObjectURL(blob)
+
       toast.dismiss(loadingToast)
-      toast.success('Documento firmado subido exitosamente')
-      
-      // Recargar órdenes para mostrar el checkmark
-      fetchData()
-      
+
+      // Abrir en modal
+      setPdfUrl(url)
+      setPdfType('orden')
+      setCurrentOrden(ordenes.find(o => o.id === ordenId))
+      setShowPDFModal(true)
+
     } catch (error) {
-      console.error('Error al subir documento:', error)
-      toast.error(error.message || 'Error al subir el documento')
+      console.error('Error al generar PDF:', error)
+      toast.error('Error al generar el PDF')
     }
   }
-  
-  input.click()
-}
 
-// ⭐ DESCARGAR DOCUMENTO FIRMADO
-// ⭐ VER DOCUMENTO FIRMADO EN MODAL
-const handleVerDocumentoFirmado = async (ordenId) => {
-  try {
-    const loadingToast = toast.loading('Cargando documento...')
-    
-    const blob = await descargarDocumentoFirmado(ordenId)
-    const url = window.URL.createObjectURL(blob)
-    
-    toast.dismiss(loadingToast)
-    
-    // Abrir en modal
-    setPdfUrl(url)
-    setPdfType('documento')
-    setCurrentOrden(ordenes.find(o => o.id === ordenId))
-    setShowPDFModal(true)
-    
-  } catch (error) {
-    console.error('Error al cargar documento:', error)
-    toast.error('Error al cargar el documento')
-  }
-}
 
-// ⭐ DESCARGAR DOCUMENTO FIRMADO
-const handleDescargarDocumentoFirmado = async (ordenId) => {
-  try {
-    const loadingToast = toast.loading('Descargando documento...')
-    
-    const blob = await descargarDocumentoFirmado(ordenId)
-    const url = window.URL.createObjectURL(blob)
-    
-    const orden = ordenes.find(o => o.id === ordenId)
-    const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-    const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-Firmada.pdf`
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = nombreArchivo
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    
-    window.URL.revokeObjectURL(url)
-    
-    toast.dismiss(loadingToast)
-    toast.success('Documento descargado')
-    
-  } catch (error) {
-    console.error('Error al descargar documento:', error)
-    toast.error('Error al descargar el documento')
+  // ⭐ DESCARGAR PDF DE ORDEN
+  const handleDescargarPDF = async (ordenId) => {
+    try {
+      const loadingToast = toast.loading('Descargando PDF...')
+
+      const blob = await generarPDFOrden(ordenId)
+      const url = window.URL.createObjectURL(blob)
+
+      const orden = ordenes.find(o => o.id === ordenId)
+      const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+      const fecha = new Date().toISOString().split('T')[0]
+      const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombreArchivo
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+
+      window.URL.revokeObjectURL(url)
+
+      toast.dismiss(loadingToast)
+      toast.success(`PDF descargado: ${nombreArchivo}`)
+
+    } catch (error) {
+      console.error('Error al descargar PDF:', error)
+      toast.error('Error al descargar el PDF')
+    }
   }
-}
+
+  // ⭐ CERRAR MODAL PDF
+  const handleClosePDFModal = () => {
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl)
+    }
+    setPdfUrl(null)
+    setPdfType(null)
+    setCurrentOrden(null)
+    setShowPDFModal(false)
+  }
+
+  // ⭐ SUBIR DOCUMENTO FIRMADO
+  const handleUploadDocument = (ordenId) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png'
+
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      // Validar tamaño (10MB máximo)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('El archivo no debe superar los 10MB')
+        return
+      }
+
+      try {
+        const loadingToast = toast.loading('Subiendo documento...')
+
+        await subirDocumentoFirmado(ordenId, file)
+
+        toast.dismiss(loadingToast)
+        toast.success('Documento firmado subido exitosamente')
+
+        // Recargar órdenes para mostrar el checkmark
+        fetchData()
+
+      } catch (error) {
+        console.error('Error al subir documento:', error)
+        toast.error(error.message || 'Error al subir el documento')
+      }
+    }
+
+    input.click()
+  }
+
+  // ⭐ DESCARGAR DOCUMENTO FIRMADO
+  // ⭐ VER DOCUMENTO FIRMADO EN MODAL
+  const handleVerDocumentoFirmado = async (ordenId) => {
+    try {
+      const loadingToast = toast.loading('Cargando documento...')
+
+      const blob = await descargarDocumentoFirmado(ordenId)
+      const url = window.URL.createObjectURL(blob)
+
+      toast.dismiss(loadingToast)
+
+      // Abrir en modal
+      setPdfUrl(url)
+      setPdfType('documento')
+      setCurrentOrden(ordenes.find(o => o.id === ordenId))
+      setShowPDFModal(true)
+
+    } catch (error) {
+      console.error('Error al cargar documento:', error)
+      toast.error('Error al cargar el documento')
+    }
+  }
+
+  // ⭐ DESCARGAR DOCUMENTO FIRMADO
+  const handleDescargarDocumentoFirmado = async (ordenId) => {
+    try {
+      const loadingToast = toast.loading('Descargando documento...')
+
+      const blob = await descargarDocumentoFirmado(ordenId)
+      const url = window.URL.createObjectURL(blob)
+
+      const orden = ordenes.find(o => o.id === ordenId)
+      const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+      const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-Firmada.pdf`
+
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombreArchivo
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+
+      window.URL.revokeObjectURL(url)
+
+      toast.dismiss(loadingToast)
+      toast.success('Documento descargado')
+
+    } catch (error) {
+      console.error('Error al descargar documento:', error)
+      toast.error('Error al descargar el documento')
+    }
+  }
 
   // Reemplazar desde línea 229
-const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
-  console.log('🔍 Completando orden ID:', ordenId)
-  
-  if (!ordenId) {
-    toast.error('Error: ID de orden inválido')
-    return
-  }
+  const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
+    console.log('🔍 Completando orden ID:', ordenId)
 
-  // Buscar la orden para verificar estado
-  const orden = ordenes.find(o => o.id === ordenId)
-  
-  if (!orden) {
-    toast.error('Orden no encontrada')
-    return
-  }
+    if (!ordenId) {
+      toast.error('Error: ID de orden inválido')
+      return
+    }
 
-  if (orden.estado === 'completado') {
-    toast.error(t('workOrders.messages.alreadyCompleted'))
-    return
-  }
+    // Buscar la orden para verificar estado
+    const orden = ordenes.find(o => o.id === ordenId)
 
-  if (!window.confirm(t('workOrders.messages.completeConfirm', { id: ordenId }))) {
-    return
-  }
+    if (!orden) {
+      toast.error('Orden no encontrada')
+      return
+    }
 
-  try {
-    await completarOrden(ordenId)
-    toast.success(t('workOrders.messages.completeSuccess'))
-    fetchData()
-  } catch (error) {
-    console.error('Error:', error)
-    toast.error(t('workOrders.messages.completeError'))
+    if (orden.estado === 'completado') {
+      toast.error(t('workOrders.messages.alreadyCompleted'))
+      return
+    }
+
+    if (!window.confirm(t('workOrders.messages.completeConfirm', { id: ordenId }))) {
+      return
+    }
+
+    try {
+      await completarOrden(ordenId)
+      toast.success(t('workOrders.messages.completeSuccess'))
+      fetchData()
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error(t('workOrders.messages.completeError'))
+    }
   }
-}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -292,7 +332,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
         await createOrdenTrabajo(dataToSend)
         toast.success(t('workOrders.messages.createSuccess'))
       }
-      
+
       fetchData()
       handleCloseModal()
     } catch (error) {
@@ -311,9 +351,9 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
       notas: orden.notas || '',
       tecnico: orden.tecnico,
       estado: orden.estado,
-      
+
     })
-    
+
     setShowModal(true)
   }
 
@@ -345,26 +385,10 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
       notas: '',
       tecnico: '',
       estado: 'pendiente',
-      
+
     })
   }
 
-  const verAnalisisIA = (orden) => {
-    if (!orden.analisisIA) {
-      toast.error(t('workOrders.messages.noAnalysis'))
-      return
-    }
-    
-    try {
-      const analisis = typeof orden.analisisIA === 'string' 
-        ? JSON.parse(orden.analisisIA) 
-        : orden.analisisIA
-      setAnalisisSeleccionado(analisis)
-      setShowAnalisisModal(true)
-    } catch (e) {
-      toast.error(t('common.error'))
-    }
-  }
 
   const getEstadoBadge = (estado) => {
     const badges = {
@@ -404,20 +428,19 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
     )
   }
 
-  const filteredOrdenes = ordenes.filter(orden =>
-    orden.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    orden.tecnico.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    orden.tipo.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const clearFilters = () => {
+    setFilters({ estado: '', tipo: '' })
+  }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
-        </div>
-      </MainLayout>
-    )
+  // Datos del servidor + filtros locales
+  const filteredOrdenes = ordenes.filter(orden => {
+    const matchesEstado = !filters.estado || orden.estado === filters.estado
+    const matchesTipo = !filters.tipo || orden.tipo === filters.tipo
+    return matchesEstado && matchesTipo
+  })
+
+  if (loading && ordenes.length === 0) {
+    return <LoadingSkeleton accentColor="indigo" rows={8} columns={6} showStats={true} statCards={4} />
   }
 
   return (
@@ -434,17 +457,12 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                 {t('workOrders.title')}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Gestión de órdenes de trabajo • Total: {ordenes.length}
+                Gestión de órdenes de trabajo • Total: {paginationInfo ? paginationInfo.total : ordenes.length}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -471,11 +489,50 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={20} className="text-gray-600" />
-              <span className="text-gray-700">Filtros</span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${showFilters ? 'bg-indigo-600 text-white shadow-lg' : 'border border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Filter size={20} />
+              <span>Filtros</span>
             </button>
           </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-2 gap-4 pt-4 mt-4 border-t border-gray-200">
+              <select
+                value={filters.estado}
+                onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">{t('workOrders.allStatuses', 'Todos los estados')}</option>
+                <option value="pendiente">{t('workOrders.statuses.pending')}</option>
+                <option value="en_proceso">{t('workOrders.statuses.inProgress')}</option>
+                <option value="completado">{t('workOrders.statuses.completed')}</option>
+              </select>
+
+              <select
+                value={filters.tipo}
+                onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">{t('workOrders.allTypes', 'Todos los tipos')}</option>
+                <option value="instalacion">{t('workOrders.types.installation')}</option>
+                <option value="mantencion">{t('workOrders.types.maintenance')}</option>
+                <option value="reparacion">{t('workOrders.types.repair')}</option>
+              </select>
+
+              {(filters.estado || filters.tipo) && (
+                <button
+                  onClick={clearFilters}
+                  className="col-span-2 text-sm text-indigo-600 hover:text-indigo-700 flex items-center justify-center gap-1"
+                >
+                  <X size={16} />
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -492,7 +549,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.type')}
                   </th>
-                  
+
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('workOrders.table.technician')}
                   </th>
@@ -547,7 +604,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getTipoBadge(orden.tipo)}
                       </td>
-  
+
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
                         {orden.tecnico || t('workOrders.unassigned')}
                       </td>
@@ -555,94 +612,106 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                         {getEstadoBadge(orden.estado)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* ⭐ VER PDF DE ORDEN (Papel azul) */}
-                        <button
-                          onClick={() => handleVerPDF(orden.id)}
-                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
-                          title="Ver orden de trabajo"
-                        >
-                          <FileText size={18} />{/* ✅ Papel azul */}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {/* ⭐ VER PDF DE ORDEN (Papel azul) */}
+                          <button
+                            onClick={() => handleVerPDF(orden.id)}
+                            className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                            title="Ver orden de trabajo"
+                          >
+                            <FileText size={18} />{/* ✅ Papel azul */}
+                          </button>
 
-                        {/* ⭐ DOCUMENTO FIRMADO (papel verde con menú) O SUBIR */}
-                        {orden.documentoFirmado ? (
-                          <div className="relative group">
-                            <button
-                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                              title="Documento firmado"
-                            >
-                              <FileText size={18} />
-                            </button>
-                            
-                            {/* Menú desplegable */}
-                            <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                              <div className="px-4 py-2 bg-green-50 border-b">
-                                <p className="text-xs font-semibold text-green-800">Documento Firmado</p>
+                          {/* ⭐ DOCUMENTO FIRMADO (papel verde con menú) O SUBIR */}
+                          {orden.documentoFirmado ? (
+                            <div className="relative group">
+                              <button
+                                className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                                title="Documento firmado"
+                              >
+                                <FileText size={18} />
+                              </button>
+
+                              {/* Menú desplegable */}
+                              <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                <div className="px-4 py-2 bg-green-50 border-b">
+                                  <p className="text-xs font-semibold text-green-800">Documento Firmado</p>
+                                </div>
+                                <button
+                                  onClick={() => handleVerDocumentoFirmado(orden.id)}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700"
+                                >
+                                  <Eye size={16} />
+                                  Ver documento
+                                </button>
+                                <button
+                                  onClick={() => handleDescargarDocumentoFirmado(orden.id)}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700 rounded-b-lg"
+                                >
+                                  <Download size={16} />
+                                  Descargar
+                                </button>
                               </div>
-                              <button
-                                onClick={() => handleVerDocumentoFirmado(orden.id)}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700"
-                              >
-                                <Eye size={16} />
-                                Ver documento
-                              </button>
-                              <button
-                                onClick={() => handleDescargarDocumentoFirmado(orden.id)}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm text-gray-700 rounded-b-lg"
-                              >
-                                <Download size={16} />
-                                Descargar
-                              </button>
                             </div>
-                          </div>
-                        ) : (
-                          /* Subir documento (solo si NO existe) */
+                          ) : (
+                            /* Subir documento (solo si NO existe) */
+                            <button
+                              onClick={() => handleUploadDocument(orden.id)}
+                              className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
+                              title="Subir documento firmado"
+                            >
+                              <Upload size={18} />
+                            </button>
+                          )}
+
+                          {/* ⭐ COMPLETAR (solo si está pendiente) */}
+                          {orden.estado === 'pendiente' && (
+                            <button
+                              onClick={() => handleCompletar(orden.id)}
+                              className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
+                              title="Completar"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
+
+                          {/* ⭐ EDITAR */}
                           <button
-                            onClick={() => handleUploadDocument(orden.id)}
-                            className="text-purple-600 hover:text-purple-900 hover:bg-purple-50 p-2 rounded-full transition-colors"
-                            title="Subir documento firmado"
+                            onClick={() => handleEdit(orden)}
+                            className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                            title="Editar"
                           >
-                            <Upload size={18} />
+                            <Edit size={18} />
                           </button>
-                        )}
 
-                        {/* ⭐ COMPLETAR (solo si está pendiente) */}
-                        {orden.estado === 'pendiente' && (
+                          {/* ⭐ ELIMINAR */}
                           <button
-                            onClick={() => handleCompletar(orden.id)}
-                            className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-full transition-colors"
-                            title="Completar"
+                            onClick={() => handleDelete(orden.id)}
+                            className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full transition-colors"
+                            title="Eliminar"
                           >
-                            <CheckCircle size={18} />
+                            <Trash2 size={18} />
                           </button>
-                        )}
-
-                        {/* ⭐ EDITAR */}
-                        <button
-                          onClick={() => handleEdit(orden)}
-                          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-2 rounded-full transition-colors"
-                          title="Editar"
-                        >
-                          <Edit size={18} />
-                        </button>
-
-                        {/* ⭐ ELIMINAR */}
-                        <button
-                          onClick={() => handleDelete(orden.id)}
-                          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-2 rounded-full transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {paginationInfo && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              total={paginationInfo.total}
+              limit={paginationInfo.limit}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
 
@@ -653,7 +722,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
             <h2 className="text-2xl font-bold mb-4">
               {editingOrden ? t('workOrders.edit') : t('workOrders.add')}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -773,7 +842,7 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                 />
               </div>
 
-            
+
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -805,8 +874,8 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                 <FileText className="text-blue-600" size={24} />
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">
-                    {pdfType === 'orden' 
-                      ? `Orden de Trabajo #${currentOrden?.id.toString().padStart(6, '0')}` 
+                    {pdfType === 'orden'
+                      ? `Orden de Trabajo #${currentOrden?.id.toString().padStart(6, '0')}`
                       : `Documento Firmado - OT #${currentOrden?.id.toString().padStart(6, '0')}`
                     }
                   </h2>
@@ -817,12 +886,12 @@ const handleCompletar = async (ordenId) => {  // ⭐ Recibe ID directamente
                   )}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {/* ⭐ BOTÓN DESCARGAR */}
                 <button
-                  onClick={() => pdfType === 'orden' 
-                    ? handleDescargarPDF(currentOrden?.id) 
+                  onClick={() => pdfType === 'orden'
+                    ? handleDescargarPDF(currentOrden?.id)
                     : handleDescargarDocumentoFirmado(currentOrden?.id)
                   }
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"

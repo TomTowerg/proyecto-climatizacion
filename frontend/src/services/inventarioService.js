@@ -4,8 +4,12 @@ import api from './authService'
 // FUNCIONES BÁSICAS CRUD
 // ═══════════════════════════════════════════════════════
 
-export const getInventario = async () => {
-  const response = await api.get('/inventario')
+export const getInventario = async ({ page, limit, search } = {}) => {
+  const params = {}
+  if (page) params.page = page
+  if (limit) params.limit = limit
+  if (search) params.search = search
+  const response = await api.get('/inventario', { params })
   return response.data
 }
 

@@ -1,9 +1,9 @@
 import express from 'express'
-import { 
-  getOrdenesTrabajo, 
-  getOrdenTrabajoById, 
-  createOrdenTrabajo, 
-  updateOrdenTrabajo, 
+import {
+  getOrdenesTrabajo,
+  getOrdenTrabajoById,
+  createOrdenTrabajo,
+  updateOrdenTrabajo,
   deleteOrdenTrabajo,
   completarOrden,
   getEstadisticas,
@@ -13,6 +13,7 @@ import {
   upload
 } from '../controllers/ordenTrabajoController.js'
 import { authenticate } from '../middleware/auth.js'
+import { validateOrdenTrabajo } from '../middleware/validationMiddleware.js'
 
 const router = express.Router()
 
@@ -35,10 +36,10 @@ router.get('/:id/documento-firmado', authenticate, descargarDocumentoFirmado)
 router.get('/:id', authenticate, getOrdenTrabajoById)
 
 // Crear orden de trabajo
-router.post('/', authenticate, createOrdenTrabajo)
+router.post('/', authenticate, validateOrdenTrabajo, createOrdenTrabajo)
 
 // Actualizar orden de trabajo
-router.put('/:id', authenticate, updateOrdenTrabajo)
+router.put('/:id', authenticate, validateOrdenTrabajo, updateOrdenTrabajo)
 
 // Completar orden de trabajo
 router.patch('/:id/completar', authenticate, completarOrden)

@@ -10,9 +10,9 @@ import { body, param, query, validationResult } from 'express-validator'
 // ============================================
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req)
-  
+
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Errores de validación',
       details: errors.array().map(err => ({
         field: err.path,
@@ -21,7 +21,7 @@ export const handleValidationErrors = (req, res, next) => {
       }))
     })
   }
-  
+
   next()
 }
 
@@ -35,13 +35,13 @@ export const validateRegister = [
     .withMessage('Email inválido')
     .normalizeEmail()
     .trim(),
-  
+
   body('password')
     .isLength({ min: 8 })
     .withMessage('La contraseña debe tener al menos 8 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('La contraseña debe contener al menos una mayúscula, una minúscula y un número'),
-  
+
   body('name')
     .optional()
     .trim()
@@ -49,7 +49,7 @@ export const validateRegister = [
     .withMessage('El nombre debe tener entre 2 y 100 caracteres')
     .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/)
     .withMessage('El nombre solo puede contener letras y espacios'),
-  
+
   body('username')
     .optional()
     .trim()
@@ -57,7 +57,7 @@ export const validateRegister = [
     .withMessage('El username debe tener entre 3 y 30 caracteres')
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('El username solo puede contener letras, números y guiones bajos'),
-  
+
   handleValidationErrors
 ]
 
@@ -67,11 +67,11 @@ export const validateLogin = [
     .withMessage('Email inválido')
     .normalizeEmail()
     .trim(),
-  
+
   body('password')
     .notEmpty()
     .withMessage('La contraseña es requerida'),
-  
+
   handleValidationErrors
 ]
 
@@ -79,26 +79,27 @@ export const validateLogin = [
 // VALIDACIONES PARA CLIENTES
 // ============================================
 
-// Validar RUT chileno
+// Validar RUT chileno (acepta con y sin puntos: 12.345.678-9 o 12345678-9)
 const validateRUT = (rut) => {
-  // Formato: 12345678-9
+  // Limpiar puntos antes de validar
+  const rutLimpio = rut.replace(/\./g, '')
   const rutRegex = /^[0-9]{7,8}-[0-9Kk]$/
-  if (!rutRegex.test(rut)) {
+  if (!rutRegex.test(rutLimpio)) {
     return false
   }
-  
-  const [numero, dv] = rut.split('-')
+
+  const [numero, dv] = rutLimpio.split('-')
   let suma = 0
   let multiplicador = 2
-  
+
   for (let i = numero.length - 1; i >= 0; i--) {
     suma += parseInt(numero[i]) * multiplicador
     multiplicador = multiplicador === 7 ? 2 : multiplicador + 1
   }
-  
+
   const dvCalculado = 11 - (suma % 11)
   const dvFinal = dvCalculado === 11 ? '0' : dvCalculado === 10 ? 'K' : dvCalculado.toString()
-  
+
   return dv.toUpperCase() === dvFinal
 }
 
@@ -109,36 +110,36 @@ export const validateCliente = [
     .withMessage('El nombre es requerido')
     .isLength({ min: 2, max: 200 })
     .withMessage('El nombre debe tener entre 2 y 200 caracteres'),
-  
+
   body('rut')
     .optional()
     .trim()
     .custom((value) => {
       if (value && !validateRUT(value)) {
-        throw new Error('RUT inválido. Formato: 12345678-9')
+        throw new Error('RUT inválido. Formato: 12345678-9 o 12.345.678-9')
       }
       return true
     }),
-  
+
   body('email')
     .optional()
     .isEmail()
     .withMessage('Email inválido')
     .normalizeEmail()
     .trim(),
-  
+
   body('telefono')
     .optional()
     .trim()
-    .matches(/^\+?[0-9]{8,15}$/)
-    .withMessage('Teléfono inválido. Formato: +56912345678 o 912345678'),
-  
+    .matches(/^\+?[0-9\s()-]{7,20}$/)
+    .withMessage('Teléfono inválido'),
+
   body('direccion')
     .optional()
     .trim()
     .isLength({ max: 500 })
     .withMessage('La dirección no puede exceder 500 caracteres'),
-  
+
   handleValidationErrors
 ]
 
@@ -153,51 +154,51 @@ export const validateEquipo = [
     .withMessage('El tipo de equipo es requerido')
     .isIn(['Split', 'Cassette', 'Piso Techo', 'Ventana', 'Portátil', 'Ducto'])
     .withMessage('Tipo de equipo inválido'),
-  
+
   body('marca')
     .trim()
     .notEmpty()
     .withMessage('La marca es requerida')
     .isLength({ max: 100 })
     .withMessage('La marca no puede exceder 100 caracteres'),
-  
+
   body('modelo')
     .trim()
     .notEmpty()
     .withMessage('El modelo es requerido')
     .isLength({ max: 100 })
     .withMessage('El modelo no puede exceder 100 caracteres'),
-  
+
   body('numeroSerie')
     .trim()
     .notEmpty()
     .withMessage('El número de serie es requerido')
     .isLength({ max: 100 })
     .withMessage('El número de serie no puede exceder 100 caracteres'),
-  
+
   body('capacidad')
     .trim()
     .notEmpty()
     .withMessage('La capacidad es requerida')
     .matches(/^\d+\s?(BTU|btu|W|w|kW|TR)?$/)
     .withMessage('Capacidad inválida. Ejemplo: 12000 BTU'),
-  
+
   body('tipoGas')
     .trim()
     .notEmpty()
     .withMessage('El tipo de gas es requerido')
     .isIn(['R32', 'R410A', 'R22', 'R134a', 'R407C'])
     .withMessage('Tipo de gas inválido'),
-  
+
   body('ano')
     .optional()
     .isInt({ min: 1990, max: new Date().getFullYear() + 1 })
     .withMessage('Año inválido'),
-  
+
   body('clienteId')
     .isInt({ min: 1 })
     .withMessage('Cliente ID inválido'),
-  
+
   handleValidationErrors
 ]
 
@@ -209,41 +210,43 @@ export const validateOrdenTrabajo = [
   body('clienteId')
     .isInt({ min: 1 })
     .withMessage('Cliente ID inválido'),
-  
+
   body('tipo')
     .trim()
     .notEmpty()
     .withMessage('El tipo de trabajo es requerido')
-    .isIn(['instalacion', 'mantencion', 'reparacion', 'revision', 'retiro'])
+    .isIn(['instalacion', 'mantencion', 'mantenimiento', 'reparacion'])
     .withMessage('Tipo de trabajo inválido'),
-  
-  body('descripcion')
+
+  body('tecnico')
     .trim()
     .notEmpty()
-    .withMessage('La descripción es requerida')
-    .isLength({ min: 10, max: 2000 })
-    .withMessage('La descripción debe tener entre 10 y 2000 caracteres'),
-  
-  body('prioridad')
-    .optional()
-    .isIn(['baja', 'media', 'alta', 'urgente'])
-    .withMessage('Prioridad inválida'),
-  
-  body('fechaInicio')
+    .withMessage('El técnico es requerido')
+    .isLength({ max: 200 })
+    .withMessage('El nombre del técnico no puede exceder 200 caracteres'),
+
+  body('fecha')
     .optional()
     .isISO8601()
-    .withMessage('Fecha de inicio inválida'),
-  
-  body('costoMateriales')
+    .withMessage('Fecha inválida'),
+
+  body('descripcion')
     .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Costo de materiales debe ser un número positivo'),
-  
-  body('costoManoObra')
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('La descripción no puede exceder 2000 caracteres'),
+
+  body('notas')
     .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Costo de mano de obra debe ser un número positivo'),
-  
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Las notas no pueden exceder 2000 caracteres'),
+
+  body('estado')
+    .optional()
+    .isIn(['pendiente', 'en_proceso', 'completado'])
+    .withMessage('Estado inválido'),
+
   handleValidationErrors
 ]
 
@@ -255,41 +258,45 @@ export const validateCotizacion = [
   body('clienteId')
     .isInt({ min: 1 })
     .withMessage('Cliente ID inválido'),
-  
+
   body('tipo')
-    .trim()
-    .notEmpty()
-    .withMessage('El tipo es requerido'),
-  
+    .optional()
+    .trim(),
+
   body('marca')
-    .trim()
-    .notEmpty()
-    .withMessage('La marca es requerida'),
-  
+    .optional()
+    .trim(),
+
   body('modelo')
-    .trim()
-    .notEmpty()
-    .withMessage('El modelo es requerido'),
-  
+    .optional()
+    .trim(),
+
   body('capacidad')
-    .trim()
-    .notEmpty()
-    .withMessage('La capacidad es requerida'),
-  
+    .optional()
+    .trim(),
+
   body('precioOfertado')
     .isFloat({ min: 0 })
     .withMessage('Precio ofertado debe ser un número positivo'),
-  
+
+  body('subtotal')
+    .isFloat({ min: 0 })
+    .withMessage('Subtotal debe ser un número positivo'),
+
+  body('precioFinal')
+    .isFloat({ min: 0 })
+    .withMessage('Precio final debe ser un número positivo'),
+
   body('costoInstalacion')
     .optional()
     .isFloat({ min: 0 })
     .withMessage('Costo de instalación debe ser un número positivo'),
-  
+
   body('descuento')
     .optional()
-    .isFloat({ min: 0, max: 100 })
-    .withMessage('Descuento debe estar entre 0 y 100'),
-  
+    .isFloat({ min: 0 })
+    .withMessage('Descuento debe ser un número positivo'),
+
   handleValidationErrors
 ]
 
@@ -301,7 +308,7 @@ export const validateId = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('ID inválido'),
-  
+
   handleValidationErrors
 ]
 
@@ -313,7 +320,7 @@ export const validateRutParam = [
       }
       return true
     }),
-  
+
   handleValidationErrors
 ]
 
@@ -327,7 +334,7 @@ export const validateSearchQuery = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Query de búsqueda debe tener entre 1 y 100 caracteres'),
-  
+
   handleValidationErrors
 ]
 
@@ -336,12 +343,12 @@ export const validatePaginationQuery = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Página debe ser un número mayor a 0'),
-  
+
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Límite debe estar entre 1 y 100'),
-  
+
   handleValidationErrors
 ]
 

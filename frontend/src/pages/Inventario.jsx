@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, Package, AlertCircle, TrendingUp, TrendingDown, DollarSign, Box } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
-import { Filter, Download } from 'lucide-react'
+import Pagination from '../components/Pagination'
+import { Filter, X } from 'lucide-react'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { isAuthenticated } from '../services/authService'
 import { getInventario, createInventario, updateInventario, deleteInventario } from '../services/inventarioService'
 
@@ -14,8 +16,15 @@ function Inventario() {
   const [inventario, setInventario] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({ estado: '', tipo: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
   const [formData, setFormData] = useState({
     tipo: '',
     marca: '',
@@ -33,19 +42,18 @@ function Inventario() {
     caracteristicas: ''
   })
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/')
-      return
-    }
-    fetchInventario()
-  }, [navigate])
-
-  const fetchInventario = async () => {
+  const fetchInventario = useCallback(async (page = currentPage, search = debouncedSearch) => {
     try {
       setLoading(true)
-      const data = await getInventario()
-      setInventario(Array.isArray(data) ? data : [])
+      const data = await getInventario({ page, limit: ITEMS_PER_PAGE, search: search || undefined })
+
+      if (data.pagination) {
+        setInventario(Array.isArray(data.data) ? data.data : [])
+        setPaginationInfo(data.pagination)
+      } else {
+        setInventario(Array.isArray(data) ? data : [])
+        setPaginationInfo(null)
+      }
     } catch (error) {
       console.error('Error al cargar inventario:', error)
       toast.error(t('inventory.messages.loadError'))
@@ -53,6 +61,36 @@ function Inventario() {
     } finally {
       setLoading(false)
     }
+  }, [t])
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/')
+      return
+    }
+    fetchInventario(currentPage, debouncedSearch)
+  }, [navigate, fetchInventario, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Calcular estadísticas de forma segura
@@ -103,7 +141,7 @@ function Inventario() {
         await createInventario(dataToSend)
         toast.success(t('inventory.messages.createSuccess'))
       }
-      
+
       fetchInventario()
       handleCloseModal()
     } catch (error) {
@@ -172,7 +210,7 @@ function Inventario() {
   const getStockStatus = (item) => {
     const stock = parseInt(item.stock) || 0
     const stockMin = parseInt(item.stockMinimo) || 1
-    
+
     if (stock === 0) return { color: 'text-red-600', bg: 'bg-red-100', icon: AlertCircle, text: t('inventory.status.outOfStock') }
     if (stock <= stockMin) return { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: TrendingDown, text: t('inventory.status.lowStock') }
     return { color: 'text-green-600', bg: 'bg-green-100', icon: TrendingUp, text: t('inventory.status.available') }
@@ -183,25 +221,19 @@ function Inventario() {
     return num.toLocaleString(t('common.dateFormat'), { minimumFractionDigits: 0, maximumFractionDigits: 0 })
   }
 
+  const clearFilters = () => {
+    setFilters({ estado: '', tipo: '' })
+  }
+
+  // Datos del servidor + filtros locales
   const filteredInventario = inventario.filter(item => {
-    if (!searchTerm) return true
-    const search = searchTerm.toLowerCase()
-    return (
-      (item.marca?.toLowerCase() || '').includes(search) ||
-      (item.modelo?.toLowerCase() || '').includes(search) ||
-      (item.numeroSerie?.toLowerCase() || '').includes(search) ||
-      (item.tipo?.toLowerCase() || '').includes(search)
-    )
+    const matchesEstado = !filters.estado || item.estado === filters.estado
+    const matchesTipo = !filters.tipo || item.tipo === filters.tipo
+    return matchesEstado && matchesTipo
   })
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-emerald-600"></div>
-        </div>
-      </MainLayout>
-    )
+  if (loading && inventario.length === 0) {
+    return <LoadingSkeleton accentColor="emerald" rows={8} columns={6} showStats={true} statCards={4} />
   }
 
   return (
@@ -218,17 +250,12 @@ function Inventario() {
                 {t('inventory.title')}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {t('inventory.subtitle')} • Total: {stats.total} productos
+                {t('inventory.subtitle')} • Total: {paginationInfo ? paginationInfo.total : stats.total} productos
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -309,11 +336,52 @@ function Inventario() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={20} className="text-gray-600" />
-              <span className="text-gray-700">Filtros</span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${showFilters ? 'bg-emerald-600 text-white shadow-lg' : 'border border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Filter size={20} />
+              <span>Filtros</span>
             </button>
           </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-2 gap-4 pt-4 mt-4 border-t border-gray-200">
+              <select
+                value={filters.tipo}
+                onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">{t('inventory.allTypes', 'Todos los tipos')}</option>
+                <option value="Split">Split</option>
+                <option value="Split Muro">Split Muro</option>
+                <option value="Cassette">Cassette</option>
+                <option value="Piso-Cielo">Piso-Cielo</option>
+                <option value="VRF">VRF</option>
+              </select>
+
+              <select
+                value={filters.estado}
+                onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
+                className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">{t('inventory.allStatuses', 'Todos los estados')}</option>
+                <option value="disponible">{t('inventory.status.available')}</option>
+                <option value="reservado">{t('inventory.status.reserved')}</option>
+                <option value="vendido">{t('inventory.status.sold')}</option>
+              </select>
+
+              {(filters.estado || filters.tipo) && (
+                <button
+                  onClick={clearFilters}
+                  className="col-span-2 text-sm text-emerald-600 hover:text-emerald-700 flex items-center justify-center gap-1"
+                >
+                  <X size={16} />
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tabla */}
@@ -371,9 +439,8 @@ function Inventario() {
                           ${formatPrice(item.precioCliente || 0)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            item.estado === 'disponible' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.estado === 'disponible' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
                             {item.estado === 'disponible' ? t('inventory.status.available') : item.estado}
                           </span>
                         </td>
@@ -402,10 +469,22 @@ function Inventario() {
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {paginationInfo && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              total={paginationInfo.total}
+              limit={paginationInfo.limit}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
-          {t('inventory.showing', { count: filteredInventario.length, total: inventario.length })}
+          {t('inventory.showing', { count: filteredInventario.length, total: paginationInfo ? paginationInfo.total : inventario.length })}
         </div>
       </div>
 
@@ -416,7 +495,7 @@ function Inventario() {
             <h2 className="text-2xl font-bold mb-4">
               {editingItem ? t('inventory.edit') : t('inventory.add')}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>

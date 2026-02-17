@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Wind, 
-  Gauge, 
-  Leaf, 
+import {
+  Wind,
+  Gauge,
+  Leaf,
   Ruler,
   Package,
   Loader2,
@@ -15,7 +15,7 @@ import {
   ZoomIn
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Remover /api del final si existe para evitar duplicación
 const getBaseUrl = () => {
@@ -67,14 +67,14 @@ const getEquipmentImages = (item) => {
   const marca = (item.marca || '').toLowerCase().trim();
   const tipo = (item.tipo || 'split').toLowerCase();
   const btu = parseInt(item.capacidadBTU) || parseInt(item.capacidad) || 0;
-  
+
   let tipoKey = 'split';
   if (tipo.includes('ventana')) {
     tipoKey = 'ventana';
   } else if (tipo.includes('cassette')) {
     tipoKey = 'cassette';
   }
-  
+
   const imageKey = `${marca}-${tipoKey}-${btu}`;
   return equipmentImages[imageKey] || [];
 };
@@ -103,11 +103,11 @@ const EquipmentCatalog = () => {
       setLoading(true);
       const baseUrl = getBaseUrl();
       const response = await fetch(`${baseUrl}/api/inventario/public`);
-      
+
       if (!response.ok) {
         throw new Error('Error al cargar equipos');
       }
-      
+
       const data = await response.json();
       setEquipment(data);
     } catch (err) {
@@ -154,15 +154,15 @@ const EquipmentCatalog = () => {
   const types = ['todos', ...new Set(equipment.map(e => e.tipo))];
 
   // Filtrar equipos
-  const filteredEquipment = activeFilter === 'todos' 
-    ? equipment 
+  const filteredEquipment = activeFilter === 'todos'
+    ? equipment
     : equipment.filter(e => e.tipo === activeFilter);
 
   // Ordenar equipos: primero por marca (A-Z), luego por BTU (menor a mayor)
   const sortedEquipment = [...filteredEquipment].sort((a, b) => {
     const marcaComparison = (a.marca || '').localeCompare(b.marca || '');
     if (marcaComparison !== 0) return marcaComparison;
-    
+
     const btuA = parseInt(a.capacidadBTU) || parseInt(a.capacidad) || 0;
     const btuB = parseInt(b.capacidadBTU) || parseInt(b.capacidad) || 0;
     return btuA - btuB;
@@ -243,7 +243,7 @@ const EquipmentCatalog = () => {
           <div className="equipment-grid">
             {visibleEquipment.map((item, index) => {
               const hasImage = getEquipmentImage(item);
-              
+
               return (
                 <div key={item.id} className="equipment-card" style={{ animationDelay: `${index * 0.1}s` }}>
                   <div className={`equipment-image ${item.stock <= 0 ? 'out-of-stock' : ''}`}>
@@ -257,15 +257,15 @@ const EquipmentCatalog = () => {
                         {t('landing.catalog.outOfStock', 'Agotado')}
                       </span>
                     )}
-                    
+
                     {/* IMAGEN REAL del equipo con click para zoom */}
                     {hasImage ? (
-                      <div 
+                      <div
                         className="equipment-real-image-container"
                         onClick={() => setImageModal({ open: true, item, currentIndex: 0 })}
                       >
-                        <img 
-                          src={hasImage} 
+                        <img
+                          src={hasImage}
                           alt={`${item.marca} ${item.modelo}`}
                           className="equipment-real-image"
                         />
@@ -283,11 +283,11 @@ const EquipmentCatalog = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="equipment-content">
                     <div className="equipment-brand">{item.marca}</div>
                     <h3 className="equipment-model">{item.modelo}</h3>
-                    
+
                     <div className="equipment-specs">
                       <div className="equipment-spec">
                         <Gauge size={16} />
@@ -329,7 +329,7 @@ const EquipmentCatalog = () => {
         {/* Load More */}
         {visibleCount < filteredEquipment.length && (
           <div className="catalog-load-more">
-            <button 
+            <button
               className="hero-cta-secondary"
               onClick={() => setVisibleCount(prev => prev + 6)}
             >
@@ -341,15 +341,15 @@ const EquipmentCatalog = () => {
 
       {/* Modal para ver imagen del equipo con zoom */}
       {imageModal.open && imageModal.item && getEquipmentImages(imageModal.item).length > 0 && (
-        <div 
+        <div
           className="image-modal-overlay"
           onClick={() => setImageModal({ open: false, item: null, currentIndex: 0 })}
         >
-          <div 
+          <div
             className="image-modal-content"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               className="image-modal-close"
               onClick={() => setImageModal({ open: false, item: null, currentIndex: 0 })}
             >
@@ -365,33 +365,33 @@ const EquipmentCatalog = () => {
             <div className="image-modal-body">
               {/* Flecha izquierda */}
               {getEquipmentImages(imageModal.item).length > 1 && (
-                <button 
+                <button
                   className="gallery-arrow gallery-arrow-left"
                   onClick={() => setImageModal(prev => ({
                     ...prev,
-                    currentIndex: prev.currentIndex === 0 
-                      ? getEquipmentImages(prev.item).length - 1 
+                    currentIndex: prev.currentIndex === 0
+                      ? getEquipmentImages(prev.item).length - 1
                       : prev.currentIndex - 1
                   }))}
                 >
                   <ChevronLeft size={28} />
                 </button>
               )}
-              
-              <img 
-                src={getEquipmentImages(imageModal.item)[imageModal.currentIndex]} 
+
+              <img
+                src={getEquipmentImages(imageModal.item)[imageModal.currentIndex]}
                 alt={`${imageModal.item.marca} ${imageModal.item.modelo}`}
                 className="modal-equipment-image"
               />
-              
+
               {/* Flecha derecha */}
               {getEquipmentImages(imageModal.item).length > 1 && (
-                <button 
+                <button
                   className="gallery-arrow gallery-arrow-right"
                   onClick={() => setImageModal(prev => ({
                     ...prev,
-                    currentIndex: prev.currentIndex === getEquipmentImages(prev.item).length - 1 
-                      ? 0 
+                    currentIndex: prev.currentIndex === getEquipmentImages(prev.item).length - 1
+                      ? 0
                       : prev.currentIndex + 1
                   }))}
                 >
@@ -399,7 +399,7 @@ const EquipmentCatalog = () => {
                 </button>
               )}
             </div>
-            
+
             {/* Indicadores de imagen */}
             {getEquipmentImages(imageModal.item).length > 1 && (
               <div className="gallery-indicators">
@@ -412,9 +412,9 @@ const EquipmentCatalog = () => {
                 ))}
               </div>
             )}
-            
+
             <div className="image-modal-footer">
-              <button 
+              <button
                 className="equipment-cta"
                 onClick={() => {
                   setImageModal({ open: false, item: null, currentIndex: 0 });

@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Wind, Filter, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Wind, Filter, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
+import Pagination from '../components/Pagination'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { isAuthenticated } from '../services/authService'
 import { getEquipos, createEquipo, updateEquipo, deleteEquipo } from '../services/equipoService'
 import { getClientes } from '../services/clienteService'
@@ -16,8 +18,15 @@ function Equipos() {
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({ tipo: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingEquipo, setEditingEquipo] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
   const [formData, setFormData] = useState({
     tipo: '',
     marca: '',
@@ -29,29 +38,58 @@ function Equipos() {
     clienteId: ''
   })
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/')
-      return
-    }
-    fetchData()
-  }, [navigate])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async (page = 1, search = '') => {
     try {
       setLoading(true)
       const [equiposData, clientesData] = await Promise.all([
-        getEquipos(),
+        getEquipos({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
         getClientes()
       ])
-      setEquipos(equiposData)
-      setClientes(clientesData)
+
+      if (equiposData.pagination) {
+        setEquipos(equiposData.data)
+        setPaginationInfo(equiposData.pagination)
+      } else {
+        setEquipos(equiposData)
+        setPaginationInfo(null)
+      }
+      setClientes(Array.isArray(clientesData) ? clientesData : clientesData.data || [])
     } catch (error) {
       console.error('Error al cargar datos:', error)
       toast.error(t('equipment.messages.loadError'))
     } finally {
       setLoading(false)
     }
+  }, [t])
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/')
+      return
+    }
+    fetchData(currentPage, debouncedSearch)
+  }, [navigate, fetchData, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSubmit = async (e) => {
@@ -65,8 +103,8 @@ function Equipos() {
         await createEquipo(formData)
         toast.success(t('equipment.messages.createSuccess'))
       }
-      
-      fetchData()
+
+      fetchData(currentPage, debouncedSearch)
       handleCloseModal()
     } catch (error) {
       console.error('Error:', error)
@@ -98,7 +136,7 @@ function Equipos() {
     try {
       await deleteEquipo(id)
       toast.success(t('equipment.messages.deleteSuccess'))
-      fetchData()
+      fetchData(currentPage, debouncedSearch)
     } catch (error) {
       console.error('Error:', error)
       const errorMessage = error.response?.data?.error || t('equipment.messages.deleteError')
@@ -121,21 +159,17 @@ function Equipos() {
     })
   }
 
-  const filteredEquipos = equipos.filter(equipo =>
-    equipo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    equipo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    equipo.numeroSerie.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    equipo.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const clearFilters = () => {
+    setFilters({ tipo: '' })
+  }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-cyan-600"></div>
-        </div>
-      </MainLayout>
-    )
+  const filteredEquipos = equipos.filter(equipo => {
+    const matchesTipo = !filters.tipo || equipo.tipo === filters.tipo
+    return matchesTipo
+  })
+
+  if (loading && equipos.length === 0) {
+    return <LoadingSkeleton accentColor="cyan" rows={8} columns={6} showStats={true} statCards={4} />
   }
 
   return (
@@ -152,17 +186,12 @@ function Equipos() {
                 {t('equipment.title')}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Gestión de equipos HVAC • Total: {equipos.length}
+                Gestión de equipos HVAC • Total: {paginationInfo ? paginationInfo.total : equipos.length}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -189,11 +218,42 @@ function Equipos() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={20} className="text-gray-600" />
-              <span className="text-gray-700">Filtros</span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${showFilters ? 'bg-cyan-600 text-white shadow-lg' : 'border border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Filter size={20} />
+              <span>Filtros</span>
             </button>
           </div>
+
+          {showFilters && (
+            <div className="flex gap-4 pt-4 mt-4 border-t border-gray-200 items-center">
+              <select
+                value={filters.tipo}
+                onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value="">{t('equipment.allTypes', 'Todos los tipos')}</option>
+                <option value="Split Muro">Split Muro</option>
+                <option value="Split">Split</option>
+                <option value="Cassette">Cassette</option>
+                <option value="Piso-Techo">Piso-Techo</option>
+                <option value="VRF">VRF</option>
+                <option value="Ventana">Ventana</option>
+              </select>
+
+              {filters.tipo && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-cyan-600 hover:text-cyan-700 flex items-center gap-1"
+                >
+                  <X size={16} />
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tabla de equipos */}
@@ -239,7 +299,7 @@ function Equipos() {
                           {equipo.tipo}
                         </span>
                       </td>
-                      
+
                       {/* Marca/Modelo */}
                       <td className="px-3 py-3 col-marca-modelo">
                         <div className="info-2-lineas">
@@ -249,28 +309,28 @@ function Equipos() {
                           </div>
                         </div>
                       </td>
-                      
+
                       {/* N° Serie */}
                       <td className="px-3 py-3 col-numero-serie">
                         <span className="numero-serie-text font-mono text-xs" title={equipo.numeroSerie}>
                           {equipo.numeroSerie}
                         </span>
                       </td>
-                      
+
                       {/* Capacidad */}
                       <td className="px-3 py-3 col-capacidad text-center">
                         <span className="badge-compacto bg-cyan-100 text-cyan-800">
                           {equipo.capacidad}
                         </span>
                       </td>
-                      
+
                       {/* Cliente */}
                       <td className="px-3 py-3 col-cliente">
                         <span className="text-sm text-gray-900 truncate-text" title={equipo.cliente?.nombre}>
                           {equipo.cliente?.nombre}
                         </span>
                       </td>
-                      
+
                       {/* Acciones */}
                       <td className="px-3 py-3 col-acciones">
                         <div className="flex gap-1 justify-center">
@@ -297,6 +357,19 @@ function Equipos() {
             </table>
           </div>
         </div>
+
+        {/* Paginación */}
+        {paginationInfo && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              onPageChange={handlePageChange}
+              totalItems={paginationInfo.total}
+              itemsPerPage={ITEMS_PER_PAGE}
+            />
+          </div>
+        )}
       </div>
 
       {/* Modal */}
@@ -306,7 +379,7 @@ function Equipos() {
             <h2 className="text-2xl font-bold mb-6 text-gray-900">
               {editingEquipo ? t('equipment.edit') : t('equipment.add')}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -1,24 +1,53 @@
 import prisma from '../utils/prisma.js'
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
 
-// Obtener todos los equipos
+// Obtener todos los equipos (con paginación y búsqueda opcionales)
 export const getEquipos = async (req, res) => {
   try {
-    const equipos = await prisma.equipo.findMany({
-      include: {
-        cliente: {
-          select: {
-            id: true,
-            nombre: true,
-            rut: true
-          }
-        },
-        ordenesTrabajos: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    const pagination = parsePagination(req.query)
+    const searchTerm = parseSearch(req.query)
 
+    const where = searchTerm ? {
+      OR: [
+        { tipo: { contains: searchTerm, mode: 'insensitive' } },
+        { marca: { contains: searchTerm, mode: 'insensitive' } },
+        { modelo: { contains: searchTerm, mode: 'insensitive' } },
+        { numeroSerie: { contains: searchTerm, mode: 'insensitive' } },
+        { cliente: { nombre: { contains: searchTerm, mode: 'insensitive' } } }
+      ]
+    } : {}
+
+    const includeRelations = {
+      cliente: {
+        select: {
+          id: true,
+          nombre: true,
+          rut: true
+        }
+      },
+      ordenesTrabajos: true
+    }
+
+    if (pagination) {
+      const [equipos, total] = await Promise.all([
+        prisma.equipo.findMany({
+          where,
+          include: includeRelations,
+          orderBy: { createdAt: 'desc' },
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.equipo.count({ where })
+      ])
+      return res.json(paginatedResponse(equipos, total, pagination))
+    }
+
+    // Sin paginación (retrocompatible)
+    const equipos = await prisma.equipo.findMany({
+      where,
+      include: includeRelations,
+      orderBy: { createdAt: 'desc' }
+    })
     res.json(equipos)
   } catch (error) {
     console.error('Error al obtener equipos:', error)
@@ -102,8 +131,8 @@ export const createEquipo = async (req, res) => {
 
     // Validar campos requeridos
     if (!tipo || !marca || !modelo || !numeroSerie || !capacidad || !tipoGas || !ano || !clienteId) {
-      return res.status(400).json({ 
-        error: 'Todos los campos son requeridos' 
+      return res.status(400).json({
+        error: 'Todos los campos son requeridos'
       })
     }
 
@@ -122,8 +151,8 @@ export const createEquipo = async (req, res) => {
     })
 
     if (existingEquipo) {
-      return res.status(400).json({ 
-        error: 'El número de serie ya está registrado' 
+      return res.status(400).json({
+        error: 'El número de serie ya está registrado'
       })
     }
 
@@ -176,8 +205,8 @@ export const updateEquipo = async (req, res) => {
       })
 
       if (serieExists) {
-        return res.status(400).json({ 
-          error: 'El número de serie ya está registrado' 
+        return res.status(400).json({
+          error: 'El número de serie ya está registrado'
         })
       }
     }
@@ -229,8 +258,8 @@ export const deleteEquipo = async (req, res) => {
 
     // Verificar si tiene órdenes asociadas
     if (existingEquipo.ordenesTrabajos.length > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar el equipo porque tiene órdenes de trabajo asociadas' 
+      return res.status(400).json({
+        error: 'No se puede eliminar el equipo porque tiene órdenes de trabajo asociadas'
       })
     }
 

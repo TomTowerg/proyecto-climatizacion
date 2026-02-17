@@ -1,19 +1,18 @@
 // ============================================
 // RUTAS DE AUTENTICACIÓN CON RATE LIMITING
-// Reemplazar: backend/src/routes/auth.js
 // ============================================
 
 import express from 'express'
-import prisma from '../utils/prisma.js'  // ⭐ AGREGAR ESTA LÍNEA
-import { 
-  register, 
-  login, 
-  googleLogin, 
+import prisma from '../utils/prisma.js'
+import {
+  register,
+  login,
+  googleLogin,
   verifyToken,
-  changePassword 
+  changePassword
 } from '../controllers/authController.js'
 import { loginLimiter, registerLimiter, strictLimiter } from '../middleware/rateLimiter.js'
-import { authenticateToken } from '../middleware/authMiddleware.js'
+import { authenticate } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -38,17 +37,17 @@ router.get('/verify', verifyToken)
 // ============================================
 
 // Cambiar contraseña - Requiere estar logueado + rate limiting estricto
-router.post('/change-password', 
-  authenticateToken,
+router.post('/change-password',
+  authenticate,
   strictLimiter,
   changePassword
 )
 
 // Obtener perfil del usuario actual
-router.get('/me', authenticateToken, async (req, res) => {
+router.get('/me', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: req.userId },
       select: {
         id: true,
         email: true,

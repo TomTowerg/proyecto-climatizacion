@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, Edit, Trash2, Search, Users, Mail, Phone, MapPin, Filter, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Users, Mail, Phone, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
+import Pagination from '../components/Pagination'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { isAuthenticated } from '../services/authService'
 import { getClientes, createCliente, updateCliente, deleteCliente } from '../services/clienteService'
 import { validarRut, formatearRut } from '../utils/rutValidator'
@@ -16,8 +18,13 @@ function Clientes() {
   const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingCliente, setEditingCliente] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
   const [formData, setFormData] = useState({
     nombre: '',
     rut: '',
@@ -26,25 +33,56 @@ function Clientes() {
     direccion: ''
   })
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/')
-      return
-    }
-    fetchClientes()
-  }, [navigate])
-
-  const fetchClientes = async () => {
+  const fetchClientes = useCallback(async (page, search) => {
     try {
       setLoading(true)
-      const data = await getClientes()
-      setClientes(data)
+      const data = await getClientes({ page, limit: ITEMS_PER_PAGE, search: search || undefined })
+
+      // Respuesta paginada: { data: [...], pagination: {...} }
+      if (data.pagination) {
+        setClientes(data.data)
+        setPaginationInfo(data.pagination)
+      } else {
+        // Fallback retrocompatible (array directo)
+        setClientes(data)
+        setPaginationInfo(null)
+      }
     } catch (error) {
       console.error('Error al cargar clientes:', error)
       toast.error(t('clients.messages.loadError'))
     } finally {
       setLoading(false)
     }
+  }, [t])
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/')
+      return
+    }
+    fetchClientes(currentPage, debouncedSearch)
+  }, [navigate, fetchClientes, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSubmit = async (e) => {
@@ -64,7 +102,7 @@ function Clientes() {
         await createCliente(formData)
         toast.success(t('clients.messages.createSuccess'))
       }
-      
+
       fetchClientes()
       handleCloseModal()
     } catch (error) {
@@ -115,20 +153,11 @@ function Clientes() {
   }
 
 
-  const filteredClientes = clientes.filter(cliente =>
-    cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.rut.includes(searchTerm) ||
-    cliente.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Los datos ya vienen filtrados del servidor
+  const filteredClientes = clientes
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
-        </div>
-      </MainLayout>
-    )
+  if (loading && clientes.length === 0) {
+    return <LoadingSkeleton accentColor="indigo" rows={8} columns={5} />
   }
 
   return (
@@ -145,17 +174,12 @@ function Clientes() {
                 {t('clients.title')}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {t('clients.subtitle')} • Total: {clientes.length}
+                {t('clients.subtitle')} • Total: {paginationInfo ? paginationInfo.total : clientes.length}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -182,10 +206,6 @@ function Clientes() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={20} className="text-gray-600" />
-              <span className="text-gray-700">Filtros</span>
-            </button>
           </div>
         </div>
 
@@ -283,6 +303,18 @@ function Clientes() {
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {paginationInfo && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              total={paginationInfo.total}
+              limit={paginationInfo.limit}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
 
@@ -293,7 +325,7 @@ function Clientes() {
             <h2 className="text-2xl font-bold mb-6 text-gray-900">
               {editingCliente ? t('clients.edit') : t('clients.add')}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

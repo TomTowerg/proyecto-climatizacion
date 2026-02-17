@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next' // 1. IMPORTAR
 import { Calendar, Clock, MapPin, User, AlertCircle, X, CheckCircle, TrendingUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
-import { Download, Filter } from 'lucide-react'
+import LoadingSkeleton from '../components/LoadingSkeleton'
+
 import { isAuthenticated } from '../services/authService'
 import { getOrdenesTrabajo } from '../services/ordenTrabajoService'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
@@ -59,12 +60,12 @@ function CalendarioOT() {
   const eventos = useMemo(() => {
     return ordenes.map(orden => {
       const fecha = new Date(orden.fecha)
-      
+
       // Si tiene hora programada, usarla; sino usar 09:00
       let horaInicio = new Date(fecha)
       horaInicio.setHours(orden.horaProgramada ? parseInt(orden.horaProgramada.split(':')[0]) : 9)
       horaInicio.setMinutes(orden.horaProgramada ? parseInt(orden.horaProgramada.split(':')[1]) : 0)
-      
+
       // Duración estimada según tipo
       const duracionHoras = orden.tipo === 'instalacion' ? 4 : orden.tipo === 'reparacion' ? 2 : 1
       let horaFin = addHours(horaInicio, duracionHoras)
@@ -159,13 +160,7 @@ function CalendarioOT() {
   }
 
   if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-pink-600"></div>
-        </div>
-      </MainLayout>
-    )
+    return <LoadingSkeleton accentColor="pink" rows={6} columns={4} showStats={true} statCards={5} />
   }
 
   return (
@@ -186,17 +181,7 @@ function CalendarioOT() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Filter size={18} />
-                <span className="hidden md:inline">Filtros</span>
-              </button>
-            </div>
+
           </div>
         </div>
       </div>
@@ -309,11 +294,11 @@ function CalendarioOT() {
                 <div>
                   <p className="text-sm text-gray-600">{t('calendar.dateTime')}</p>
                   <p className="font-semibold text-gray-900">
-                    {new Date(selectedEvento.fecha).toLocaleDateString(t('common.dateFormat'), { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {new Date(selectedEvento.fecha).toLocaleDateString(t('common.dateFormat'), {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                   {selectedEvento.horaProgramada && (

@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_secreto_super_seguro_para_jwt_12345'
+const JWT_SECRET = process.env.JWT_SECRET
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET no está definida en variables de entorno')
+}
 
 /**
  * MIDDLEWARE DE AUTENTICACIÓN
@@ -45,6 +48,32 @@ export const authenticate = (req, res, next) => {
     }
     console.error('Error en autenticación:', error)
     return res.status(500).json({ error: 'Error al verificar autenticación' })
+  }
+}
+
+// ============================================
+// VERIFICAR ROL DE ADMINISTRADOR
+// ============================================
+export const requireAdmin = (req, res, next) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({
+      error: 'Acceso denegado. Se requieren permisos de administrador'
+    })
+  }
+  next()
+}
+
+// ============================================
+// VERIFICAR ROLES ESPECÍFICOS
+// ============================================
+export const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.userRole)) {
+      return res.status(403).json({
+        error: `Acceso denegado. Se requiere uno de los siguientes roles: ${roles.join(', ')}`
+      })
+    }
+    next()
   }
 }
 

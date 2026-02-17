@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, Edit, Trash2, Search, Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
-import { Boxes, Filter, Download } from 'lucide-react'
+import Pagination from '../components/Pagination'
+import { Boxes, Filter, X } from 'lucide-react'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { isAuthenticated } from '../services/authService'
 import {
   getMateriales,
@@ -42,12 +44,19 @@ function InventarioMateriales() {
   const [materiales, setMateriales] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({ categoria: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState(null)
   const [showStockModal, setShowStockModal] = useState(false)
   const [materialStock, setMaterialStock] = useState(null)
   const [estadisticas, setEstadisticas] = useState(null)
-  
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
+
   const [formData, setFormData] = useState({
     nombre: '',
     categoria: '',
@@ -67,22 +76,22 @@ function InventarioMateriales() {
     motivo: ''
   })
 
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate('/')
-      return
-    }
-    fetchData()
-  }, [navigate])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async (page, search) => {
     try {
       setLoading(true)
       const [materialesData, stats] = await Promise.all([
-        getMateriales(),
+        getMateriales({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
         getEstadisticas()
       ])
-      setMateriales(materialesData)
+
+      if (materialesData.pagination) {
+        setMateriales(materialesData.data)
+        setPaginationInfo(materialesData.pagination)
+      } else {
+        setMateriales(materialesData)
+        setPaginationInfo(null)
+      }
+
       setEstadisticas(stats)
     } catch (error) {
       console.error('Error al cargar materiales:', error)
@@ -90,6 +99,36 @@ function InventarioMateriales() {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/')
+      return
+    }
+    fetchData(currentPage, debouncedSearch)
+  }, [navigate, fetchData, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSubmit = async (e) => {
@@ -111,7 +150,7 @@ function InventarioMateriales() {
         await createMaterial(dataToSend)
         toast.success('Material creado exitosamente')
       }
-      
+
       fetchData()
       handleCloseModal()
     } catch (error) {
@@ -189,7 +228,7 @@ function InventarioMateriales() {
         stockForm.tipo,
         stockForm.motivo
       )
-      
+
       toast.success(`Stock ${stockForm.tipo === 'aumentar' ? 'aumentado' : 'disminuido'} exitosamente`)
       fetchData()
       setShowStockModal(false)
@@ -200,7 +239,7 @@ function InventarioMateriales() {
     }
   }
 
-    const handlePrecioNetoChange = (value) => {
+  const handlePrecioNetoChange = (value) => {
     const neto = value ? parseFloat(value) : 0
     setFormData({
       ...formData,
@@ -218,7 +257,7 @@ function InventarioMateriales() {
     })
   }
 
-  
+
 
   const getCategoriaColor = (categoria) => {
     const colores = {
@@ -244,20 +283,18 @@ function InventarioMateriales() {
     return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Disponible</span>
   }
 
-  const filteredMateriales = materiales.filter(material =>
-    material.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    material.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    material.proveedor?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const clearFilters = () => {
+    setFilters({ categoria: '' })
+  }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-600"></div>
-        </div>
-      </MainLayout>
-    )
+  // Datos del servidor + filtros locales
+  const filteredMateriales = materiales.filter(material => {
+    const matchesCategoria = !filters.categoria || material.categoria === filters.categoria
+    return matchesCategoria
+  })
+
+  if (loading && materiales.length === 0) {
+    return <LoadingSkeleton accentColor="green" rows={8} columns={6} showStats={true} statCards={4} />
   }
 
   return (
@@ -274,17 +311,12 @@ function InventarioMateriales() {
                 Inventario de Materiales
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Control de materiales y consumibles • Total: {materiales.length} items
+                Control de materiales y consumibles • Total: {paginationInfo ? paginationInfo.total : materiales.length} items
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -359,11 +391,39 @@ function InventarioMateriales() {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-              <Filter size={20} className="text-gray-600" />
-              <span className="text-gray-700">Filtros</span>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all ${showFilters ? 'bg-green-600 text-white shadow-lg' : 'border border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Filter size={20} />
+              <span>Filtros</span>
             </button>
           </div>
+
+          {showFilters && (
+            <div className="flex gap-4 pt-4 mt-4 border-t border-gray-200 items-center">
+              <select
+                value={filters.categoria}
+                onChange={(e) => setFilters({ ...filters, categoria: e.target.value })}
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Todas las categorías</option>
+                {CATEGORIAS.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              {filters.categoria && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-green-600 hover:text-green-700 flex items-center gap-1"
+                >
+                  <X size={16} />
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tabla */}
@@ -427,7 +487,7 @@ function InventarioMateriales() {
                           >
                             <Package size={18} />
                           </button>
-                          
+
                           <button
                             onClick={() => handleEdit(material)}
                             className="text-green-600 hover:text-green-900 hover:bg-green-50 p-2 rounded-lg transition-colors"
@@ -451,6 +511,18 @@ function InventarioMateriales() {
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {paginationInfo && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              total={paginationInfo.total}
+              limit={paginationInfo.limit}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </div>
       </div>
 
@@ -461,7 +533,7 @@ function InventarioMateriales() {
             <h2 className="text-2xl font-bold mb-4">
               {editingMaterial ? 'Editar Material' : 'Agregar Material'}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
@@ -526,7 +598,7 @@ function InventarioMateriales() {
                   />
                 </div>
 
-                 <div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Precio con IVA
                   </label>
@@ -633,7 +705,7 @@ function InventarioMateriales() {
             <h2 className="text-2xl font-bold mb-4">
               Ajustar Stock
             </h2>
-            
+
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900">{materialStock.nombre}</p>
               <p className="text-sm text-gray-600">Stock actual: {materialStock.stock} {materialStock.unidad}</p>

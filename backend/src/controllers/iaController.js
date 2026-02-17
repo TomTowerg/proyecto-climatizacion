@@ -6,8 +6,8 @@ export const traducir = async (req, res) => {
     const { texto, idiomaDestino } = req.body
 
     if (!texto || !idiomaDestino) {
-      return res.status(400).json({ 
-        error: 'Texto e idioma destino son requeridos' 
+      return res.status(400).json({
+        error: 'Texto e idioma destino son requeridos'
       })
     }
 
@@ -33,9 +33,9 @@ export const traducir = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al traducir:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al traducir texto',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -46,8 +46,8 @@ export const generarRecomendaciones = async (req, res) => {
     const { tipo, equipo, trabajoRealizado } = req.body
 
     if (!tipo || !trabajoRealizado) {
-      return res.status(400).json({ 
-        error: 'Tipo y trabajo realizado son requeridos' 
+      return res.status(400).json({
+        error: 'Tipo y trabajo realizado son requeridos'
       })
     }
 
@@ -74,9 +74,9 @@ Usa un tono profesional pero amigable. Sé específico y práctico.`
     })
   } catch (error) {
     console.error('Error al generar recomendaciones:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al generar recomendaciones',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -87,8 +87,8 @@ export const analizarUrgencia = async (req, res) => {
     const { descripcion, tipo, cliente } = req.body
 
     if (!descripcion) {
-      return res.status(400).json({ 
-        error: 'Descripción es requerida' 
+      return res.status(400).json({
+        error: 'Descripción es requerida'
       })
     }
 
@@ -113,7 +113,7 @@ Responde SOLO en este formato JSON exacto (sin texto adicional):
 }`
 
     const analisis = await generarContenido(prompt)
-    
+
     // Intentar parsear JSON de la respuesta
     let resultado
     try {
@@ -137,27 +137,27 @@ Responde SOLO en este formato JSON exacto (sin texto adicional):
     res.json(resultado)
   } catch (error) {
     console.error('Error al analizar urgencia:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al analizar urgencia',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
 
-    // Chat asistente
-   // Chat asistente
-    export const chat = async (req, res) => {
-      try {
-        const { mensaje, historial } = req.body
+// Chat asistente
+// Chat asistente
+export const chat = async (req, res) => {
+  try {
+    const { mensaje, historial } = req.body
 
-        if (!mensaje) {
-          return res.status(400).json({ 
-            error: 'Mensaje es requerido' 
-          })
-        }
+    if (!mensaje) {
+      return res.status(400).json({
+        error: 'Mensaje es requerido'
+      })
+    }
 
-        // Crear prompt con contexto del sistema
-        let prompt = `Eres CLIMB-BOT, un asistente experto en sistemas de climatización (aires acondicionados).
+    // Crear prompt con contexto del sistema
+    let prompt = `Eres CLIMB-BOT, un asistente experto en sistemas de climatización (aires acondicionados).
 
     INSTRUCCIONES IMPORTANTES:
     - Respuestas MÁX 3-4 líneas (máximo 50 palabras)
@@ -171,17 +171,17 @@ Responde SOLO en este formato JSON exacto (sin texto adicional):
 
       Responde de forma BREVE y DIRECTA:`
 
-          const respuesta = await generarContenido(prompt)
+    const respuesta = await generarContenido(prompt)
 
-          res.json({
-            respuesta: respuesta.trim(),
-            timestamp: new Date().toISOString()
-          })
-        } catch (error) {
-          console.error('Error en chat:', error)
-          res.status(500).json({ 
-            error: 'Error al procesar mensaje',
-            details: error.message 
-          })
-        }
+    res.json({
+      respuesta: respuesta.trim(),
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('Error en chat:', error)
+    res.status(500).json({
+      error: 'Error al procesar mensaje',
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
+    })
+  }
 }

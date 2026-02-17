@@ -1,5 +1,5 @@
 import express from 'express'
-import { 
+import {
   getCotizaciones,
   getCotizacionById,
   createCotizacion,
@@ -11,6 +11,7 @@ import {
   generarPDF
 } from '../controllers/cotizacionController.js'
 import { authenticate } from '../middleware/auth.js'
+import { validateCotizacion } from '../middleware/validationMiddleware.js'
 
 const router = express.Router()
 
@@ -36,7 +37,7 @@ router.get('/estadisticas', authenticate, getEstadisticas)
 router.get('/', authenticate, getCotizaciones)
 
 // POST /api/cotizaciones - Crear nueva cotización
-router.post('/', authenticate, createCotizacion)
+router.post('/', authenticate, validateCotizacion, createCotizacion)
 
 // ═══════════════════════════════════════════════════════
 // RUTAS DINÁMICAS CON PARÁMETROS (DEBEN IR AL FINAL)
@@ -55,7 +56,7 @@ router.get('/:id/pdf', authenticate, generarPDF)
 router.get('/:id', authenticate, getCotizacionById)
 
 // PUT /api/cotizaciones/:id - Actualizar cotización
-router.put('/:id', authenticate, updateCotizacion)
+router.put('/:id', authenticate, validateCotizacion, updateCotizacion)
 
 // DELETE /api/cotizaciones/:id - Eliminar cotización
 router.delete('/:id', authenticate, deleteCotizacion)

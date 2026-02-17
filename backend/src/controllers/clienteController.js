@@ -4,10 +4,11 @@
 // ============================================
 
 import prisma from '../utils/prisma.js'
-import { 
-  encryptSensitiveFields, 
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
+import {
+  encryptSensitiveFields,
   decryptSensitiveFields,
-  hash 
+  hash
 } from '../utils/encryption.js'
 
 // ============================================
@@ -15,7 +16,10 @@ import {
 // ============================================
 export const getClientes = async (req, res) => {
   try {
-    const clientes = await prisma.cliente.findMany({
+    const pagination = parsePagination(req.query)
+    const search = parseSearch(req.query)
+
+    const queryOptions = {
       orderBy: {
         createdAt: 'desc'
       },
@@ -29,19 +33,45 @@ export const getClientes = async (req, res) => {
           }
         }
       }
-    })
+    }
 
-    // Descifrar datos sensibles de cada cliente
-    const clientesDescifrados = clientes.map(cliente => 
+    // Construir WHERE para búsqueda
+    if (search) {
+      queryOptions.where = {
+        nombre: { contains: search, mode: 'insensitive' }
+      }
+    }
+
+    // Si hay paginación, aplicar skip/take y contar total
+    if (pagination) {
+      const [clientes, total] = await Promise.all([
+        prisma.cliente.findMany({
+          ...queryOptions,
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.cliente.count({ where: queryOptions.where })
+      ])
+
+      const clientesDescifrados = clientes.map(cliente =>
+        decryptSensitiveFields(cliente)
+      )
+
+      return res.json(paginatedResponse(clientesDescifrados, total, pagination))
+    }
+
+    // Sin paginación: devolver todo (retrocompatible)
+    const clientes = await prisma.cliente.findMany(queryOptions)
+    const clientesDescifrados = clientes.map(cliente =>
       decryptSensitiveFields(cliente)
     )
 
     res.json(clientesDescifrados)
   } catch (error) {
     console.error('Error al obtener clientes:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener clientes',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -78,9 +108,9 @@ export const getClienteById = async (req, res) => {
     res.json(clienteDescifrado)
   } catch (error) {
     console.error('Error al obtener cliente:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener cliente',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -110,24 +140,24 @@ export const createCliente = async (req, res) => {
     res.status(201).json(clienteDescifrado)
   } catch (error) {
     console.error('Error al crear cliente:', error)
-    
+
     // Error de RUT duplicado
     if (error.code === 'P2002' && error.meta?.target?.includes('rut_hash')) {
-      return res.status(400).json({ 
-        error: 'Ya existe un cliente con ese RUT' 
+      return res.status(400).json({
+        error: 'Ya existe un cliente con ese RUT'
       })
     }
 
     // Error de email duplicado
     if (error.code === 'P2002' && error.meta?.target?.includes('email_hash')) {
-      return res.status(400).json({ 
-        error: 'Ya existe un cliente con ese email' 
+      return res.status(400).json({
+        error: 'Ya existe un cliente con ese email'
       })
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al crear cliente',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -163,17 +193,17 @@ export const updateCliente = async (req, res) => {
     res.json(clienteDescifrado)
   } catch (error) {
     console.error('Error al actualizar cliente:', error)
-    
+
     // Error de RUT duplicado
     if (error.code === 'P2002' && error.meta?.target?.includes('rut_hash')) {
-      return res.status(400).json({ 
-        error: 'Ya existe otro cliente con ese RUT' 
+      return res.status(400).json({
+        error: 'Ya existe otro cliente con ese RUT'
       })
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al actualizar cliente',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -213,28 +243,28 @@ export const deleteCliente = async (req, res) => {
           where: { clienteId: parseInt(id) }
         })
       }
-      
+
       // 2. Eliminar órdenes de trabajo del cliente
       if (numOrdenes > 0) {
         await tx.ordenTrabajo.deleteMany({
           where: { clienteId: parseInt(id) }
         })
       }
-      
+
       // 3. Eliminar equipos del cliente
       if (numEquipos > 0) {
         await tx.equipo.deleteMany({
           where: { clienteId: parseInt(id) }
         })
       }
-      
+
       // 4. Finalmente eliminar el cliente
       await tx.cliente.delete({
         where: { id: parseInt(id) }
       })
     })
 
-    res.json({ 
+    res.json({
       message: 'Cliente eliminado exitosamente',
       eliminados: {
         equipos: numEquipos,
@@ -244,9 +274,9 @@ export const deleteCliente = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al eliminar cliente:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al eliminar cliente',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -282,16 +312,16 @@ export const searchClientes = async (req, res) => {
     })
 
     // Descifrar datos sensibles
-    const clientesDescifrados = clientes.map(cliente => 
+    const clientesDescifrados = clientes.map(cliente =>
       decryptSensitiveFields(cliente)
     )
 
     res.json(clientesDescifrados)
   } catch (error) {
     console.error('Error al buscar clientes:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al buscar clientes',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -327,9 +357,9 @@ export const getClienteByRut = async (req, res) => {
     res.json(clienteDescifrado)
   } catch (error) {
     console.error('Error al buscar cliente:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al buscar cliente',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }

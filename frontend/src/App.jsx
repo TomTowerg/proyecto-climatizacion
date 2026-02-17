@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { Analytics } from '@vercel/analytics/react' 
+import { Analytics } from '@vercel/analytics/react'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 
 // Pages - Admin System
@@ -22,12 +22,23 @@ import { LandingPage } from './landing/pages'
 // Components
 import ChatAsistente from './components/ChatAsistente'
 
-import { isAuthenticated } from './services/authService'
+import { isAuthenticated, getToken, logout } from './services/authService'
+import { jwtDecode } from 'jwt-decode'
 import './index.css'
 
-// Componente para rutas protegidas
+// Componente para rutas protegidas — valida existencia y expiración del JWT
 function ProtectedRoute({ children }) {
-  if (!isAuthenticated()) {
+  const token = getToken()
+  if (!token) return <Navigate to="/admin" replace />
+  try {
+    const decoded = jwtDecode(token)
+    const isExpired = decoded.exp * 1000 < Date.now()
+    if (isExpired) {
+      logout()
+      return <Navigate to="/admin" replace />
+    }
+  } catch {
+    logout()
     return <Navigate to="/admin" replace />
   }
   return children
@@ -38,21 +49,21 @@ function ConditionalChatbot() {
   const location = useLocation()
   // Rutas donde NO mostrar el chatbot
   const excludedRoutes = ['/', '/admin', '/register', '/landing']
-  
+
   // No mostrar en landing ni páginas de auth
   if (excludedRoutes.some(route => location.pathname === route || location.pathname.startsWith('/landing'))) {
     return null
   }
-  
+
   if (!isAuthenticated()) return null
-  
+
   return <ChatAsistente />
 }
 
 function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="App">
           <Toaster
             position="top-right"

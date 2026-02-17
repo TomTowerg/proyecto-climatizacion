@@ -4,9 +4,13 @@ import api from './authService'
  * SERVICIO DE INVENTARIO DE MATERIALES
  */
 
-// ⭐ OBTENER TODOS LOS MATERIALES
-export const getMateriales = async () => {
-  const response = await api.get('/materiales-inventario')
+// ⭐ OBTENER TODOS LOS MATERIALES (con paginación y búsqueda opcional)
+export const getMateriales = async ({ page, limit, search } = {}) => {
+  const params = {}
+  if (page) params.page = page
+  if (limit) params.limit = limit
+  if (search) params.search = search
+  const response = await api.get('/materiales-inventario', { params })
   return response.data
 }
 

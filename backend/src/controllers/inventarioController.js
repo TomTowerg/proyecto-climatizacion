@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js'
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
 
 // Obtener inventario público (para landing page - sin autenticación)
 export const getInventarioPublic = async (req, res) => {
@@ -43,17 +44,43 @@ export const getInventarioPublic = async (req, res) => {
 // Obtener todo el inventario
 export const getInventario = async (req, res) => {
   try {
-    const inventario = await prisma.inventario.findMany({
-      orderBy: [
-        {
-          marca: 'asc'  // Primero por marca alfabéticamente
-        },
-        {
-          capacidadBTU: 'asc'  // Luego por capacidad de menor a mayor
-        }
-      ]
-    })
+    const pagination = parsePagination(req.query)
+    const search = parseSearch(req.query)
 
+    const queryOptions = {
+      orderBy: [
+        { marca: 'asc' },
+        { capacidadBTU: 'asc' }
+      ]
+    }
+
+    // Construir WHERE para búsqueda
+    if (search) {
+      queryOptions.where = {
+        OR: [
+          { tipo: { contains: search, mode: 'insensitive' } },
+          { marca: { contains: search, mode: 'insensitive' } },
+          { modelo: { contains: search, mode: 'insensitive' } },
+          { numeroSerie: { contains: search, mode: 'insensitive' } }
+        ]
+      }
+    }
+
+    if (pagination) {
+      const [inventario, total] = await Promise.all([
+        prisma.inventario.findMany({
+          ...queryOptions,
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.inventario.count({ where: queryOptions.where })
+      ])
+
+      return res.json(paginatedResponse(inventario, total, pagination))
+    }
+
+    // Sin paginación: devolver todo (retrocompatible)
+    const inventario = await prisma.inventario.findMany(queryOptions)
     res.json(inventario)
   } catch (error) {
     console.error('Error al obtener inventario:', error)
@@ -84,16 +111,16 @@ export const getInventarioById = async (req, res) => {
 // Crear item en inventario
 export const createInventario = async (req, res) => {
   try {
-    const { 
-      tipo, 
-      marca, 
-      modelo, 
-      numeroSerie, 
+    const {
+      tipo,
+      marca,
+      modelo,
+      numeroSerie,
       capacidad,
-      capacidadBTU, 
-      tipoGas, 
+      capacidadBTU,
+      tipoGas,
       precioCompra,
-      precioCliente, 
+      precioCliente,
       precioInstalacion,
       stock,
       stockMinimo,
@@ -106,23 +133,23 @@ export const createInventario = async (req, res) => {
 
     // Validar campos requeridos
     if (!tipo || !marca || !modelo || !tipoGas) {
-      return res.status(400).json({ 
-        error: 'Tipo, marca, modelo y tipo de gas son requeridos' 
+      return res.status(400).json({
+        error: 'Tipo, marca, modelo y tipo de gas son requeridos'
       })
     }
 
     // Verificar que el número de serie no exista si se proporciona
     if (numeroSerie) {
       const existingItem = await prisma.inventario.findFirst({
-        where: { 
+        where: {
           numeroSerie: numeroSerie,
           NOT: { numeroSerie: null }
         }
       })
 
       if (existingItem) {
-        return res.status(400).json({ 
-          error: 'El número de serie ya está registrado' 
+        return res.status(400).json({
+          error: 'El número de serie ya está registrado'
         })
       }
     }
@@ -146,7 +173,7 @@ export const createInventario = async (req, res) => {
         tipoGas,
         metrosCuadrados: metrosCuadrados || null,
         caracteristicas: caracteristicas || null,
-        
+
         // Precios
         precioNeto,
         precioConIVA,
@@ -159,10 +186,10 @@ export const createInventario = async (req, res) => {
         valorEquipoMaterialIVA: precioConIVA,
         gananciaDescontandoIVA: precioClienteNeto - precioNeto,
         gananciaDescontandoTecnicos: precioClienteNeto - precioNeto,
-        
+
         // Stock
         stock: stock ? parseInt(stock) : 0,
-        
+
         // Estado
         estado: estado || 'disponible'
       }
@@ -174,9 +201,9 @@ export const createInventario = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear item:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al crear item',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -185,16 +212,16 @@ export const createInventario = async (req, res) => {
 export const updateInventario = async (req, res) => {
   try {
     const { id } = req.params
-    const { 
-      tipo, 
-      marca, 
-      modelo, 
-      numeroSerie, 
+    const {
+      tipo,
+      marca,
+      modelo,
+      numeroSerie,
       capacidad,
-      capacidadBTU, 
-      tipoGas, 
+      capacidadBTU,
+      tipoGas,
       precioCompra,
-      precioCliente, 
+      precioCliente,
       precioInstalacion,
       stock,
       stockMinimo,
@@ -216,17 +243,17 @@ export const updateInventario = async (req, res) => {
     // Verificar número de serie si cambió
     if (numeroSerie && numeroSerie !== existingItem.numeroSerie) {
       const serieExists = await prisma.inventario.findFirst({
-        where: { 
+        where: {
           numeroSerie,
-          NOT: { 
+          NOT: {
             id: parseInt(id)
           }
         }
       })
 
       if (serieExists) {
-        return res.status(400).json({ 
-          error: 'El número de serie ya está registrado' 
+        return res.status(400).json({
+          error: 'El número de serie ya está registrado'
         })
       }
     }
@@ -249,7 +276,7 @@ export const updateInventario = async (req, res) => {
       tipoGas: tipoGas || existingItem.tipoGas,
       metrosCuadrados: metrosCuadrados !== undefined ? (metrosCuadrados || null) : existingItem.metrosCuadrados,
       caracteristicas: caracteristicas !== undefined ? (caracteristicas || null) : existingItem.caracteristicas,
-      
+
       // Precios
       precioNeto,
       precioConIVA,
@@ -261,10 +288,10 @@ export const updateInventario = async (req, res) => {
       valorEquipoMaterialIVA: precioConIVA,
       gananciaDescontandoIVA: precioClienteNeto - precioNeto,
       gananciaDescontandoTecnicos: precioClienteNeto - precioNeto,
-      
+
       // Stock
       stock: stock !== undefined ? parseInt(stock) : existingItem.stock,
-      
+
       // Estado
       estado: estado || existingItem.estado
     }
@@ -280,9 +307,9 @@ export const updateInventario = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar item:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al actualizar item',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -306,8 +333,8 @@ export const deleteInventario = async (req, res) => {
     // Verificar si tiene cotizaciones pendientes
     const cotizacionesPendientes = existingItem.cotizaciones.filter(c => c.estado === 'pendiente')
     if (cotizacionesPendientes.length > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar el item porque tiene cotizaciones pendientes' 
+      return res.status(400).json({
+        error: 'No se puede eliminar el item porque tiene cotizaciones pendientes'
       })
     }
 

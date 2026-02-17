@@ -37,7 +37,7 @@ function validatePasswordStrength(password) {
   const hasUpperCase = /[A-Z]/.test(password)
   const hasLowerCase = /[a-z]/.test(password)
   const hasNumber = /\d/.test(password)
-  
+
   return {
     isValid: minLength && hasUpperCase && hasLowerCase && hasNumber,
     errors: [
@@ -58,16 +58,16 @@ export const register = async (req, res) => {
 
     // Validar campos requeridos
     if (!email || !password) {
-      return res.status(400).json({ 
-        error: 'Email y contraseña son requeridos' 
+      return res.status(400).json({
+        error: 'Email y contraseña son requeridos'
       })
     }
 
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        error: 'Formato de email inválido' 
+      return res.status(400).json({
+        error: 'Formato de email inválido'
       })
     }
 
@@ -76,13 +76,13 @@ export const register = async (req, res) => {
     const isAllowed = ALLOWED_EMAILS.includes(emailLower)
 
     if (!isAllowed) {
-      const maskedEmail = process.env.NODE_ENV === 'production' 
+      const maskedEmail = process.env.NODE_ENV === 'production'
         ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
         : email
-      
+
       console.log(`❌ Intento de registro no autorizado: ${maskedEmail}`)
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Registro no autorizado',
         message: 'Tu email no está autorizado para registrarse en esta aplicación. Solo el personal autorizado puede crear una cuenta.'
       })
@@ -93,7 +93,7 @@ export const register = async (req, res) => {
     // Validar fuerza de contraseña
     const passwordValidation = validatePasswordStrength(password)
     if (!passwordValidation.isValid) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Contraseña débil',
         details: passwordValidation.errors
       })
@@ -105,8 +105,8 @@ export const register = async (req, res) => {
     })
 
     if (existingUser) {
-      return res.status(400).json({ 
-        error: 'El email ya está registrado' 
+      return res.status(400).json({
+        error: 'El email ya está registrado'
       })
     }
 
@@ -129,10 +129,10 @@ export const register = async (req, res) => {
 
     // Generar JWT
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        role: user.role 
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -149,9 +149,9 @@ export const register = async (req, res) => {
 
   } catch (error) {
     console.error('Error en registro:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al registrar usuario',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -164,8 +164,8 @@ export const login = async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ 
-        error: 'Email y contraseña son requeridos' 
+      return res.status(400).json({
+        error: 'Email y contraseña son requeridos'
       })
     }
 
@@ -174,30 +174,30 @@ export const login = async (req, res) => {
     })
 
     if (!user || !user.password) {
-      return res.status(401).json({ 
-        error: 'Credenciales inválidas' 
+      return res.status(401).json({
+        error: 'Credenciales inválidas'
       })
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ 
-        error: 'Usuario desactivado. Contacta al administrador' 
+      return res.status(403).json({
+        error: 'Usuario desactivado. Contacta al administrador'
       })
     }
 
     const validPassword = await bcrypt.compare(password, user.password)
 
     if (!validPassword) {
-      return res.status(401).json({ 
-        error: 'Credenciales inválidas' 
+      return res.status(401).json({
+        error: 'Credenciales inválidas'
       })
     }
 
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        role: user.role 
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -218,9 +218,9 @@ export const login = async (req, res) => {
 
   } catch (error) {
     console.error('Error en login:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al iniciar sesión',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -233,8 +233,8 @@ export const googleLogin = async (req, res) => {
     const { googleId, email, name } = req.body
 
     if (!googleId || !email) {
-      return res.status(400).json({ 
-        error: 'Datos de Google incompletos' 
+      return res.status(400).json({
+        error: 'Datos de Google incompletos'
       })
     }
 
@@ -243,13 +243,13 @@ export const googleLogin = async (req, res) => {
     const isAllowed = ALLOWED_EMAILS.includes(emailLower)
 
     if (!isAllowed) {
-      const maskedEmail = process.env.NODE_ENV === 'production' 
+      const maskedEmail = process.env.NODE_ENV === 'production'
         ? email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
         : email
-      
+
       console.log(`❌ Intento de acceso Google no autorizado: ${maskedEmail}`)
-      
-      return res.status(403).json({ 
+
+      return res.status(403).json({
         error: 'Acceso no autorizado',
         message: 'Tu email no tiene permiso para acceder a esta aplicación.'
       })
@@ -283,7 +283,7 @@ export const googleLogin = async (req, res) => {
     } else if (!user.googleId) {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { 
+        data: {
           googleId,
           role: 'admin'
         }
@@ -298,16 +298,16 @@ export const googleLogin = async (req, res) => {
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ 
-        error: 'Usuario desactivado. Contacta al administrador' 
+      return res.status(403).json({
+        error: 'Usuario desactivado. Contacta al administrador'
       })
     }
 
     const token = jwt.sign(
-      { 
-        userId: user.id, 
+      {
+        userId: user.id,
         email: user.email,
-        role: user.role 
+        role: user.role
       },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
@@ -323,9 +323,9 @@ export const googleLogin = async (req, res) => {
 
   } catch (error) {
     console.error('Error en Google login:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al iniciar sesión con Google',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -364,9 +364,9 @@ export const verifyToken = async (req, res) => {
       return res.status(403).json({ error: 'Usuario desactivado' })
     }
 
-    res.json({ 
+    res.json({
       valid: true,
-      user 
+      user
     })
 
   } catch (error) {
@@ -376,11 +376,11 @@ export const verifyToken = async (req, res) => {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expirado' })
     }
-    
+
     console.error('Error al verificar token:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al verificar token',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -394,14 +394,14 @@ export const changePassword = async (req, res) => {
     const userId = req.user.userId
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
-        error: 'Contraseña actual y nueva son requeridas' 
+      return res.status(400).json({
+        error: 'Contraseña actual y nueva son requeridas'
       })
     }
 
     const passwordValidation = validatePasswordStrength(newPassword)
     if (!passwordValidation.isValid) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Nueva contraseña débil',
         details: passwordValidation.errors
       })
@@ -412,15 +412,15 @@ export const changePassword = async (req, res) => {
     })
 
     if (!user || !user.password) {
-      return res.status(400).json({ 
-        error: 'No se puede cambiar la contraseña' 
+      return res.status(400).json({
+        error: 'No se puede cambiar la contraseña'
       })
     }
 
     const validPassword = await bcrypt.compare(currentPassword, user.password)
     if (!validPassword) {
-      return res.status(401).json({ 
-        error: 'Contraseña actual incorrecta' 
+      return res.status(401).json({
+        error: 'Contraseña actual incorrecta'
       })
     }
 
@@ -435,9 +435,9 @@ export const changePassword = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cambiar contraseña:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al cambiar contraseña',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }

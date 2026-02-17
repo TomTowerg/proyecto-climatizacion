@@ -8,12 +8,12 @@ function VisorPDF({ cotizacionId, onClose }) {
   const [pdfUrl, setPdfUrl] = useState(null)
   const [pdfBlob, setPdfBlob] = useState(null)
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
   const token = localStorage.getItem('token')
 
   useEffect(() => {
     loadPDF()
-    
+
     // Limpiar URL al desmontar
     return () => {
       if (pdfUrl) {
@@ -39,11 +39,11 @@ function VisorPDF({ cotizacionId, onClose }) {
 
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-      
+
       setPdfBlob(blob)
       setPdfUrl(url)
       setLoading(false)
-      
+
     } catch (error) {
       console.error('Error al cargar PDF:', error)
       setError(true)
@@ -67,7 +67,7 @@ function VisorPDF({ cotizacionId, onClose }) {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      
+
       toast.success('PDF descargado exitosamente')
     } catch (error) {
       console.error('Error al descargar:', error)
@@ -89,7 +89,7 @@ function VisorPDF({ cotizacionId, onClose }) {
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
-    
+
     toast.success('PDF abierto en nueva pestaña')
   }
 
@@ -143,7 +143,7 @@ function VisorPDF({ cotizacionId, onClose }) {
               Cotización #{cotizacionId.toString().padStart(6, '0')}
             </h2>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownload}
@@ -153,7 +153,7 @@ function VisorPDF({ cotizacionId, onClose }) {
               <Download size={18} />
               <span className="hidden sm:inline">Descargar</span>
             </button>
-            
+
             <button
               onClick={handleOpenNewTab}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -162,7 +162,7 @@ function VisorPDF({ cotizacionId, onClose }) {
               <ExternalLink size={18} />
               <span className="hidden sm:inline">Nueva Pestaña</span>
             </button>
-            
+
             <button
               onClick={onClose}
               className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"

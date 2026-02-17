@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import RutInput from '../components/RutInput'
 import PhoneInput from '../components/PhoneInput'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Edit, Trash2, Search, CheckCircle, XCircle, AlertCircle, Filter, X, FileText, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
-import { Download } from 'lucide-react'
+import Pagination from '../components/Pagination'
+
 import VisorPDF from '../components/VisorPDF'
+import LoadingSkeleton from '../components/LoadingSkeleton'
 import { isAuthenticated } from '../services/authService'
-import { 
-  getCotizaciones, 
-  createCotizacion, 
-  updateCotizacion, 
+import {
+  getCotizaciones,
+  createCotizacion,
+  updateCotizacion,
   deleteCotizacion,
   aprobarCotizacion,
   rechazarCotizacion
@@ -31,6 +33,7 @@ function Cotizaciones() {
   const [equiposCliente, setEquiposCliente] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [showApproveModal, setShowApproveModal] = useState(false)
@@ -41,6 +44,10 @@ function Cotizaciones() {
   const [showClientModal, setShowClientModal] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
   const [materialesInventario, setMaterialesInventario] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [paginationInfo, setPaginationInfo] = useState(null)
+  const ITEMS_PER_PAGE = 20
+  const isFirstRender = useRef(true)
   const [newClientData, setNewClientData] = useState({
     nombre: '',
     rut: '',
@@ -88,13 +95,68 @@ function Cotizaciones() {
   // ⭐ NUEVO: Estado para búsqueda de equipos
   const [busquedaEquipo, setBusquedaEquipo] = useState('')
 
+  const fetchData = useCallback(async (page, search) => {
+    try {
+      setLoading(true)
+      const [cotizacionesData, clientesData, inventarioData] = await Promise.all([
+        getCotizaciones({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
+        getClientes(),  // Sin paginar: dropdown
+        getInventario()  // Sin paginar: dropdown
+      ])
+
+      // Manejar respuesta paginada
+      if (cotizacionesData.pagination) {
+        setCotizaciones(cotizacionesData.data)
+        setPaginationInfo(cotizacionesData.pagination)
+      } else {
+        setCotizaciones(cotizacionesData)
+        setPaginationInfo(null)
+      }
+
+      setClientes(clientesData)
+      setInventario(inventarioData)
+
+      const disponible = inventarioData.filter(item =>
+        item.stock > 0 && item.estado === 'disponible'
+      )
+      setInventarioDisponible(disponible)
+    } catch (error) {
+      console.error('Error al cargar datos:', error)
+      toast.error('Error al cargar los datos')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/')
       return
     }
-    fetchData()
-  }, [navigate])
+    fetchData(currentPage, debouncedSearch)
+  }, [navigate, fetchData, currentPage, debouncedSearch])
+
+  // Debounce del término de búsqueda (400ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Cuando cambia la búsqueda debounced, resetear a página 1
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setCurrentPage(1)
+  }, [debouncedSearch])
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     if (formData.tipo === 'instalacion') {
@@ -163,35 +225,13 @@ function Cotizaciones() {
     }
   }, [equipos, formData.tipo])
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const [cotizacionesData, clientesData, inventarioData] = await Promise.all([
-        getCotizaciones(),
-        getClientes(),
-        getInventario()
-      ])
-      setCotizaciones(cotizacionesData)
-      setClientes(clientesData)
-      setInventario(inventarioData)
-      
-      const disponible = inventarioData.filter(item => 
-        item.stock > 0 && item.estado === 'disponible'
-      )
-      setInventarioDisponible(disponible)
-    } catch (error) {
-      console.error('Error al cargar datos:', error)
-      toast.error('Error al cargar los datos')
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   const fetchEquiposCliente = async (clienteId) => {
     try {
       const equipos = await getEquiposByCliente(clienteId)
       setEquiposCliente(equipos)
-      
+
       if (equipos.length === 0) {
         toast.info('Este cliente no tiene equipos registrados')
       }
@@ -206,7 +246,7 @@ function Cotizaciones() {
     const instalacion = parseFloat(formData.costoInstalacion) || 0
     const material = parseFloat(formData.costoMaterial) || 0
     const descuento = parseFloat(formData.descuento) || 0
-    
+
     const subtotal = precio + instalacion + material
     const montoDescuento = subtotal * (descuento / 100)
     return subtotal - montoDescuento
@@ -224,15 +264,15 @@ function Cotizaciones() {
   const inventarioFiltrado = inventarioDisponible
     .filter(item => {
       if (!busquedaEquipo.trim()) return true
-      
+
       const searchTerm = busquedaEquipo.toLowerCase()
       const marca = item.marca.toLowerCase()
       const modelo = item.modelo.toLowerCase()
       const capacidad = item.capacidadBTU.toString()
-      
-      return marca.includes(searchTerm) || 
-             modelo.includes(searchTerm) || 
-             capacidad.includes(searchTerm)
+
+      return marca.includes(searchTerm) ||
+        modelo.includes(searchTerm) ||
+        capacidad.includes(searchTerm)
     })
     .sort((a, b) => {
       // Ordenar por marca, luego por capacidad
@@ -243,43 +283,28 @@ function Cotizaciones() {
     })
 
   const agregarMaterial = () => {
-  // Validación
-  if (!nuevoMaterial.nombre) {
-    toast.error('Selecciona un material')
-    return
-  }
-  if (!nuevoMaterial.cantidad || nuevoMaterial.cantidad <= 0) {
-    toast.error('Ingresa una cantidad válida')
-    return
-  }
-  if (!nuevoMaterial.precioUnitario || nuevoMaterial.precioUnitario <= 0) {
-    toast.error('El precio debe ser mayor a 0')
-    return
-  }
+    // Validación
+    if (!nuevoMaterial.nombre) {
+      toast.error('Selecciona un material')
+      return
+    }
+    if (!nuevoMaterial.cantidad || nuevoMaterial.cantidad <= 0) {
+      toast.error('Ingresa una cantidad válida')
+      return
+    }
+    if (!nuevoMaterial.precioUnitario || nuevoMaterial.precioUnitario <= 0) {
+      toast.error('El precio debe ser mayor a 0')
+      return
+    }
 
-  const materialConSubtotal = {
-    ...nuevoMaterial,
-    subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
-  }
+    const materialConSubtotal = {
+      ...nuevoMaterial,
+      subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
+    }
 
-  setMateriales([...materiales, materialConSubtotal])
-  
-  // Resetear formulario
-  setNuevoMaterial({
-    materialInventarioId: null,
-    nombre: '',
-    cantidad: 1,
-    unidad: 'unidades',
-    precioUnitario: 0
-  })
-  
-  toast.success('Material agregado')
-  }
+    setMateriales([...materiales, materialConSubtotal])
 
-  const handleMaterialSelect = (e) => {
-  const materialId = parseInt(e.target.value)
-  
-  if (!materialId) {
+    // Resetear formulario
     setNuevoMaterial({
       materialInventarioId: null,
       nombre: '',
@@ -287,21 +312,36 @@ function Cotizaciones() {
       unidad: 'unidades',
       precioUnitario: 0
     })
-    return
+
+    toast.success('Material agregado')
   }
 
-  const materialSeleccionado = materialesInventario.find(m => m.id === materialId)
-  
-  if (materialSeleccionado) {
-    setNuevoMaterial({
-      materialInventarioId: materialSeleccionado.id,
-      nombre: materialSeleccionado.nombre,
-      cantidad: 1,
-      unidad: materialSeleccionado.unidad,
-      precioUnitario: materialSeleccionado.precioConIVA
-    })
+  const handleMaterialSelect = (e) => {
+    const materialId = parseInt(e.target.value)
+
+    if (!materialId) {
+      setNuevoMaterial({
+        materialInventarioId: null,
+        nombre: '',
+        cantidad: 1,
+        unidad: 'unidades',
+        precioUnitario: 0
+      })
+      return
+    }
+
+    const materialSeleccionado = materialesInventario.find(m => m.id === materialId)
+
+    if (materialSeleccionado) {
+      setNuevoMaterial({
+        materialInventarioId: materialSeleccionado.id,
+        nombre: materialSeleccionado.nombre,
+        cantidad: 1,
+        unidad: materialSeleccionado.unidad,
+        precioUnitario: materialSeleccionado.precioConIVA
+      })
+    }
   }
-}
 
   const eliminarMaterial = (index) => {
     setMateriales(materiales.filter((_, i) => i !== index))
@@ -319,7 +359,7 @@ function Cotizaciones() {
     }
 
     const equipoSeleccionado = inventario.find(e => e.id === parseInt(nuevoEquipo.inventarioId))
-    
+
     if (!equipoSeleccionado) {
       toast.error('Equipo no encontrado')
       return
@@ -329,9 +369,9 @@ function Cotizaciones() {
     const cantidadYaAgregada = equipos
       .filter(eq => eq.inventarioId === parseInt(nuevoEquipo.inventarioId))
       .reduce((total, eq) => total + eq.cantidad, 0)
-    
+
     const stockDisponible = equipoSeleccionado.stock - cantidadYaAgregada
-    
+
     if (nuevoEquipo.cantidad > stockDisponible) {
       toast.error(`Solo hay ${stockDisponible} unidades disponibles en stock`)
       return
@@ -348,7 +388,7 @@ function Cotizaciones() {
     }
 
     setEquipos([...equipos, equipoConSubtotal])
-    
+
     setNuevoEquipo({
       inventarioId: '',
       cantidad: 1,
@@ -364,92 +404,92 @@ function Cotizaciones() {
   }
 
   const handleSubmit = async (e) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  try {
-    // ⭐ USAR TUS FUNCIONES DE CÁLCULO
-    const totalEquipos = formData.tipo === 'instalacion' && equipos.length > 0 
-      ? calcularTotalEquipos() 
-      : parseFloat(formData.precioOfertado) || 0
+    try {
+      // ⭐ USAR TUS FUNCIONES DE CÁLCULO
+      const totalEquipos = formData.tipo === 'instalacion' && equipos.length > 0
+        ? calcularTotalEquipos()
+        : parseFloat(formData.precioOfertado) || 0
 
-    const totalMateriales = calcularTotalMateriales()
-    const costoInstalacion = parseFloat(formData.costoInstalacion) || 0
-    const descuento = parseFloat(formData.descuento) || 0
-    
-    // Calcular subtotal y precio final
-    const subtotal = totalEquipos + totalMateriales + costoInstalacion
-    const montoDescuento = subtotal * (descuento / 100)
-    const precioFinal = subtotal - montoDescuento
+      const totalMateriales = calcularTotalMateriales()
+      const costoInstalacion = parseFloat(formData.costoInstalacion) || 0
+      const descuento = parseFloat(formData.descuento) || 0
 
-    // ⭐ DATOS A ENVIAR (con TODOS los campos requeridos)
-    const dataToSend = {
-      tipo: formData.tipo,
-      clienteId: parseInt(formData.clienteId),
-      precioOfertado: totalEquipos,           // ⭐ Total de equipos
-      costoInstalacion: costoInstalacion,     // ⭐ Costo instalación
-      costoMaterial: totalMateriales,         // ⭐ Total materiales
-      subtotal: subtotal,                     // ⭐ REQUERIDO
-      descuento: descuento,                   // ⭐ % de descuento
-      precioFinal: precioFinal,               // ⭐ REQUERIDO
-      notas: formData.notas,
-      agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
-      direccionInstalacion: formData.direccionInstalacion,
-      materiales: materiales.map(mat => ({
-        nombre: mat.nombre,
-        cantidad: parseFloat(mat.cantidad),
-        unidad: mat.unidad,
-        precioUnitario: parseFloat(mat.precioUnitario),
-        subtotal: parseFloat(mat.subtotal),
-        descripcion: mat.descripcion || ''
-      }))
-    }
+      // Calcular subtotal y precio final
+      const subtotal = totalEquipos + totalMateriales + costoInstalacion
+      const montoDescuento = subtotal * (descuento / 100)
+      const precioFinal = subtotal - montoDescuento
 
-    // ⭐ AGREGAR EQUIPOS SEGÚN TIPO
-    if (formData.tipo === 'instalacion') {
-      if (equipos.length > 0) {
-        // Múltiples equipos
-        dataToSend.equipos = equipos.map(eq => ({
-          inventarioId: parseInt(eq.inventarioId),
-          cantidad: parseInt(eq.cantidad),
-          precioUnitario: parseFloat(eq.precioUnitario),
-          subtotal: parseFloat(eq.subtotal)
+      // ⭐ DATOS A ENVIAR (con TODOS los campos requeridos)
+      const dataToSend = {
+        tipo: formData.tipo,
+        clienteId: parseInt(formData.clienteId),
+        precioOfertado: totalEquipos,           // ⭐ Total de equipos
+        costoInstalacion: costoInstalacion,     // ⭐ Costo instalación
+        costoMaterial: totalMateriales,         // ⭐ Total materiales
+        subtotal: subtotal,                     // ⭐ REQUERIDO
+        descuento: descuento,                   // ⭐ % de descuento
+        precioFinal: precioFinal,               // ⭐ REQUERIDO
+        notas: formData.notas,
+        agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
+        direccionInstalacion: formData.direccionInstalacion,
+        materiales: materiales.map(mat => ({
+          nombre: mat.nombre,
+          cantidad: parseFloat(mat.cantidad),
+          unidad: mat.unidad,
+          precioUnitario: parseFloat(mat.precioUnitario),
+          subtotal: parseFloat(mat.subtotal),
+          descripcion: mat.descripcion || ''
         }))
-      } else if (formData.inventarioId) {
-        // Sistema antiguo - un solo equipo
-        dataToSend.inventarioId = parseInt(formData.inventarioId)
       }
-    } else {
-      // Mantención/Reparación - usa equipo existente del cliente
-      if (formData.equipoId) {
-        dataToSend.equipoId = parseInt(formData.equipoId)
+
+      // ⭐ AGREGAR EQUIPOS SEGÚN TIPO
+      if (formData.tipo === 'instalacion') {
+        if (equipos.length > 0) {
+          // Múltiples equipos
+          dataToSend.equipos = equipos.map(eq => ({
+            inventarioId: parseInt(eq.inventarioId),
+            cantidad: parseInt(eq.cantidad),
+            precioUnitario: parseFloat(eq.precioUnitario),
+            subtotal: parseFloat(eq.subtotal)
+          }))
+        } else if (formData.inventarioId) {
+          // Sistema antiguo - un solo equipo
+          dataToSend.inventarioId = parseInt(formData.inventarioId)
+        }
+      } else {
+        // Mantención/Reparación - usa equipo existente del cliente
+        if (formData.equipoId) {
+          dataToSend.equipoId = parseInt(formData.equipoId)
+        }
       }
-    }
 
-    console.log('📤 Enviando cotización:', dataToSend)
+      console.log('📤 Enviando cotización:', dataToSend)
 
-    // ⭐ GUARDAR
-    if (editingCotizacion) {
-      await updateCotizacion(editingCotizacion.id, {
-        ...dataToSend,
-        estado: formData.estado
-      })
-      toast.success('Cotización actualizada exitosamente')
-    } else {
-      await createCotizacion(dataToSend)
-      toast.success('Cotización creada exitosamente')
+      // ⭐ GUARDAR
+      if (editingCotizacion) {
+        await updateCotizacion(editingCotizacion.id, {
+          ...dataToSend,
+          estado: formData.estado
+        })
+        toast.success('Cotización actualizada exitosamente')
+      } else {
+        await createCotizacion(dataToSend)
+        toast.success('Cotización creada exitosamente')
+      }
+
+      fetchData()
+      handleCloseModal()
+
+    } catch (error) {
+      console.error('Error completo:', error)
+      const errorMessage = error.response?.data?.error ||
+        error.response?.data?.details ||
+        'Error al guardar la cotización'
+      toast.error(errorMessage)
     }
-    
-    fetchData()
-    handleCloseModal()
-    
-  } catch (error) {
-    console.error('Error completo:', error)
-    const errorMessage = error.response?.data?.error || 
-                        error.response?.data?.details || 
-                        'Error al guardar la cotización'
-    toast.error(errorMessage)
   }
-}
 
   const handleEdit = (cotizacion) => {
     setEditingCotizacion(cotizacion)
@@ -457,7 +497,7 @@ function Cotizaciones() {
       tipo: cotizacion.tipo || 'instalacion',
       clienteId: cotizacion.clienteId,
       inventarioId: cotizacion.inventarioId || '',
-      equipoId: cotizacion.equipoId || '', 
+      equipoId: cotizacion.equipoId || '',
       precioOfertado: cotizacion.precioOfertado,
       costoInstalacion: cotizacion.costoInstalacion || 0,
       costoMaterial: cotizacion.costoMaterial || 0,
@@ -467,15 +507,15 @@ function Cotizaciones() {
       direccionInstalacion: cotizacion.direccionInstalacion || '',
       estado: cotizacion.estado
     })
-    
+
     if (cotizacion.materiales && cotizacion.materiales.length > 0) {
       setMateriales(cotizacion.materiales)
     }
-    
+
     if (cotizacion.equipos && cotizacion.equipos.length > 0) {
       setEquipos(cotizacion.equipos)
     }
-    
+
     setShowModal(true)
   }
 
@@ -505,19 +545,19 @@ function Cotizaciones() {
 
     try {
       setApproving(true)
-      
+
       const loadingToast = toast.loading('Aprobando cotización...')
-      
+
       const resultado = await aprobarCotizacion(cotizacionToApprove.id)
-      
+
       toast.dismiss(loadingToast)
-      
+
       const mensajesTipo = {
         instalacion: 'Equipo registrado',
         mantencion: 'Mantención programada',
         reparacion: 'Reparación programada'
       }
-      
+
       toast.success(
         <div>
           <p className="font-bold">Cotización Aprobada</p>
@@ -526,7 +566,7 @@ function Cotizaciones() {
         </div>,
         { duration: 5000 }
       )
-      
+
       setShowApproveModal(false)
       setCotizacionToApprove(null)
       fetchData()
@@ -567,10 +607,10 @@ function Cotizaciones() {
     setCreatingClient(true)
     try {
       const nuevoCliente = await createCliente(newClientData)
-      
+
       setClientes(prev => [...prev, nuevoCliente])
       setFormData(prev => ({ ...prev, clienteId: nuevoCliente.id.toString() }))
-      
+
       setShowClientModal(false)
       setNewClientData({
         nombre: '',
@@ -579,7 +619,7 @@ function Cotizaciones() {
         telefono: '',
         direccion: ''
       })
-      
+
       toast.success(`Cliente "${nuevoCliente.nombre}" creado exitosamente`)
     } catch (error) {
       console.error('Error al crear cliente:', error)
@@ -664,18 +704,11 @@ function Cotizaciones() {
     )
   }
 
+  // Búsqueda ya viene filtrada del servidor, solo aplicar filtros locales de estado/tipo
   const filteredCotizaciones = cotizaciones.filter(cot => {
-    const matchesSearch = 
-      cot.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cot.inventario?.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cot.inventario?.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cot.equipo?.marca.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      cot.equipo?.modelo.toLowerCase().includes(searchTerm.toLowerCase())
-    
     const matchesEstado = !filters.estado || cot.estado === filters.estado
     const matchesTipo = !filters.tipo || cot.tipo === filters.tipo
-
-    return matchesSearch && matchesEstado && matchesTipo
+    return matchesEstado && matchesTipo
   })
 
   const stats = {
@@ -685,14 +718,8 @@ function Cotizaciones() {
     rechazadas: cotizaciones.filter(c => c.estado === 'rechazada').length
   }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
-        </div>
-      </MainLayout>
-    )
+  if (loading && cotizaciones.length === 0) {
+    return <LoadingSkeleton accentColor="purple" rows={8} columns={5} showStats={true} statCards={4} />
   }
 
   return (
@@ -709,17 +736,12 @@ function Cotizaciones() {
                 Cotizaciones
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Gestión de presupuestos y servicios • Total: {cotizaciones.length}
+                Gestión de presupuestos y servicios • Total: {paginationInfo ? paginationInfo.total : cotizaciones.length}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -767,9 +789,8 @@ function Cotizaciones() {
             />
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
-                showFilters ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${showFilters ? 'bg-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <Filter size={18} />
               Filtros
@@ -842,7 +863,7 @@ function Cotizaciones() {
                   filteredCotizaciones.map((cotizacion) => {
                     // ⭐ NUEVO: Detectar múltiples equipos
                     let producto = 'N/A'
-                    
+
                     if (cotizacion.equipos && cotizacion.equipos.length > 0) {
                       // Múltiples equipos
                       if (cotizacion.equipos.length === 1) {
@@ -867,7 +888,7 @@ function Cotizaciones() {
                         <td className="font-mono">#{cotizacion.id}</td>
                         <td>{getTipoBadge(cotizacion.tipo)}</td>
                         <td>{cotizacion.cliente?.nombre}</td>
-                        
+
                         {/* ⭐ COLUMNA EQUIPO MEJORADA */}
                         <td className="text-sm">
                           <div>
@@ -886,7 +907,7 @@ function Cotizaciones() {
                             )}
                           </div>
                         </td>
-                        
+
                         <td className="text-right font-semibold text-green-600">
                           ${cotizacion.precioFinal.toLocaleString('es-CL')}
                         </td>
@@ -944,10 +965,22 @@ function Cotizaciones() {
               </tbody>
             </table>
           </div>
+
+          {/* Paginación */}
+          {paginationInfo && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={paginationInfo.totalPages}
+              total={paginationInfo.total}
+              limit={paginationInfo.limit}
+              onPageChange={handlePageChange}
+              loading={loading}
+            />
+          )}
         </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
-          Mostrando {filteredCotizaciones.length} de {cotizaciones.length} cotizaciones
+          Mostrando {filteredCotizaciones.length} de {paginationInfo ? paginationInfo.total : cotizaciones.length} cotizaciones
         </div>
       </div>
 
@@ -958,7 +991,7 @@ function Cotizaciones() {
             <h2 className="text-2xl font-bold mb-4">
               {editingCotizacion ? 'Editar Cotización' : 'Nueva Cotización'}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Tipo de Servicio */}
               <div className="border-b pb-4">
@@ -967,11 +1000,10 @@ function Cotizaciones() {
                   {['instalacion', 'mantencion', 'reparacion'].map((tipo) => (
                     <label
                       key={tipo}
-                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all ${
-                        formData.tipo === tipo
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all ${formData.tipo === tipo
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -1011,7 +1043,7 @@ function Cotizaciones() {
                       </option>
                     ))}
                   </select>
-                  
+
                   {!editingCotizacion && (
                     <button
                       type="button"
@@ -1034,7 +1066,7 @@ function Cotizaciones() {
                       ({equipos.length} {equipos.length === 1 ? 'equipo' : 'equipos'})
                     </span>
                   </h3>
-                  
+
                   {/* Formulario para agregar equipo */}
                   <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
                     {/* Campo de búsqueda */}
@@ -1081,11 +1113,11 @@ function Cotizaciones() {
                             })
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                          
+
                         >
                           <option value="">
-                            {inventarioFiltrado.length === 0 
-                              ? 'No hay equipos disponibles' 
+                            {inventarioFiltrado.length === 0
+                              ? 'No hay equipos disponibles'
                               : 'Seleccionar equipo...'}
                           </option>
                           {inventarioFiltrado.map(item => (
@@ -1095,7 +1127,7 @@ function Cotizaciones() {
                           ))}
                         </select>
                       </div>
-                      
+
                       <div className="col-span-2">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Cantidad
@@ -1108,7 +1140,7 @@ function Cotizaciones() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                         />
                       </div>
-                      
+
                       <div className="col-span-3">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Precio Unitario
@@ -1122,7 +1154,7 @@ function Cotizaciones() {
                           step="1"
                         />
                       </div>
-                      
+
                       <div className="col-span-1 flex items-end">
                         <button
                           type="button"
@@ -1135,7 +1167,7 @@ function Cotizaciones() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Tabla de equipos agregados */}
                   {equipos.length > 0 && (
                     <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -1194,7 +1226,7 @@ function Cotizaciones() {
                       </table>
                     </div>
                   )}
-                  
+
                   {equipos.length === 0 && (
                     <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                       <p className="text-sm">No hay equipos agregados</p>
@@ -1218,11 +1250,11 @@ function Cotizaciones() {
                     disabled={editingCotizacion || !formData.clienteId}
                   >
                     <option value="">
-                      {!formData.clienteId 
+                      {!formData.clienteId
                         ? 'Primero selecciona un cliente'
                         : equiposCliente.length === 0
-                        ? 'Este cliente no tiene equipos'
-                        : 'Seleccionar...'}
+                          ? 'Este cliente no tiene equipos'
+                          : 'Seleccionar...'}
                     </option>
                     {equiposCliente.map(equipo => (
                       <option key={equipo.id} value={equipo.id}>
@@ -1247,9 +1279,8 @@ function Cotizaciones() {
                     onChange={(e) => setFormData({ ...formData, precioOfertado: e.target.value })}
                     step="1"
                     min="0"
-                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${
-                      formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''
-                    }`}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''
+                      }`}
                     required
                     readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
                   />
@@ -1337,7 +1368,7 @@ function Cotizaciones() {
                         <option value="">Seleccionar material...</option>
                         {materialesInventario.map(material => (
                           <option key={material.id} value={material.id}>
-                            {material.nombre} - ${material.precioConIVA.toLocaleString('es-CL')} 
+                            {material.nombre} - ${material.precioConIVA.toLocaleString('es-CL')}
                             {material.stock > 0 ? ` (Stock: ${material.stock})` : ' (Sin stock)'}
                           </option>
                         ))}
@@ -1357,7 +1388,7 @@ function Cotizaciones() {
                       <input
                         type="number"
                         value={nuevoMaterial.cantidad}
-                        onChange={(e) => setNuevoMaterial({...nuevoMaterial, cantidad: parseFloat(e.target.value) || 0})}
+                        onChange={(e) => setNuevoMaterial({ ...nuevoMaterial, cantidad: parseFloat(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
                         min="0"
                         step="0.1"
@@ -1589,7 +1620,7 @@ function Cotizaciones() {
               <p className="text-gray-700">
                 ¿Estás seguro de aprobar esta cotización?
               </p>
-              
+
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                 <p className="font-medium text-gray-900">
                   {cotizacionToApprove.cliente?.nombre}

@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js'
 import { decryptSensitiveFields } from '../utils/encryption.js'
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
 
 /**
  * CONTROLADOR DE COTIZACIONES - VERSIÓN CORREGIDA
@@ -9,7 +10,10 @@ import { decryptSensitiveFields } from '../utils/encryption.js'
 // ⭐ OBTENER TODAS LAS COTIZACIONES
 export const getCotizaciones = async (req, res) => {
   try {
-    const cotizaciones = await prisma.cotizacion.findMany({
+    const pagination = parsePagination(req.query)
+    const search = parseSearch(req.query)
+
+    const queryOptions = {
       include: {
         cliente: {
           select: {
@@ -70,14 +74,44 @@ export const getCotizaciones = async (req, res) => {
       orderBy: {
         createdAt: 'desc'
       }
-    })
+    }
 
+    // Construir WHERE para búsqueda
+    if (search) {
+      queryOptions.where = {
+        OR: [
+          { tipo: { contains: search, mode: 'insensitive' } },
+          { estado: { contains: search, mode: 'insensitive' } },
+          { agente: { contains: search, mode: 'insensitive' } },
+          { notas: { contains: search, mode: 'insensitive' } },
+          { cliente: { nombre: { contains: search, mode: 'insensitive' } } },
+          { inventario: { marca: { contains: search, mode: 'insensitive' } } },
+          { inventario: { modelo: { contains: search, mode: 'insensitive' } } }
+        ]
+      }
+    }
+
+    if (pagination) {
+      const [cotizaciones, total] = await Promise.all([
+        prisma.cotizacion.findMany({
+          ...queryOptions,
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.cotizacion.count({ where: queryOptions.where })
+      ])
+
+      return res.json(paginatedResponse(cotizaciones, total, pagination))
+    }
+
+    // Sin paginación: devolver todo (retrocompatible)
+    const cotizaciones = await prisma.cotizacion.findMany(queryOptions)
     res.json(cotizaciones)
   } catch (error) {
     console.error('Error al obtener cotizaciones:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener cotizaciones',
-      details: error.message 
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -118,9 +152,9 @@ export const getCotizacionById = async (req, res) => {
     res.json(cotizacion)
   } catch (error) {
     console.error('Error al obtener cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener cotización',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -221,9 +255,9 @@ export const createCotizacion = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al crear cotización',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -307,9 +341,9 @@ export const updateCotizacion = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al actualizar cotización',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -326,9 +360,9 @@ export const deleteCotizacion = async (req, res) => {
     res.json({ message: 'Cotización eliminada exitosamente' })
   } catch (error) {
     console.error('Error al eliminar cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al eliminar cotización',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -343,13 +377,13 @@ export const aprobar = async (req, res) => {
 
     // Importar servicio dinámicamente
     const { aprobarCotizacion } = await import('../services/cotizacionService.js')
-    
+
     const resultado = await aprobarCotizacion(parseInt(id), usuarioId)
 
     res.json(resultado)
   } catch (error) {
     console.error('❌ Error al aprobar cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message || 'Error al aprobar cotización'
     })
   }
@@ -380,9 +414,9 @@ export const rechazar = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al rechazar cotización:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al rechazar cotización',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -405,9 +439,9 @@ export const getEstadisticas = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al obtener estadísticas:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener estadísticas',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -449,10 +483,10 @@ export const generarPDF = async (req, res) => {
     // ⭐ DESCIFRAR DATOS DEL CLIENTE
     if (cotizacion.cliente) {
       try {
-        if (cotizacion.cliente.rut_encrypted || 
-            cotizacion.cliente.email_encrypted || 
-            cotizacion.cliente.telefono_encrypted ||
-            cotizacion.cliente.direccion_encrypted) {
+        if (cotizacion.cliente.rut_encrypted ||
+          cotizacion.cliente.email_encrypted ||
+          cotizacion.cliente.telefono_encrypted ||
+          cotizacion.cliente.direccion_encrypted) {
           console.log('🔓 Descifrando datos del cliente...')
           cotizacion.cliente = decryptSensitiveFields(cotizacion.cliente)
           console.log('✅ Datos descifrados exitosamente')
@@ -464,7 +498,7 @@ export const generarPDF = async (req, res) => {
 
     // Importar servicio de PDF
     const { generarPDFCotizacion } = await import('../services/pdfService.js')
-    
+
     const resultado = await generarPDFCotizacion(cotizacion)
 
     if (resultado.success) {
@@ -477,9 +511,9 @@ export const generarPDF = async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Error al generar PDF:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al generar PDF',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }

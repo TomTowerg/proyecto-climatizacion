@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next' // 1. IMPORTAR
-import { 
-  Package, 
-  AlertTriangle, 
-  TrendingDown, 
-  TrendingUp, 
+import {
+  Package,
+  AlertTriangle,
+  TrendingDown,
+  TrendingUp,
   RefreshCw,
   Search,
   ArrowRight,
@@ -13,7 +13,8 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import MainLayout from '../components/MainLayout'
-import { Download, Filter } from 'lucide-react'
+import LoadingSkeleton from '../components/LoadingSkeleton'
+
 import { isAuthenticated } from '../services/authService'
 import { getInventario, updateInventario } from '../services/inventarioService'
 import { getCotizaciones } from '../services/cotizacionService'
@@ -56,7 +57,7 @@ function StockPanel() {
 
   // Productos con stock bajo
   const productosStockBajo = inventario.filter(item => item.stock > 0 && item.stock <= 3)
-  
+
   // Productos agotados
   const productosAgotados = inventario.filter(item => item.stock === 0 || item.estado === 'agotado')
 
@@ -72,7 +73,7 @@ function StockPanel() {
       cantidad: 1,
       fecha: c.createdAt,
       // Usamos una clave especial para interpolar en el renderizado
-      motivoKey: 'stockPanel.movementReason', 
+      motivoKey: 'stockPanel.movementReason',
       motivoParams: { id: c.id, client: c.cliente?.nombre },
       destino: c.cliente?.nombre
     }))
@@ -126,13 +127,7 @@ function StockPanel() {
   )
 
   if (loading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-600"></div>
-        </div>
-      </MainLayout>
-    )
+    return <LoadingSkeleton accentColor="orange" rows={6} columns={4} showStats={true} statCards={5} />
   }
 
   return (
@@ -154,12 +149,7 @@ function StockPanel() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                <Download size={18} />
-                <span className="hidden md:inline">Exportar</span>
-              </button>
-              
-              <button 
+              <button
                 onClick={() => navigate('/inventario')}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all shadow-lg hover:shadow-xl"
               >
@@ -335,9 +325,8 @@ function StockPanel() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className={`w-2 h-2 rounded-full ${
-                            mov.tipo === 'entrada' ? 'bg-green-500' : 'bg-red-500'
-                          }`}></div>
+                          <div className={`w-2 h-2 rounded-full ${mov.tipo === 'entrada' ? 'bg-green-500' : 'bg-red-500'
+                            }`}></div>
                           <p className="font-semibold text-gray-900 text-sm">
                             {mov.producto?.marca} {mov.producto?.modelo}
                           </p>
@@ -358,9 +347,8 @@ function StockPanel() {
                           <span>→ {mov.destino}</span>
                         </div>
                       </div>
-                      <span className={`text-sm font-bold ${
-                        mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <span className={`text-sm font-bold ${mov.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'
+                        }`}>
                         {mov.tipo === 'entrada' ? '+' : '-'}{mov.cantidad}
                       </span>
                     </div>

@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js'
 import { decryptSensitiveFields } from '../utils/encryption.js'
+import { parsePagination, paginatedResponse, parseSearch } from '../utils/pagination.js'
 import { generarPDFOrdenTrabajo } from '../services/ordenTrabajoPDFService.js'
 import multer from 'multer'
 import path from 'path'
@@ -17,7 +18,10 @@ const __dirname = path.dirname(__filename)
 // ⭐ OBTENER TODAS LAS ÓRDENES
 export const getOrdenesTrabajo = async (req, res) => {
   try {
-    const ordenes = await prisma.ordenTrabajo.findMany({
+    const pagination = parsePagination(req.query)
+    const search = parseSearch(req.query)
+
+    const queryOptions = {
       include: {
         cliente: {
           select: {
@@ -53,9 +57,22 @@ export const getOrdenesTrabajo = async (req, res) => {
       orderBy: {
         createdAt: 'desc'
       }
-    })
+    }
 
-    const ordenesConCapacidad = ordenes.map(orden => {
+    // Construir WHERE para búsqueda
+    if (search) {
+      queryOptions.where = {
+        OR: [
+          { tipo: { contains: search, mode: 'insensitive' } },
+          { estado: { contains: search, mode: 'insensitive' } },
+          { tecnico: { contains: search, mode: 'insensitive' } },
+          { notas: { contains: search, mode: 'insensitive' } },
+          { cliente: { nombre: { contains: search, mode: 'insensitive' } } }
+        ]
+      }
+    }
+
+    const mapCapacidad = (ordenes) => ordenes.map(orden => {
       if (orden.equipo && orden.equipo.inventario) {
         return {
           ...orden,
@@ -68,12 +85,27 @@ export const getOrdenesTrabajo = async (req, res) => {
       return orden
     })
 
-    res.json(ordenesConCapacidad)
+    if (pagination) {
+      const [ordenes, total] = await Promise.all([
+        prisma.ordenTrabajo.findMany({
+          ...queryOptions,
+          skip: pagination.skip,
+          take: pagination.take
+        }),
+        prisma.ordenTrabajo.count({ where: queryOptions.where })
+      ])
+
+      return res.json(paginatedResponse(mapCapacidad(ordenes), total, pagination))
+    }
+
+    // Sin paginación: devolver todo (retrocompatible)
+    const ordenes = await prisma.ordenTrabajo.findMany(queryOptions)
+    res.json(mapCapacidad(ordenes))
   } catch (error) {
     console.error('Error al obtener órdenes de trabajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener órdenes de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -106,9 +138,9 @@ export const getOrdenTrabajoById = async (req, res) => {
     res.json(orden)
   } catch (error) {
     console.error('Error al obtener orden de trabajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -116,21 +148,22 @@ export const getOrdenTrabajoById = async (req, res) => {
 // ⭐ CREAR ORDEN
 export const createOrdenTrabajo = async (req, res) => {
   try {
-    const { 
-      clienteId, 
-      equipoId, 
-      tipo, 
-      fecha, 
-      notas, 
-      tecnico, 
-      estado, 
+    const {
+      clienteId,
+      equipoId,
+      tipo,
+      descripcion,
+      fecha,
+      notas,
+      tecnico,
+      estado,
     } = req.body
 
-    console.log('📝 Creando orden con análisis:', analisisIA)
+    console.log('📝 Creando orden:', { clienteId, tipo })
 
     if (!clienteId || !tipo) {
-      return res.status(400).json({ 
-        error: 'Faltan campos requeridos: clienteId, tipo' 
+      return res.status(400).json({
+        error: 'Faltan campos requeridos: clienteId, tipo'
       })
     }
 
@@ -139,12 +172,12 @@ export const createOrdenTrabajo = async (req, res) => {
         clienteId: parseInt(clienteId),
         equipoId: equipoId ? parseInt(equipoId) : null,
         tipo,
+        descripcion,
         fecha: fecha ? new Date(fecha) : new Date(),
         notas,
         tecnico,
         estado: estado || 'pendiente',
-        
-        
+
       },
       include: {
         cliente: true,
@@ -164,9 +197,9 @@ export const createOrdenTrabajo = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al crear orden de trabajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al crear orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -188,8 +221,8 @@ export const updateOrdenTrabajo = async (req, res) => {
       notas,
       tecnico,
       estado,
-      
-      
+
+
     } = req.body
 
     const existingOrden = await prisma.ordenTrabajo.findUnique({
@@ -210,8 +243,8 @@ export const updateOrdenTrabajo = async (req, res) => {
         notas,
         tecnico,
         estado,
-        
-      
+
+
       },
       include: {
         cliente: true,
@@ -229,9 +262,9 @@ export const updateOrdenTrabajo = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al actualizar orden de trabajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al actualizar orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -246,7 +279,7 @@ export const completarOrden = async (req, res) => {
     // ⭐ VALIDAR ID
     if (!id || id === 'undefined' || id === 'null') {
       console.error('❌ ID inválido:', id)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'ID de orden inválido',
         receivedId: id
       })
@@ -255,7 +288,7 @@ export const completarOrden = async (req, res) => {
     const ordenId = parseInt(id)
     if (isNaN(ordenId)) {
       console.error('❌ ID no es un número:', id)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'ID de orden debe ser un número',
         receivedId: id
       })
@@ -298,9 +331,9 @@ export const completarOrden = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al completar orden:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al completar orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -321,9 +354,9 @@ export const deleteOrdenTrabajo = async (req, res) => {
     res.json({ message: 'Orden de trabajo eliminada exitosamente' })
   } catch (error) {
     console.error('Error al eliminar orden de trabajo:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al eliminar orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -346,9 +379,9 @@ export const getEstadisticas = async (req, res) => {
     })
   } catch (error) {
     console.error('Error al obtener estadísticas:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al obtener estadísticas',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -400,10 +433,10 @@ export const generarPDF = async (req, res) => {
     // ⭐ Descifrar datos
     if (orden.cliente) {
       try {
-        if (orden.cliente.rut_encrypted || 
-            orden.cliente.email_encrypted || 
-            orden.cliente.telefono_encrypted ||
-            orden.cliente.direccion_encrypted) {
+        if (orden.cliente.rut_encrypted ||
+          orden.cliente.email_encrypted ||
+          orden.cliente.telefono_encrypted ||
+          orden.cliente.direccion_encrypted) {
           console.log('🔓 Descifrando datos del cliente para PDF...')
           orden.cliente = decryptSensitiveFields(orden.cliente)
           console.log('✅ Datos descifrados exitosamente')
@@ -428,9 +461,9 @@ export const generarPDF = async (req, res) => {
 
   } catch (error) {
     console.error('Error al generar PDF:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al generar PDF de la orden de trabajo',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -439,11 +472,11 @@ export const generarPDF = async (req, res) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadsDir = path.join(__dirname, '../../uploads/ordenes')
-    
+
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true })
     }
-    
+
     cb(null, uploadsDir)
   },
   filename: (req, file, cb) => {
@@ -456,7 +489,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true)
   } else {
@@ -528,9 +561,9 @@ export const subirDocumentoFirmado = async (req, res) => {
 
   } catch (error) {
     console.error('Error al subir documento:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al subir el documento firmado',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }
@@ -566,9 +599,9 @@ export const descargarDocumentoFirmado = async (req, res) => {
 
   } catch (error) {
     console.error('Error al descargar documento:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error al descargar el documento',
-      details: error.message
+      ...(process.env.NODE_ENV === 'development' && { details: error.message })
     })
   }
 }

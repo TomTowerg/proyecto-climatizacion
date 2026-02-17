@@ -1,8 +1,8 @@
 import api from './authService'
 
-// Obtener todos los equipos
-export const getEquipos = async () => {
-  const response = await api.get('/equipos')
+// Obtener equipos (con paginación y búsqueda opcionales)
+export const getEquipos = async (params = {}) => {
+  const response = await api.get('/equipos', { params })
   return response.data
 }
 

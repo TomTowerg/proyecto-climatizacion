@@ -1,8 +1,6 @@
 import axios from 'axios'
 
-// ⭐ CORREGIDO: Puerto 3001 para desarrollo local
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-console.log('🌐 API URL:', API_URL)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 // Configurar axios
 const api = axios.create({
