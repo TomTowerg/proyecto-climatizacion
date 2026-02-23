@@ -1,16 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Clock, 
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
   Send,
   Instagram,
   Loader2,
   CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Grilla de precios de mantenimiento
+const MAINTENANCE_PRICING = {
+  '9000-12000': {
+    label: '9.000 - 12.000 BTU',
+    premium: 55000,
+    full: 48500,
+    basico: 28500
+  },
+  '18000-36000': {
+    label: '18.000 - 36.000 BTU',
+    premium: 70000,
+    full: 55000,
+    basico: 30000
+  }
+};
+
+const MAINTENANCE_TYPES = {
+  premium: 'Premium',
+  full: 'Full',
+  basico: 'Básico'
+};
+
+const formatCLP = (amount) =>
+  new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(amount);
 
 const ContactSection = () => {
   const { t } = useTranslation();
@@ -19,39 +44,95 @@ const ContactSection = () => {
     email: '',
     telefono: '',
     servicio: '',
+    rangoCapacidad: '',
+    tipoMantenimiento: '',
     mensaje: ''
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Escuchar evento de cotización desde el catálogo de equipos
+  useEffect(() => {
+    const handleQuoteRequest = (e) => {
+      const { marca, modelo, capacidad, precio } = e.detail;
+      const precioFormateado = precio
+        ? new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(precio)
+        : '';
+
+      const capacidadNorm = String(capacidad).replace(/\s*BTU\s*/i, '').trim();
+
+      setFormData(prev => ({
+        ...prev,
+        servicio: 'cotizacion-equipo',
+        mensaje: `Equipo de interés: ${marca} ${modelo} (${capacidadNorm} BTU)${precioFormateado ? ` - Precio ref: ${precioFormateado}` : ''}.`
+      }));
+    };
+
+    window.addEventListener('equipment-quote-request', handleQuoteRequest);
+    return () => window.removeEventListener('equipment-quote-request', handleQuoteRequest);
+  }, []);
 
   // Número de WhatsApp (sin + ni espacios)
   const whatsappNumber = '56954610454';
   const businessEmail = 'kmtspowertech@gmail.com';
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+
+    // Resetear sub-campos de mantenimiento al cambiar de servicio
+    if (name === 'servicio' && value !== 'mantenimiento') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        rangoCapacidad: '',
+        tipoMantenimiento: ''
+      }));
+      return;
+    }
+
+    // Resetear tipo al cambiar rango de capacidad
+    if (name === 'rangoCapacidad') {
+      setFormData(prev => ({
+        ...prev,
+        rangoCapacidad: value,
+        tipoMantenimiento: ''
+      }));
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const getServiceLabel = (value) => {
     const services = {
-      'instalacion': 'Instalación',
-      'mantenimiento': 'Mantenimiento',
-      'reparacion': 'Reparación',
-      'cotizacion': 'Cotización de equipo',
-      'otro': 'Otro'
+      'cotizacion-equipo': 'Cotización de equipo + instalación',
+      'instalacion': 'Solo instalación (ya tengo equipo)',
+      'mantenimiento': 'Mantenimiento preventivo',
+      'reparacion': 'Reparación / Diagnóstico',
+      'otro': 'Otra consulta'
     };
     return services[value] || value;
   };
 
   const getServiceDescription = (value) => {
+    // Mensaje especial para mantenimiento con sub-opciones seleccionadas
+    if (value === 'mantenimiento' && formData.rangoCapacidad && formData.tipoMantenimiento) {
+      const rangoLabel = MAINTENANCE_PRICING[formData.rangoCapacidad]?.label || formData.rangoCapacidad;
+      const tipoLabel = MAINTENANCE_TYPES[formData.tipoMantenimiento] || formData.tipoMantenimiento;
+      const precio = MAINTENANCE_PRICING[formData.rangoCapacidad]?.[formData.tipoMantenimiento];
+      const precioStr = precio ? ` Precio desde: ${formatCLP(precio)}.` : '';
+
+      return `Necesito agendar un mantenimiento ${tipoLabel} para mi equipo Split de muro de ${rangoLabel}.${precioStr}`;
+    }
+
     const descriptions = {
-      'instalacion': 'Solicito información para la instalación de un equipo de aire acondicionado. Me gustaría coordinar una visita técnica para evaluar el espacio y recibir una cotización detallada.',
-      'mantenimiento': 'Necesito agendar un servicio de mantenimiento preventivo para mi equipo de aire acondicionado. Quisiera conocer disponibilidad, el detalle del servicio y sus costos.',
-      'reparacion': 'Mi equipo de aire acondicionado presenta fallas y requiere revisión técnica. Solicito información sobre el servicio de diagnóstico y reparación, incluyendo costos de la visita técnica.',
-      'cotizacion': 'Estoy interesado en adquirir un equipo de aire acondicionado. Me gustaría recibir una cotización que incluya el equipo, instalación y cualquier costo adicional.',
+      'cotizacion-equipo': 'Quiero cotizar un equipo de aire acondicionado. Me gustaría coordinar una visita técnica para evaluar el espacio y recibir una cotización detallada del equipo y el costo de instalación según el tipo de proyecto.',
+      'instalacion': 'Ya cuento con un equipo de aire acondicionado y necesito el servicio de instalación. Me gustaría coordinar una visita técnica para evaluar el espacio y recibir una cotización del servicio.',
+      'mantenimiento': 'Necesito agendar un servicio de mantenimiento preventivo para mi equipo de aire acondicionado. Quisiera conocer disponibilidad y costos del servicio.',
+      'reparacion': 'Mi equipo de aire acondicionado presenta fallas y requiere revisión técnica. Solicito agendar una visita para diagnóstico y reparación.',
       'otro': 'Tengo una consulta sobre sus servicios de climatización y me gustaría recibir más información.'
     };
     return descriptions[value] || '';
@@ -110,7 +191,7 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
 
       setSubmitted(true);
       toast.success(t('landing.contact.successMessage', '¡Redirigiendo a WhatsApp y Email!'));
-      
+
       // Reset form después de un momento
       setTimeout(() => {
         setFormData({
@@ -118,6 +199,8 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
           email: '',
           telefono: '',
           servicio: '',
+          rangoCapacidad: '',
+          tipoMantenimiento: '',
           mensaje: ''
         });
         setSubmitted(false);
@@ -133,8 +216,7 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
   const contactInfo = {
     phone: '+56 9 5461 0454',
     email: 'kmtspowertech@gmail.com',
-    address: 'Av. Irarrázaval 5185, Of. 503, Ñuñoa, Santiago',
-    hours: '24/7 - Siempre disponibles',
+    hours: 'Siempre disponibles',
     instagram: 'kmts_powertech'
   };
 
@@ -191,7 +273,7 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
 
             {/* Social Links */}
             <div className="social-links">
-              <a 
+              <a
                 href={`https://instagram.com/${contactInfo.instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -268,13 +350,62 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
                   onChange={handleChange}
                 >
                   <option value="">{t('landing.contact.form.serviceSelect', 'Selecciona un servicio')}</option>
-                  <option value="instalacion">{t('landing.contact.form.serviceInstall', 'Instalación')}</option>
-                  <option value="mantenimiento">{t('landing.contact.form.serviceMaintenance', 'Mantenimiento')}</option>
-                  <option value="reparacion">{t('landing.contact.form.serviceRepair', 'Reparación')}</option>
-                  <option value="cotizacion">{t('landing.contact.form.serviceQuote', 'Cotización de equipo')}</option>
-                  <option value="otro">{t('landing.contact.form.serviceOther', 'Otro')}</option>
+                  <option value="cotizacion-equipo">{t('landing.contact.form.serviceQuote', 'Cotización de equipo + instalación')}</option>
+                  <option value="instalacion">{t('landing.contact.form.serviceInstall', 'Solo instalación (ya tengo equipo)')}</option>
+                  <option value="mantenimiento">{t('landing.contact.form.serviceMaintenance', 'Mantenimiento preventivo')}</option>
+                  <option value="reparacion">{t('landing.contact.form.serviceRepair', 'Reparación / Diagnóstico')}</option>
+                  <option value="otro">{t('landing.contact.form.serviceOther', 'Otra consulta')}</option>
                 </select>
               </div>
+
+              {/* Sub-selectores de mantenimiento */}
+              {formData.servicio === 'mantenimiento' && (
+                <div className="maintenance-sub-options">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="rangoCapacidad">Rango del equipo *</label>
+                      <select
+                        id="rangoCapacidad"
+                        name="rangoCapacidad"
+                        value={formData.rangoCapacidad}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Selecciona el rango BTU</option>
+                        {Object.entries(MAINTENANCE_PRICING).map(([key, { label }]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {formData.rangoCapacidad && (
+                      <div className="form-group">
+                        <label htmlFor="tipoMantenimiento">Tipo de mantenimiento *</label>
+                        <select
+                          id="tipoMantenimiento"
+                          name="tipoMantenimiento"
+                          value={formData.tipoMantenimiento}
+                          onChange={handleChange}
+                          required
+                        >
+                          <option value="">Selecciona el tipo</option>
+                          {Object.entries(MAINTENANCE_TYPES).map(([key, label]) => {
+                            const precio = MAINTENANCE_PRICING[formData.rangoCapacidad]?.[key];
+                            return (
+                              <option key={key} value={key}>
+                                {label} - desde {precio ? formatCLP(precio) : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <p className="maintenance-price-note">
+                    ⚠️ Los precios pueden variar si se requiere recarga de refrigerante u otros materiales adicionales.
+                  </p>
+                </div>
+              )}
 
               <div className="form-group">
                 <label htmlFor="mensaje">
@@ -290,8 +421,8 @@ ${formData.mensaje || 'Sin mensaje adicional'}`;
                 />
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="form-submit"
                 disabled={loading || submitted}
               >

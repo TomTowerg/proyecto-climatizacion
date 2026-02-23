@@ -22,14 +22,11 @@ const Footer = () => {
         <div className="footer-content">
           {/* Brand */}
           <div className="footer-brand">
-            <div className="footer-logo">
-              <img src={logoImg} alt="KMTS Powertech" />
-            </div>
             <p>
-              {t('landing.footer.description', 'Expertos en climatización con más de años de experiencia. Soluciones profesionales para hogares y empresas en toda la Región Metropolitana.')}
+              {t('landing.footer.socials', 'Redes Sociales')}
             </p>
             <div className="social-links">
-              <a 
+              <a
                 href="https://instagram.com/kmts_powertech"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -85,18 +82,12 @@ const Footer = () => {
             <h4>{t('landing.footer.contact', 'Contacto')}</h4>
             <ul className="footer-links">
               <li>
-                <a href="tel:+56954610454">+56 9 5461 0454</a>
-              </li>
-              <li>
                 <a href="mailto:kmtspowertech@gmail.com">kmtspowertech@gmail.com</a>
               </li>
               <li>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  Av. Irarrázaval 5185, Of. 503
-                  <br />
-                  Ñuñoa, Santiago
-                </span>
+                <a href="tel:+56954610454">+56 9 5461 0454</a>
               </li>
+
             </ul>
           </div>
         </div>

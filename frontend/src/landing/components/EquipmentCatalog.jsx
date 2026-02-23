@@ -180,7 +180,19 @@ const EquipmentCatalog = () => {
     }).format(price);
   };
 
-  const scrollToContact = () => {
+  const scrollToContact = (item) => {
+    // Disparar evento con datos del equipo para pre-llenar el formulario
+    if (item) {
+      window.dispatchEvent(new CustomEvent('equipment-quote-request', {
+        detail: {
+          marca: item.marca,
+          modelo: item.modelo,
+          capacidad: item.capacidad || item.capacidadBTU,
+          precio: item.precioCliente || item.precioClienteIVA
+        }
+      }));
+    }
+
     const element = document.getElementById('contacto');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -315,7 +327,7 @@ const EquipmentCatalog = () => {
                         <div className="equipment-price-label">{t('landing.catalog.priceLabel', 'Equipo + IVA')}</div>
                         <div className="equipment-price-note">{t('landing.catalog.priceNote', '*Sin instalación')}</div>
                       </div>
-                      <button className="equipment-cta" onClick={scrollToContact}>
+                      <button className="equipment-cta" onClick={() => scrollToContact(item)}>
                         {t('landing.catalog.cta', 'Cotizar')}
                       </button>
                     </div>
@@ -417,8 +429,9 @@ const EquipmentCatalog = () => {
               <button
                 className="equipment-cta"
                 onClick={() => {
+                  const selectedItem = imageModal.item;
                   setImageModal({ open: false, item: null, currentIndex: 0 });
-                  scrollToContact();
+                  scrollToContact(selectedItem);
                 }}
               >
                 {t('landing.catalog.cta', 'Cotizar')}

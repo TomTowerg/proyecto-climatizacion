@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { 
-  Wrench, 
-  Settings, 
-  ShieldCheck, 
-  Zap, 
+import {
+  Wrench,
+  Settings,
+  ShieldCheck,
+  Zap,
   ThermometerSun,
   Clock,
   Check
@@ -21,7 +21,7 @@ const ServicesSection = () => {
       descriptionDefault: 'Instalación certificada de equipos de aire acondicionado con los más altos estándares de calidad y seguridad.',
       features: [
         { key: 'landing.services.installation.feature1', default: 'Evaluación técnica' },
-        { key: 'landing.services.installation.feature2', default: 'Instalación en 2 horas por equipo' },
+        { key: 'landing.services.installation.feature2', default: 'Instalación en 3 horas por equipo' },
         { key: 'landing.services.installation.feature3', default: 'Garantía de instalación' },
       ]
     },
@@ -68,7 +68,7 @@ const ServicesSection = () => {
       descriptionKey: 'landing.services.warranty.description',
       descriptionDefault: 'Planes de protección adicional para tu inversión con cobertura completa y atención prioritaria.',
       features: [
-        { key: 'landing.services.warranty.feature1', default: 'Cobertura total de piezas' },
+        { key: 'landing.services.warranty.feature1', default: 'Cada marca cuenta con su propia cobertura de piezas' },
         { key: 'landing.services.warranty.feature2', default: 'Servicio técnico prioritario' },
         { key: 'landing.services.warranty.feature3', default: 'Sin costos adicionales' },
       ]
@@ -76,13 +76,11 @@ const ServicesSection = () => {
     {
       icon: Clock,
       titleKey: 'landing.services.emergency.title',
-      titleDefault: 'Emergencias 24/7',
+      titleDefault: 'Emergencias',
       descriptionKey: 'landing.services.emergency.description',
-      descriptionDefault: 'Servicio de emergencia disponible las 24 horas para cuando más lo necesitas.',
+      descriptionDefault: 'Servicio de emergencia de lunes a domingo, para darte tranquilidad cuando más lo requieres',
       features: [
-        { key: 'landing.services.emergency.feature1', default: 'Respuesta inmediata' },
-        { key: 'landing.services.emergency.feature2', default: 'Técnicos certificados' },
-        { key: 'landing.services.emergency.feature3', default: 'Cobertura toda la RM' },
+        { key: 'landing.services.emergency.feature1', default: 'Respuesta inmediata' }
       ]
     },
   ];

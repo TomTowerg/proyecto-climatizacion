@@ -8,9 +8,9 @@ const HowItWorks = () => {
     {
       number: 1,
       titleKey: 'landing.howItWorks.step1.title',
-      titleDefault: 'Contacto Inicial',
+      titleDefault: 'Solicitud',
       descriptionKey: 'landing.howItWorks.step1.description',
-      descriptionDefault: 'Contáctanos por teléfono, email o formulario web. Te responderemos en menos de 2 horas por equipo.'
+      descriptionDefault: 'Contáctanos por teléfono, email o formulario web. Te responderemos lo antes posible.'
     },
     {
       number: 2,

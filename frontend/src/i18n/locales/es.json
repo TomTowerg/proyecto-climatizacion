@@ -159,7 +159,7 @@
       "technician": "Técnico",
       "status": "Estado",
       "actions": "Acciones",
-       "unassigned": "Por asignar",
+      "unassigned": "Por asignar",
       "empty": "No hay órdenes de trabajo registradas"
     },
     "actions": {
@@ -490,13 +490,13 @@
       "installation": {
         "title": "Instalación Profesional",
         "description": "Instalación certificada de equipos de aire acondicionado con los más altos estándares de calidad y seguridad.",
-        "feature1": "Evaluación técnica gratuita",
-        "feature2": "Instalación en 24-48 horas",
+        "feature1": "Evaluación técnica",
+        "feature2": "Instalación en 3 horas por equipo",
         "feature3": "Garantía de instalación"
       },
       "maintenance": {
         "title": "Mantenimiento Preventivo",
-        "description": "Programas de mantenimiento que extienden la vida útil de tu equipo y optimizan su rendimiento energético.",
+        "description": "Programas de mantenimiento que extienden la vida útil de tu equipo y mantiene su rendimiento energético.",
         "feature1": "Limpieza profunda de filtros",
         "feature2": "Revisión de gas refrigerante",
         "feature3": "Diagnóstico completo"
@@ -518,16 +518,14 @@
       "warranty": {
         "title": "Garantía Extendida",
         "description": "Planes de protección adicional para tu inversión con cobertura completa y atención prioritaria.",
-        "feature1": "Cobertura total de piezas",
+        "feature1": "Cada marca cuenta con su propia cobertura de piezas",
         "feature2": "Servicio técnico prioritario",
         "feature3": "Sin costos adicionales"
       },
       "emergency": {
-        "title": "Emergencias 24/7",
-        "description": "Servicio de emergencia disponible las 24 horas para cuando más lo necesitas.",
-        "feature1": "Respuesta inmediata",
-        "feature2": "Técnicos certificados",
-        "feature3": "Cobertura toda la RM"
+        "title": "Emergencias",
+        "description": "Servicio de emergencia de lunes a domingo, para darte tranquilidad cuando más lo requieres",
+        "feature1": "Respuesta inmediata"
       }
     },
     "catalog": {
@@ -546,8 +544,8 @@
       "title": "¿Cómo Funciona?",
       "description": "Un proceso sencillo y transparente para que tengas tu aire acondicionado funcionando lo antes posible.",
       "step1": {
-        "title": "Contacto Inicial",
-        "description": "Contáctanos por teléfono, email o formulario web. Te responderemos en menos de 2 horas."
+        "title": "Solicitud",
+        "description": "Contáctanos por teléfono, email o formulario web. Te responderemos lo antes posible."
       },
       "step2": {
         "title": "Evaluación Técnica",
@@ -561,11 +559,6 @@
         "title": "Instalación Profesional",
         "description": "Nuestro equipo certificado realizará la instalación siguiendo los más altos estándares."
       }
-    },
-    "testimonials": {
-      "label": "Testimonios",
-      "title": "Lo Que Dicen Nuestros Clientes",
-      "description": "La satisfacción de nuestros clientes es nuestra mejor carta de presentación."
     },
     "faq": {
       "label": "Preguntas Frecuentes",
@@ -602,7 +595,6 @@
       }
     },
     "footer": {
-      "description": "Expertos en climatización con años de experiencia. Soluciones profesionales para hogares y empresas en toda la Región Metropolitana.",
       "quickLinks": "Enlaces Rápidos",
       "services": "Servicios",
       "contact": "Contacto",
