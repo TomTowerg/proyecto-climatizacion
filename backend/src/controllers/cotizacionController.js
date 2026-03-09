@@ -69,7 +69,8 @@ export const getCotizaciones = async (req, res) => {
             }
           }
         },
-        materiales: true
+        materiales: true,
+        instalaciones: true
       },
       orderBy: {
         createdAt: 'desc'
@@ -141,7 +142,8 @@ export const getCotizacionById = async (req, res) => {
             }
           }
         },
-        materiales: true
+        materiales: true,
+        instalaciones: true
       }
     })
 
@@ -180,14 +182,16 @@ export const createCotizacion = async (req, res) => {
       agente,
       direccionInstalacion,
       equipos,
-      materiales
+      materiales,
+      instalaciones
     } = req.body
 
     console.log('📝 Creando cotización:', {
       clienteId,
       tipo,
       equiposCount: equipos?.length || 0,
-      materialesCount: materiales?.length || 0
+      materialesCount: materiales?.length || 0,
+      instalacionesCount: instalaciones?.length || 0
     })
 
     // Validaciones básicas
@@ -221,7 +225,8 @@ export const createCotizacion = async (req, res) => {
             inventarioId: parseInt(eq.inventarioId),
             cantidad: parseInt(eq.cantidad),
             precioUnitario: parseFloat(eq.precioUnitario),
-            subtotal: parseFloat(eq.subtotal)
+            subtotal: parseFloat(eq.subtotal),
+            descuento: parseFloat(eq.descuento || 0)
           }))
         } : undefined,
         materiales: materiales && materiales.length > 0 ? {
@@ -231,7 +236,17 @@ export const createCotizacion = async (req, res) => {
             unidad: mat.unidad,
             precioUnitario: parseFloat(mat.precioUnitario),
             subtotal: parseFloat(mat.subtotal),
+            descuento: parseFloat(mat.descuento || 0),
             descripcion: mat.descripcion
+          }))
+        } : undefined,
+        instalaciones: instalaciones && instalaciones.length > 0 ? {
+          create: instalaciones.map(inst => ({
+            nombre: inst.nombre,
+            descripcion: inst.descripcion || null,
+            precio: parseFloat(inst.precio),
+            descuento: parseFloat(inst.descuento || 0),
+            subtotal: parseFloat(inst.subtotal)
           }))
         } : undefined
       },
@@ -243,7 +258,8 @@ export const createCotizacion = async (req, res) => {
             inventario: true
           }
         },
-        materiales: true
+        materiales: true,
+        instalaciones: true
       }
     })
 
@@ -285,7 +301,8 @@ export const updateCotizacion = async (req, res) => {
       agente,
       direccionInstalacion,
       equipos,
-      materiales
+      materiales,
+      instalaciones
     } = req.body
 
     console.log(`📝 Actualizando cotización #${id}`)
@@ -299,39 +316,74 @@ export const updateCotizacion = async (req, res) => {
       return res.status(404).json({ error: 'Cotización no encontrada' })
     }
 
-    // Actualizar cotización
-    const cotizacion = await prisma.cotizacion.update({
-      where: { id: parseInt(id) },
-      data: {
-        clienteId: clienteId ? parseInt(clienteId) : undefined,
-        inventarioId: inventarioId ? parseInt(inventarioId) : undefined,
-        equipoId: equipoId ? parseInt(equipoId) : undefined,
-        tipo,
-        marca,
-        modelo,
-        capacidad,
-        precioOfertado: precioOfertado ? parseFloat(precioOfertado) : undefined,
-        costoInstalacion: costoInstalacion !== undefined ? parseFloat(costoInstalacion) : undefined,
-        costoMaterial: costoMaterial !== undefined ? parseFloat(costoMaterial) : undefined,
-        subtotal: subtotal ? parseFloat(subtotal) : undefined,
-        descuento: descuento !== undefined ? parseFloat(descuento) : undefined,
-        precioFinal: precioFinal ? parseFloat(precioFinal) : undefined,
-        estado,
-        notas,
-        agente,
-        direccionInstalacion
-      },
-      include: {
-        cliente: true,
-        inventario: true,
-        equipos: {
-          include: {
-            inventario: true
-          }
+      // Eliminar relaciones existentes y recrear
+      await prisma.equipoCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
+      await prisma.materialCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
+      await prisma.instalacionCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
+
+      // Actualizar cotización con nuevas relaciones
+      const cotizacion = await prisma.cotizacion.update({
+        where: { id: parseInt(id) },
+        data: {
+          clienteId: clienteId ? parseInt(clienteId) : undefined,
+          inventarioId: inventarioId ? parseInt(inventarioId) : undefined,
+          equipoId: equipoId ? parseInt(equipoId) : undefined,
+          tipo,
+          marca,
+          modelo,
+          capacidad,
+          precioOfertado: precioOfertado ? parseFloat(precioOfertado) : undefined,
+          costoInstalacion: costoInstalacion !== undefined ? parseFloat(costoInstalacion) : undefined,
+          costoMaterial: costoMaterial !== undefined ? parseFloat(costoMaterial) : undefined,
+          subtotal: subtotal ? parseFloat(subtotal) : undefined,
+          descuento: descuento !== undefined ? parseFloat(descuento) : undefined,
+          precioFinal: precioFinal ? parseFloat(precioFinal) : undefined,
+          estado,
+          notas,
+          agente,
+          direccionInstalacion,
+          equipos: equipos && equipos.length > 0 ? {
+            create: equipos.map(eq => ({
+              inventarioId: parseInt(eq.inventarioId),
+              cantidad: parseInt(eq.cantidad),
+              precioUnitario: parseFloat(eq.precioUnitario),
+              subtotal: parseFloat(eq.subtotal),
+              descuento: parseFloat(eq.descuento || 0)
+            }))
+          } : undefined,
+          materiales: materiales && materiales.length > 0 ? {
+            create: materiales.map(mat => ({
+              nombre: mat.nombre,
+              cantidad: parseFloat(mat.cantidad),
+              unidad: mat.unidad,
+              precioUnitario: parseFloat(mat.precioUnitario),
+              subtotal: parseFloat(mat.subtotal),
+              descuento: parseFloat(mat.descuento || 0),
+              descripcion: mat.descripcion
+            }))
+          } : undefined,
+          instalaciones: instalaciones && instalaciones.length > 0 ? {
+            create: instalaciones.map(inst => ({
+              nombre: inst.nombre,
+              descripcion: inst.descripcion || null,
+              precio: parseFloat(inst.precio),
+              descuento: parseFloat(inst.descuento || 0),
+              subtotal: parseFloat(inst.subtotal)
+            }))
+          } : undefined
         },
-        materiales: true
-      }
-    })
+        include: {
+          cliente: true,
+          inventario: true,
+          equipos: {
+            include: {
+              inventario: true
+            }
+          },
+          materiales: true,
+          instalaciones: true
+        }
+      })
 
     console.log(`✅ Cotización actualizada: #${id}`)
 
@@ -371,14 +423,15 @@ export const deleteCotizacion = async (req, res) => {
 export const aprobar = async (req, res) => {
   try {
     const { id } = req.params
+    const { fechaInstalacion } = req.body
     const usuarioId = req.user?.id || 1
 
-    console.log(`\n🔄 Aprobando cotización #${id}...`)
+    console.log(`\n🔄 Aprobando cotización #${id} para fecha: ${fechaInstalacion || 'inmediata'}...`)
 
     // Importar servicio dinámicamente
     const { aprobarCotizacion } = await import('../services/cotizacionService.js')
 
-    const resultado = await aprobarCotizacion(parseInt(id), usuarioId)
+    const resultado = await aprobarCotizacion(parseInt(id), usuarioId, { fechaInstalacion })
 
     res.json(resultado)
   } catch (error) {
@@ -472,7 +525,8 @@ export const generarPDF = async (req, res) => {
             }
           }
         },
-        materiales: true
+        materiales: true,
+        instalaciones: true
       }
     })
 

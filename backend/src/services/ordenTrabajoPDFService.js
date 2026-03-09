@@ -409,27 +409,109 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       }
 
       // ============================================
+      // INSTALACIONES
+      // ============================================
+      if (orden.cotizacion?.instalaciones && orden.cotizacion.instalaciones.length > 0) {
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('COSTOS DE INSTALACIÓN', 50, equipoY)
+
+        equipoY += 18
+
+        const instTableTop = equipoY
+
+        doc.rect(50, instTableTop, 512, 20)
+           .fillAndStroke('#1e3a8a', '#1e3a8a')
+
+        doc.fontSize(8)
+           .font('Helvetica-Bold')
+           .fillColor('#ffffff')
+           .text('Instalación', 60, instTableTop + 6)
+           .text('Precio', 320, instTableTop + 6)
+           .text('Desc. %', 400, instTableTop + 6)
+           .text('Subtotal', 480, instTableTop + 6)
+
+        let currentY = instTableTop + 25
+
+        orden.cotizacion.instalaciones.forEach((inst, index) => {
+          if (currentY > 680) {
+            doc.addPage()
+            currentY = 60
+
+            doc.rect(50, currentY, 512, 20)
+               .fillAndStroke('#1e3a8a', '#1e3a8a')
+               .fontSize(8)
+               .font('Helvetica-Bold')
+               .fillColor('#ffffff')
+               .text('Instalación', 60, currentY + 6)
+               .text('Precio', 320, currentY + 6)
+               .text('Desc. %', 400, currentY + 6)
+               .text('Subtotal', 480, currentY + 6)
+
+            currentY += 25
+          }
+
+          if (index % 2 === 0) {
+            doc.rect(50, currentY - 3, 512, 18)
+               .fillAndStroke('#f9fafb', '#f9fafb')
+          }
+
+          doc.fontSize(8)
+             .font('Helvetica')
+             .fillColor('#1f2937')
+             .text(inst.nombre, 60, currentY, { width: 240 })
+             .text(`$${inst.precio.toLocaleString('es-CL')}`, 320, currentY)
+             .text(inst.descuento > 0 ? `${inst.descuento}%` : '-', 400, currentY)
+             .text(`$${inst.subtotal.toLocaleString('es-CL')}`, 480, currentY)
+
+          currentY += 18
+        })
+
+        const totalInstalaciones = orden.cotizacion.instalaciones.reduce((sum, inst) => sum + inst.subtotal, 0)
+
+        doc.rect(380, currentY + 5, 182, 18)
+           .fillAndStroke('#dbeafe', '#2563eb')
+           .fontSize(9)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('Total Instalación:', 390, currentY + 10)
+           .text(`$${totalInstalaciones.toLocaleString('es-CL')}`, 480, currentY + 10)
+
+        equipoY = currentY + 35
+      }
+
+      // ============================================
       // ✅ MEJORA CRÍTICA: CONDICIONES Y DESGLOSE
       // ============================================
       
-      // Calcular la altura necesaria para condiciones + desglose
       const condicionesHeight = 70
       
-      // Obtener costos primero (movido aquí para calcular desgloseHeight)
-      const cotizacion = orden.cotizacion
-      const precioOfertado = cotizacion?.precioOfertado || orden.costoManoObra || 0
-      const costoInstalacion = cotizacion?.costoInstalacion || 100000
-      const costoMaterial = cotizacion?.costoMaterial || orden.costoMateriales || 0
-      const subtotal = cotizacion?.subtotal || (precioOfertado + costoInstalacion + costoMaterial)
-      const descuento = cotizacion?.descuento || 0
-      const precioFinal = cotizacion?.precioFinal || (subtotal - descuento)
+      const cotizacion = orden.cotizacion || {}
+      
+      // CALCULAR VALORES BRUTOS (SIN DESCUENTOS APLICADOS)
+      const originalEquipos = cotizacion.equipos && cotizacion.equipos.length > 0
+        ? cotizacion.equipos.reduce((sum, e) => sum + (e.precioUnitario * e.cantidad), 0)
+        : (cotizacion.precioOfertado || orden.costoManoObra || 0)
+
+      const originalMateriales = cotizacion.materiales && cotizacion.materiales.length > 0
+        ? cotizacion.materiales.reduce((sum, m) => sum + (m.precioUnitario * m.cantidad), 0)
+        : (cotizacion.costoMaterial || orden.costoMateriales || 0)
+        
+      const originalInstalaciones = cotizacion.instalaciones && cotizacion.instalaciones.length > 0
+        ? cotizacion.instalaciones.reduce((sum, i) => sum + i.precio, 0)
+        : (cotizacion.costoInstalacion || 100000)
+
+      const subtotalBruto = originalEquipos + originalMateriales + originalInstalaciones
+      const precioFinal = cotizacion.precioFinal || (subtotalBruto - (cotizacion.descuento || 0))
+      const totalDescuentoAbsoluto = subtotalBruto - precioFinal
 
       const desgloseHeight = 
         25 + 
-        (costoInstalacion > 0 ? 15 : 0) +
-        (costoMaterial > 0 ? 15 : 0) +
+        (originalInstalaciones > 0 ? 15 : 0) +
+        (originalMateriales > 0 ? 15 : 0) +
         15 + 
-        (descuento > 0 ? 15 : 0) +
+        (totalDescuentoAbsoluto > 0 ? 15 : 0) +
         45
 
       // Usar el mayor + margen de seguridad
@@ -537,25 +619,25 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          .font('Helvetica')
          .fillColor('#374151')
          .text('Equipo:', 330, lineY)
-         .text(`$${precioOfertado.toLocaleString('es-CL')}`, 480, lineY, {
+         .text(`$${originalEquipos.toLocaleString('es-CL')}`, 480, lineY, {
            align: 'right',
            width: 70
          })
 
       lineY += 15
 
-      if (costoInstalacion > 0) {
+      if (originalInstalaciones > 0) {
         doc.text('Instalación:', 330, lineY)
-           .text(`$${costoInstalacion.toLocaleString('es-CL')}`, 480, lineY, {
+           .text(`$${originalInstalaciones.toLocaleString('es-CL')}`, 480, lineY, {
              align: 'right',
              width: 70
            })
         lineY += 15
       }
 
-      if (costoMaterial > 0) {
+      if (originalMateriales > 0) {
         doc.text('Materiales:', 330, lineY)
-           .text(`$${costoMaterial.toLocaleString('es-CL')}`, 480, lineY, {
+           .text(`$${originalMateriales.toLocaleString('es-CL')}`, 480, lineY, {
              align: 'right',
              width: 70
            })
@@ -572,19 +654,18 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       doc.font('Helvetica-Bold')
          .text('Subtotal:', 330, lineY)
-         .text(`$${subtotal.toLocaleString('es-CL')}`, 480, lineY, {
+         .text(`$${subtotalBruto.toLocaleString('es-CL')}`, 480, lineY, {
            align: 'right',
            width: 70
          })
 
       lineY += 15
 
-      if (descuento > 0) {
-        const montoDescuento = subtotal - precioFinal
+      if (totalDescuentoAbsoluto > 0) {
         doc.fillColor('#dc2626')
            .font('Helvetica')
-           .text(`Descuento (${descuento}%):`, 330, lineY)
-           .text(`-$${montoDescuento.toLocaleString('es-CL')}`, 480, lineY, {
+           .text(`Descuento Total:`, 330, lineY)
+           .text(`-$${totalDescuentoAbsoluto.toLocaleString('es-CL')}`, 480, lineY, {
              align: 'right',
              width: 70
            })

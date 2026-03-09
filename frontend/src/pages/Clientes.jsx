@@ -11,6 +11,7 @@ import { getClientes, createCliente, updateCliente, deleteCliente } from '../ser
 import { validarRut, formatearRut } from '../utils/rutValidator'
 import RutInput from '../components/RutInput'
 import PhoneInput from '../components/PhoneInput'
+import DireccionesClienteModal from '../components/DireccionesClienteModal'
 
 function Clientes() {
   const { t } = useTranslation()
@@ -21,6 +22,7 @@ function Clientes() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingCliente, setEditingCliente] = useState(null)
+  const [managingAddressesClient, setManagingAddressesClient] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [paginationInfo, setPaginationInfo] = useState(null)
   const ITEMS_PER_PAGE = 20
@@ -29,8 +31,7 @@ function Clientes() {
     nombre: '',
     rut: '',
     email: '',
-    telefono: '',
-    direccion: ''
+    telefono: ''
   })
 
   const fetchClientes = useCallback(async (page, search) => {
@@ -118,8 +119,7 @@ function Clientes() {
       nombre: cliente.nombre,
       rut: cliente.rut,
       email: cliente.email,
-      telefono: cliente.telefono,
-      direccion: cliente.direccion
+      telefono: cliente.telefono
     })
     setShowModal(true)
   }
@@ -147,8 +147,7 @@ function Clientes() {
       nombre: '',
       rut: '',
       email: '',
-      telefono: '',
-      direccion: ''
+      telefono: ''
     })
   }
 
@@ -227,9 +226,6 @@ function Clientes() {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('clients.table.phone')}
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    {t('clients.table.address')}
-                  </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     {t('clients.table.actions')}
                   </th>
@@ -238,7 +234,7 @@ function Clientes() {
               <tbody className="bg-white divide-y divide-gray-100">
                 {filteredClientes.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="5" className="px-6 py-12 text-center">
                       <Users size={48} className="mx-auto text-gray-300 mb-3" />
                       <p className="text-gray-500">{t('clients.table.empty')}</p>
                     </td>
@@ -271,16 +267,15 @@ function Clientes() {
                           <span className="text-sm">{cliente.telefono}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-gray-600 max-w-xs">
-                          <MapPin size={14} className="text-gray-400 flex-shrink-0" />
-                          <span className="text-sm truncate" title={cliente.direccion}>
-                            {cliente.direccion || '-'}
-                          </span>
-                        </div>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => setManagingAddressesClient(cliente)}
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Gestionar Direcciones"
+                          >
+                            <MapPin size={18} />
+                          </button>
                           <button
                             onClick={() => handleEdit(cliente)}
                             className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -379,19 +374,6 @@ function Clientes() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('clients.form.address')} *
-                </label>
-                <textarea
-                  value={formData.direccion}
-                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  rows="3"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
-                  required
-                />
-              </div>
-
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -410,6 +392,14 @@ function Clientes() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de Direcciones */}
+      {managingAddressesClient && (
+        <DireccionesClienteModal
+          cliente={managingAddressesClient}
+          onClose={() => setManagingAddressesClient(null)}
+        />
       )}
     </MainLayout>
   )

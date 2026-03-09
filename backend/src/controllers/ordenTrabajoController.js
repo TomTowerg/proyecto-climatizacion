@@ -420,7 +420,8 @@ export const generarPDF = async (req, res) => {
                 }
               }
             },
-            materiales: true
+            materiales: true,
+            instalaciones: true
           }
         }
       }

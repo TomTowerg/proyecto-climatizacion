@@ -51,8 +51,8 @@ export const deleteCotizacion = async (id) => {
  * - Reduce stock
  * - Marca cotización como aprobada
  */
-export const aprobarCotizacion = async (id) => {
-  const response = await api.post(`/cotizaciones/${id}/aprobar`)
+export const aprobarCotizacion = async (id, payload = {}) => {
+  const response = await api.post(`/cotizaciones/${id}/aprobar`, payload)
   return response.data
 }
 

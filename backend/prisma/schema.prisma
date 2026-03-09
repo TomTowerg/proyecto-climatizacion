@@ -59,6 +59,26 @@ model Cliente {
   equipos         Equipo[]
   ordenesTrabajos OrdenTrabajo[]
   cotizaciones    Cotizacion[]
+  direcciones     DireccionCliente[]
+}
+
+// ============================================
+// DIRECCIONES DE CLIENTES (Múltiples por cliente)
+// ============================================
+model DireccionCliente {
+  id                  Int      @id @default(autoincrement())
+  clienteId           Int
+  cliente             Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  
+  nombre              String   // Ej: "Casa Principal", "Sucursal Providencia"
+  direccion_encrypted String   // La dirección completa cifrada
+  comuna              String?  // Opcional, sin cifrar para filtros rápidos
+  ciudad              String?  // Opcional
+  region              String?  // Opcional
+  esPrincipal         Boolean  @default(false)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Inventario {
@@ -106,7 +126,7 @@ model Cotizacion {
   modelo          String?     // Opcional para compatibilidad
   capacidad       String?     // Opcional para compatibilidad
   precioOfertado  Float
-  costoInstalacion Float      @default(100000)
+  costoInstalacion Float      @default(0)   // Legacy: usar instalaciones[] para nuevas cotizaciones
   costoMaterial   Float       @default(0)
   subtotal        Float
   descuento       Float       @default(0)
@@ -122,6 +142,7 @@ model Cotizacion {
   ordenCreada     OrdenTrabajo? @relation("CotizacionAprobada")
   equipos       EquipoCotizacion[]
   materiales      MaterialCotizacion[]
+  instalaciones   InstalacionCotizacion[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
@@ -195,6 +216,7 @@ model EquipoCotizacion {
   cantidad      Int
   precioUnitario Float
   subtotal      Float
+  descuento     Float    @default(0)  // % descuento por equipo
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -213,12 +235,29 @@ model MaterialCotizacion {
   unidad          String
   precioUnitario  Float
   subtotal        Float
+  descuento       Float      @default(0)  // % descuento por material
   descripcion     String?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
   @@index([cotizacionId])
   @@index([materialInventarioId])
+}
+
+// Tabla para costos de instalación por cotización
+model InstalacionCotizacion {
+  id            Int        @id @default(autoincrement())
+  cotizacionId  Int
+  cotizacion    Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  nombre        String     // "Instalación estándar", "Instalación en altura", etc.
+  descripcion   String?
+  precio        Float
+  descuento     Float      @default(0)  // % descuento
+  subtotal      Float      // precio - descuento aplicado
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([cotizacionId])
 }
 
 // ⭐ NUEVO: Inventario de Materiales
@@ -243,5 +282,18 @@ model MaterialInventario {
   materialesUsados MaterialCotizacion[]
 
   @@index([categoria])
+  @@index([activo])
+}
+
+// Catálogo de tipos de instalación reutilizables
+model TipoInstalacion {
+  id          Int      @id @default(autoincrement())
+  nombre      String   // "Instalación estándar", "Instalación en altura", etc.
+  descripcion String?
+  precio      Float    // Precio por defecto
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([activo])
 }

@@ -25,6 +25,7 @@ export const getClientes = async (req, res) => {
       },
       include: {
         equipos: true,
+        direcciones: true,
         _count: {
           select: {
             equipos: true,
@@ -53,18 +54,26 @@ export const getClientes = async (req, res) => {
         prisma.cliente.count({ where: queryOptions.where })
       ])
 
-      const clientesDescifrados = clientes.map(cliente =>
-        decryptSensitiveFields(cliente)
-      )
+      const clientesDescifrados = clientes.map(cliente => {
+        const c = decryptSensitiveFields(cliente)
+        if (c.direcciones && c.direcciones.length > 0) {
+          c.direcciones = c.direcciones.map(dir => decryptSensitiveFields(dir))
+        }
+        return c
+      })
 
       return res.json(paginatedResponse(clientesDescifrados, total, pagination))
     }
 
     // Sin paginación: devolver todo (retrocompatible)
     const clientes = await prisma.cliente.findMany(queryOptions)
-    const clientesDescifrados = clientes.map(cliente =>
-      decryptSensitiveFields(cliente)
-    )
+    const clientesDescifrados = clientes.map(cliente => {
+      const c = decryptSensitiveFields(cliente)
+      if (c.direcciones && c.direcciones.length > 0) {
+        c.direcciones = c.direcciones.map(dir => decryptSensitiveFields(dir))
+      }
+      return c
+    })
 
     res.json(clientesDescifrados)
   } catch (error) {
@@ -87,6 +96,7 @@ export const getClienteById = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         equipos: true,
+        direcciones: true,
         ordenesTrabajos: {
           orderBy: { createdAt: 'desc' },
           take: 10
@@ -104,6 +114,9 @@ export const getClienteById = async (req, res) => {
 
     // Descifrar datos sensibles
     const clienteDescifrado = decryptSensitiveFields(cliente)
+    if (clienteDescifrado.direcciones && clienteDescifrado.direcciones.length > 0) {
+      clienteDescifrado.direcciones = clienteDescifrado.direcciones.map(dir => decryptSensitiveFields(dir))
+    }
 
     res.json(clienteDescifrado)
   } catch (error) {
@@ -302,6 +315,7 @@ export const searchClientes = async (req, res) => {
       },
       take: 10,
       include: {
+        direcciones: true,
         _count: {
           select: {
             equipos: true,
@@ -312,9 +326,13 @@ export const searchClientes = async (req, res) => {
     })
 
     // Descifrar datos sensibles
-    const clientesDescifrados = clientes.map(cliente =>
-      decryptSensitiveFields(cliente)
-    )
+    const clientesDescifrados = clientes.map(cliente => {
+      const c = decryptSensitiveFields(cliente)
+      if (c.direcciones && c.direcciones.length > 0) {
+        c.direcciones = c.direcciones.map(dir => decryptSensitiveFields(dir))
+      }
+      return c
+    })
 
     res.json(clientesDescifrados)
   } catch (error) {

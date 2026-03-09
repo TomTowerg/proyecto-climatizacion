@@ -19,6 +19,7 @@ import {
   rechazarCotizacion
 } from '../services/cotizacionService'
 import { getMateriales } from '../services/materialInventarioService'
+import { getTiposInstalacion, createTipoInstalacion } from '../services/tipoInstalacionService'
 import { getClientes, createCliente } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
 import { getEquiposByCliente } from '../services/equipoService'
@@ -41,6 +42,7 @@ function Cotizaciones() {
   const [pdfCotizacionId, setPdfCotizacionId] = useState(null)
   const [cotizacionToApprove, setCotizacionToApprove] = useState(null)
   const [approving, setApproving] = useState(false)
+  const [fechaInstalacion, setFechaInstalacion] = useState(new Date().toISOString().split('T')[0])
   const [showClientModal, setShowClientModal] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
   const [materialesInventario, setMaterialesInventario] = useState([])
@@ -89,19 +91,36 @@ function Cotizaciones() {
   const [nuevoEquipo, setNuevoEquipo] = useState({
     inventarioId: '',
     cantidad: 1,
-    precioUnitario: 0
+    precioUnitario: 0,
+    descuento: 0,
+    descuentoMonto: 0
   })
 
   // ⭐ NUEVO: Estado para búsqueda de equipos
   const [busquedaEquipo, setBusquedaEquipo] = useState('')
 
+  // Estados para instalaciones
+  const [instalaciones, setInstalaciones] = useState([])
+  const [tiposInstalacion, setTiposInstalacion] = useState([])
+  const [nuevaInstalacion, setNuevaInstalacion] = useState({
+    nombre: '',
+    descripcion: '',
+    precio: 0,
+    descuento: 0,
+    descuentoMonto: 0
+  })
+
+  // Estado para la dirección personalizada de instalación
+  const [isCustomAddress, setIsCustomAddress] = useState(false)
+
   const fetchData = useCallback(async (page, search) => {
     try {
       setLoading(true)
-      const [cotizacionesData, clientesData, inventarioData] = await Promise.all([
+      const [cotizacionesData, clientesData, inventarioData, tiposInstalacionData] = await Promise.all([
         getCotizaciones({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
         getClientes(),  // Sin paginar: dropdown
-        getInventario()  // Sin paginar: dropdown
+        getInventario(),  // Sin paginar: dropdown
+        getTiposInstalacion().catch(() => [])
       ])
 
       // Manejar respuesta paginada
@@ -120,6 +139,7 @@ function Cotizaciones() {
         item.stock > 0 && item.estado === 'disponible'
       )
       setInventarioDisponible(disponible)
+      setTiposInstalacion(tiposInstalacionData)
     } catch (error) {
       console.error('Error al cargar datos:', error)
       toast.error('Error al cargar los datos')
@@ -243,11 +263,11 @@ function Cotizaciones() {
 
   const calcularTotal = () => {
     const precio = parseFloat(formData.precioOfertado) || 0
-    const instalacion = parseFloat(formData.costoInstalacion) || 0
     const material = parseFloat(formData.costoMaterial) || 0
+    const totalInstalaciones = calcularTotalInstalaciones()
     const descuento = parseFloat(formData.descuento) || 0
 
-    const subtotal = precio + instalacion + material
+    const subtotal = precio + material + totalInstalaciones
     const montoDescuento = subtotal * (descuento / 100)
     return subtotal - montoDescuento
   }
@@ -258,6 +278,10 @@ function Cotizaciones() {
 
   const calcularTotalEquipos = () => {
     return equipos.reduce((acc, eq) => acc + eq.subtotal, 0)
+  }
+
+  const calcularTotalInstalaciones = () => {
+    return instalaciones.reduce((acc, inst) => acc + inst.subtotal, 0)
   }
 
   // ⭐ NUEVO: Filtrar y ordenar inventario disponible
@@ -297,9 +321,14 @@ function Cotizaciones() {
       return
     }
 
+    const precioBaseMaterial = nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
+    const descuentoMatPct = parseFloat(nuevoMaterial.descuento) || 0
+    const descuentoMatMonto = precioBaseMaterial * (descuentoMatPct / 100)
+
     const materialConSubtotal = {
       ...nuevoMaterial,
-      subtotal: nuevoMaterial.cantidad * nuevoMaterial.precioUnitario
+      descuento: descuentoMatPct,
+      subtotal: precioBaseMaterial - descuentoMatMonto
     }
 
     setMateriales([...materiales, materialConSubtotal])
@@ -310,7 +339,9 @@ function Cotizaciones() {
       nombre: '',
       cantidad: 1,
       unidad: 'unidades',
-      precioUnitario: 0
+      precioUnitario: 0,
+      descuento: 0,
+      descuentoMonto: 0
     })
 
     toast.success('Material agregado')
@@ -325,7 +356,9 @@ function Cotizaciones() {
         nombre: '',
         cantidad: 1,
         unidad: 'unidades',
-        precioUnitario: 0
+        precioUnitario: 0,
+        descuento: 0,
+        descuentoMonto: 0
       })
       return
     }
@@ -338,7 +371,9 @@ function Cotizaciones() {
         nombre: materialSeleccionado.nombre,
         cantidad: 1,
         unidad: materialSeleccionado.unidad,
-        precioUnitario: materialSeleccionado.precioConIVA
+        precioUnitario: materialSeleccionado.precioConIVA,
+        descuento: 0,
+        descuentoMonto: 0
       })
     }
   }
@@ -377,14 +412,20 @@ function Cotizaciones() {
       return
     }
 
+    const precioUnitEq = nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente
+    const precioBaseEq = nuevoEquipo.cantidad * precioUnitEq
+    const descuentoEqPct = parseFloat(nuevoEquipo.descuento) || 0
+    const descuentoEqMonto = precioBaseEq * (descuentoEqPct / 100)
+
     const equipoConSubtotal = {
       inventarioId: parseInt(nuevoEquipo.inventarioId),
       marca: equipoSeleccionado.marca,
       modelo: equipoSeleccionado.modelo,
       capacidadBTU: equipoSeleccionado.capacidadBTU,
       cantidad: nuevoEquipo.cantidad,
-      precioUnitario: nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente,
-      subtotal: nuevoEquipo.cantidad * (nuevoEquipo.precioUnitario || equipoSeleccionado.precioCliente)
+      precioUnitario: precioUnitEq,
+      descuento: descuentoEqPct,
+      subtotal: precioBaseEq - descuentoEqMonto
     }
 
     setEquipos([...equipos, equipoConSubtotal])
@@ -392,7 +433,9 @@ function Cotizaciones() {
     setNuevoEquipo({
       inventarioId: '',
       cantidad: 1,
-      precioUnitario: 0
+      precioUnitario: 0,
+      descuento: 0,
+      descuentoMonto: 0
     })
 
     toast.success('Equipo agregado')
@@ -401,6 +444,106 @@ function Cotizaciones() {
   const eliminarEquipo = (index) => {
     setEquipos(equipos.filter((_, i) => i !== index))
     toast.success('Equipo eliminado')
+  }
+
+  const agregarInstalacion = () => {
+    if (!nuevaInstalacion.nombre.trim()) {
+      toast.error('Ingresa un nombre para la instalación')
+      return
+    }
+    if (!nuevaInstalacion.precio || nuevaInstalacion.precio <= 0) {
+      toast.error('El precio debe ser mayor a 0')
+      return
+    }
+
+    const descuentoPct = parseFloat(nuevaInstalacion.descuento) || 0
+    const precio = parseFloat(nuevaInstalacion.precio)
+    const montoDescuento = precio * (descuentoPct / 100)
+    const subtotal = precio - montoDescuento
+
+    setInstalaciones([...instalaciones, {
+      ...nuevaInstalacion,
+      precio,
+      descuento: descuentoPct,
+      subtotal
+    }])
+
+    setNuevaInstalacion({
+      nombre: '',
+      descripcion: '',
+      precio: 0,
+      descuento: 0,
+      descuentoMonto: 0
+    })
+
+    toast.success('Instalación agregada')
+  }
+
+  const eliminarInstalacion = (index) => {
+    setInstalaciones(instalaciones.filter((_, i) => i !== index))
+    toast.success('Instalación eliminada')
+  }
+
+  // Seleccionar tipo de instalación del catálogo
+  const handleTipoInstalacionSelect = (tipoId) => {
+    if (!tipoId) {
+      setNuevaInstalacion({ nombre: '', descripcion: '', precio: 0, descuento: 0, descuentoMonto: 0 })
+      return
+    }
+    const tipo = tiposInstalacion.find(t => t.id === parseInt(tipoId))
+    if (tipo) {
+      setNuevaInstalacion({
+        nombre: tipo.nombre,
+        descripcion: tipo.descripcion || '',
+        precio: tipo.precio,
+        descuento: 0,
+        descuentoMonto: 0
+      })
+    }
+  }
+
+  // Guardar tipo de instalación en el catálogo
+  const guardarTipoInstalacion = async () => {
+    if (!nuevaInstalacion.nombre.trim() || nuevaInstalacion.precio <= 0) {
+      toast.error('Ingresa nombre y precio antes de guardar')
+      return
+    }
+    try {
+      const nuevoTipo = await createTipoInstalacion({
+        nombre: nuevaInstalacion.nombre.trim(),
+        descripcion: nuevaInstalacion.descripcion?.trim() || null,
+        precio: parseFloat(nuevaInstalacion.precio)
+      })
+      setTiposInstalacion([...tiposInstalacion, nuevoTipo])
+      toast.success(`Tipo "${nuevoTipo.nombre}" guardado en el catálogo`)
+    } catch (error) {
+      console.error('Error al guardar tipo:', error)
+      toast.error('Error al guardar el tipo de instalación')
+    }
+  }
+
+  // Descuento bidireccional: cambiar monto → calcula %
+  const handleDescuentoMontoChange = (monto) => {
+    const precio = parseFloat(nuevaInstalacion.precio) || 0
+    const montoNum = parseFloat(monto) || 0
+    const porcentaje = precio > 0 ? (montoNum / precio) * 100 : 0
+    setNuevaInstalacion(prev => ({
+      ...prev,
+      descuentoMonto: montoNum,
+      descuento: Math.round(porcentaje * 100) / 100
+    }))
+  }
+
+  // Descuento bidireccional: cambiar % → calcula monto
+  const handleDescuentoPctChange = (pct) => {
+    const precio = parseFloat(nuevaInstalacion.precio) || 0
+    const pctNum = parseFloat(pct) || 0
+    const monto = precio * (pctNum / 100)
+    setNuevaInstalacion(prev => ({
+      ...prev,
+      descuento: pctNum,
+      descuentoMonto: Math.round(monto)
+    }))
   }
 
   const handleSubmit = async (e) => {
@@ -413,11 +556,11 @@ function Cotizaciones() {
         : parseFloat(formData.precioOfertado) || 0
 
       const totalMateriales = calcularTotalMateriales()
-      const costoInstalacion = parseFloat(formData.costoInstalacion) || 0
+      const totalInstalacionesCalc = calcularTotalInstalaciones()
       const descuento = parseFloat(formData.descuento) || 0
 
       // Calcular subtotal y precio final
-      const subtotal = totalEquipos + totalMateriales + costoInstalacion
+      const subtotal = totalEquipos + totalMateriales + totalInstalacionesCalc
       const montoDescuento = subtotal * (descuento / 100)
       const precioFinal = subtotal - montoDescuento
 
@@ -425,12 +568,12 @@ function Cotizaciones() {
       const dataToSend = {
         tipo: formData.tipo,
         clienteId: parseInt(formData.clienteId),
-        precioOfertado: totalEquipos,           // ⭐ Total de equipos
-        costoInstalacion: costoInstalacion,     // ⭐ Costo instalación
-        costoMaterial: totalMateriales,         // ⭐ Total materiales
-        subtotal: subtotal,                     // ⭐ REQUERIDO
-        descuento: descuento,                   // ⭐ % de descuento
-        precioFinal: precioFinal,               // ⭐ REQUERIDO
+        precioOfertado: totalEquipos,
+        costoInstalacion: totalInstalacionesCalc,
+        costoMaterial: totalMateriales,
+        subtotal: subtotal,
+        descuento: descuento,
+        precioFinal: precioFinal,
         notas: formData.notas,
         agente: formData.agente || JSON.parse(localStorage.getItem('user'))?.name || 'Administrador',
         direccionInstalacion: formData.direccionInstalacion,
@@ -440,7 +583,15 @@ function Cotizaciones() {
           unidad: mat.unidad,
           precioUnitario: parseFloat(mat.precioUnitario),
           subtotal: parseFloat(mat.subtotal),
+          descuento: parseFloat(mat.descuento || 0),
           descripcion: mat.descripcion || ''
+        })),
+        instalaciones: instalaciones.map(inst => ({
+          nombre: inst.nombre,
+          descripcion: inst.descripcion || '',
+          precio: parseFloat(inst.precio),
+          descuento: parseFloat(inst.descuento || 0),
+          subtotal: parseFloat(inst.subtotal)
         }))
       }
 
@@ -516,6 +667,10 @@ function Cotizaciones() {
       setEquipos(cotizacion.equipos)
     }
 
+    if (cotizacion.instalaciones && cotizacion.instalaciones.length > 0) {
+      setInstalaciones(cotizacion.instalaciones)
+    }
+
     setShowModal(true)
   }
 
@@ -537,6 +692,7 @@ function Cotizaciones() {
 
   const handleAprobar = (cotizacion) => {
     setCotizacionToApprove(cotizacion)
+    setFechaInstalacion(new Date().toISOString().split('T')[0]) // Reset fecha al abrir
     setShowApproveModal(true)
   }
 
@@ -548,7 +704,9 @@ function Cotizaciones() {
 
       const loadingToast = toast.loading('Aprobando cotización...')
 
-      const resultado = await aprobarCotizacion(cotizacionToApprove.id)
+      const resultado = await aprobarCotizacion(cotizacionToApprove.id, {
+        fechaInstalacion
+      })
 
       toast.dismiss(loadingToast)
 
@@ -662,6 +820,14 @@ function Cotizaciones() {
     })
     // ⭐ NUEVO: Limpiar búsqueda
     setBusquedaEquipo('')
+    setInstalaciones([])
+    setNuevaInstalacion({
+      nombre: '',
+      descripcion: '',
+      precio: 0,
+      descuento: 0,
+      descuentoMonto: 0
+    })
   }
 
   const clearFilters = () => {
@@ -1109,7 +1275,9 @@ function Cotizaciones() {
                             setNuevoEquipo({
                               inventarioId,
                               cantidad: 1,
-                              precioUnitario: equipo?.precioCliente || 0
+                              precioUnitario: equipo?.precioCliente || 0,
+                              descuento: 0,
+                              descuentoMonto: 0
                             })
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
@@ -1141,7 +1309,7 @@ function Cotizaciones() {
                         />
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <label className="block text-xs font-medium text-gray-700 mb-1">
                           Precio Unitario
                         </label>
@@ -1152,6 +1320,41 @@ function Cotizaciones() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           min="0"
                           step="1"
+                        />
+                      </div>
+
+                      <div className="col-span-1">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. $</label>
+                        <input
+                          type="number"
+                          value={nuevoEquipo.descuentoMonto}
+                          onChange={(e) => {
+                            const monto = parseFloat(e.target.value) || 0
+                            const precio = (nuevoEquipo.precioUnitario || 0) * (nuevoEquipo.cantidad || 1)
+                            const pct = precio > 0 ? (monto / precio) * 100 : 0
+                            setNuevoEquipo(prev => ({ ...prev, descuentoMonto: monto, descuento: Math.round(pct * 100) / 100 }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+
+                      <div className="col-span-1">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. %</label>
+                        <input
+                          type="number"
+                          value={nuevoEquipo.descuento}
+                          onChange={(e) => {
+                            const pct = parseFloat(e.target.value) || 0
+                            const precio = (nuevoEquipo.precioUnitario || 0) * (nuevoEquipo.cantidad || 1)
+                            const monto = precio * (pct / 100)
+                            setNuevoEquipo(prev => ({ ...prev, descuento: pct, descuentoMonto: Math.round(monto) }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          max="100"
+                          step="0.01"
                         />
                       </div>
 
@@ -1177,6 +1380,7 @@ function Cotizaciones() {
                             <th className="px-4 py-2 text-left">Equipo</th>
                             <th className="px-4 py-2 text-center">Cantidad</th>
                             <th className="px-4 py-2 text-right">Precio Unit.</th>
+                            <th className="px-4 py-2 text-right">Desc. %</th>
                             <th className="px-4 py-2 text-right">Subtotal</th>
                             <th className="px-4 py-2 text-center">Acción</th>
                           </tr>
@@ -1196,6 +1400,9 @@ function Cotizaciones() {
                               <td className="px-4 py-2 text-right">
                                 ${equipo.precioUnitario.toLocaleString('es-CL')}
                               </td>
+                              <td className="px-4 py-2 text-right">
+                                {equipo.descuento > 0 ? <span className="text-red-600">{equipo.descuento}%</span> : '0%'}
+                              </td>
                               <td className="px-4 py-2 text-right font-bold text-green-600">
                                 ${equipo.subtotal.toLocaleString('es-CL')}
                               </td>
@@ -1214,7 +1421,7 @@ function Cotizaciones() {
                         </tbody>
                         <tfoot className="bg-blue-50 border-t-2 border-blue-300">
                           <tr>
-                            <td colSpan="3" className="px-4 py-3 text-right font-bold text-gray-900">
+                            <td colSpan="4" className="px-4 py-3 text-right font-bold text-gray-900">
                               Total Equipos:
                             </td>
                             <td className="px-4 py-3 text-right font-bold text-blue-600 text-lg">
@@ -1265,83 +1472,6 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* Precios */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.tipo === 'instalacion' && 'Precio Total Equipos'}
-                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
-                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.precioOfertado}
-                    onChange={(e) => setFormData({ ...formData, precioOfertado: e.target.value })}
-                    step="1"
-                    min="0"
-                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''
-                      }`}
-                    required
-                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
-                  />
-                  {formData.tipo === 'instalacion' && equipos.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      💡 Se calcula automáticamente con los equipos
-                    </p>
-                  )}
-                </div>
-
-                {formData.tipo === 'instalacion' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Costo Instalación *
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.costoInstalacion}
-                      onChange={(e) => setFormData({ ...formData, costoInstalacion: e.target.value })}
-                      step="1"
-                      min="0"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Costo Materiales
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.costoMaterial}
-                    onChange={(e) => setFormData({ ...formData, costoMaterial: e.target.value })}
-                    step="1"
-                    min="0"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-gray-100"
-                    readOnly
-                    title="Se calcula automáticamente desde los materiales agregados"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    💡 Se calcula automáticamente con los materiales
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descuento (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.descuento}
-                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
 
               {/* SECCIÓN MATERIALES */}
               <div className="border-t pt-4">
@@ -1381,7 +1511,7 @@ function Cotizaciones() {
                     </div>
 
                     {/* CANTIDAD */}
-                    <div>
+                    <div className="col-span-2 sm:col-span-1">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Cantidad *
                       </label>
@@ -1396,8 +1526,59 @@ function Cotizaciones() {
                       />
                     </div>
 
+                    {/* DESCUENTO $ */}
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Desc. $
+                      </label>
+                      <input
+                        type="number"
+                        value={nuevoMaterial.descuentoMonto}
+                        onChange={(e) => {
+                          const monto = parseFloat(e.target.value) || 0
+                          const precioBase = (nuevoMaterial.precioUnitario || 0) * (nuevoMaterial.cantidad || 0)
+                          const pct = precioBase > 0 ? (monto / precioBase) * 100 : 0
+                          setNuevoMaterial(prev => ({
+                            ...prev,
+                            descuentoMonto: monto,
+                            descuento: Math.round(pct * 100) / 100
+                          }))
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                        min="0"
+                        step="1"
+                        disabled={!nuevoMaterial.materialInventarioId}
+                      />
+                    </div>
+
+                    {/* DESCUENTO % */}
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Desc. %
+                      </label>
+                      <input
+                        type="number"
+                        value={nuevoMaterial.descuento}
+                        onChange={(e) => {
+                          const pct = parseFloat(e.target.value) || 0
+                          const precioBase = (nuevoMaterial.precioUnitario || 0) * (nuevoMaterial.cantidad || 0)
+                          const monto = precioBase * (pct / 100)
+                          setNuevoMaterial(prev => ({
+                            ...prev,
+                            descuento: pct,
+                            descuentoMonto: Math.round(monto)
+                          }))
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        disabled={!nuevoMaterial.materialInventarioId}
+                      />
+                    </div>
+
                     {/* UNIDAD (AUTO-COMPLETADA) */}
-                    <div>
+                    <div className="col-span-2 sm:col-span-1 border-l pl-3 ml-1">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Unidad
                       </label>
@@ -1411,7 +1592,7 @@ function Cotizaciones() {
                     </div>
 
                     {/* BOTÓN AGREGAR */}
-                    <div className="flex items-end">
+                    <div className="flex items-end col-span-5 sm:col-span-1 mt-2 sm:mt-0">
                       <button
                         type="button"
                         onClick={agregarMaterial}
@@ -1435,9 +1616,15 @@ function Cotizaciones() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-medium text-blue-800">Subtotal:</span>
-                          <span className="text-sm font-bold text-blue-900">
-                            ${(nuevoMaterial.cantidad * nuevoMaterial.precioUnitario).toLocaleString('es-CL')}
+                          <span className="text-xs font-medium text-amber-800">Descuento:</span>
+                          <span className="text-sm font-bold text-amber-900">
+                            -${(nuevoMaterial.descuentoMonto).toLocaleString('es-CL')} ({nuevoMaterial.descuento}%)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-medium text-green-800">Subtotal Final:</span>
+                          <span className="text-sm font-bold text-green-900">
+                            ${((nuevoMaterial.cantidad * nuevoMaterial.precioUnitario) - nuevoMaterial.descuentoMonto).toLocaleString('es-CL')}
                           </span>
                         </div>
                       </div>
@@ -1451,7 +1638,9 @@ function Cotizaciones() {
                               nombre: '',
                               cantidad: 1,
                               unidad: 'unidades',
-                              precioUnitario: 0
+                              precioUnitario: 0,
+                              descuento: 0,
+                              descuentoMonto: 0
                             })
                           }}
                           className="text-sm text-gray-600 hover:text-gray-800 underline"
@@ -1473,6 +1662,7 @@ function Cotizaciones() {
                           <th className="px-3 py-2 text-center font-medium text-gray-700">Cantidad</th>
                           <th className="px-3 py-2 text-center font-medium text-gray-700">Unidad</th>
                           <th className="px-3 py-2 text-right font-medium text-gray-700">Precio Unit.</th>
+                          <th className="px-3 py-2 text-right font-medium text-gray-700">Desc. %</th>
                           <th className="px-3 py-2 text-right font-medium text-gray-700">Subtotal</th>
                           <th className="px-3 py-2 text-center font-medium text-gray-700">Acción</th>
                         </tr>
@@ -1485,6 +1675,9 @@ function Cotizaciones() {
                             <td className="px-3 py-2 text-center">{material.unidad}</td>
                             <td className="px-3 py-2 text-right">
                               ${material.precioUnitario.toLocaleString('es-CL')}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              {material.descuento > 0 ? <span className="text-red-600">{material.descuento}%</span> : '0%'}
                             </td>
                             <td className="px-3 py-2 text-right font-medium">
                               ${material.subtotal.toLocaleString('es-CL')}
@@ -1504,7 +1697,7 @@ function Cotizaciones() {
                       </tbody>
                       <tfoot className="bg-gray-50">
                         <tr className="border-t-2 border-gray-300">
-                          <td colSpan="4" className="px-3 py-2 text-right font-bold text-gray-700">
+                          <td colSpan="5" className="px-3 py-2 text-right font-bold text-gray-700">
                             Total Materiales:
                           </td>
                           <td className="px-3 py-2 text-right font-bold text-green-600">
@@ -1525,7 +1718,235 @@ function Cotizaciones() {
                 )}
               </div>
 
-              {/* Vista Previa del Total */}
+              {/* SECCIÓN INSTALACIONES */}
+              {formData.tipo === 'instalacion' && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    🔧 Costos de Instalación
+                    <span className="text-sm font-normal text-gray-600">
+                      ({instalaciones.length} {instalaciones.length === 1 ? 'instalación' : 'instalaciones'})
+                    </span>
+                  </h3>
+
+                  <div className="bg-amber-50 p-4 rounded-lg mb-4 border border-amber-200">
+                    {/* Selector de tipo guardado */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Seleccionar tipo guardado</label>
+                      <div className="flex gap-2">
+                        <select
+                          onChange={(e) => handleTipoInstalacionSelect(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white"
+                        >
+                          <option value="">Seleccionar o escribir manualmente...</option>
+                          {tiposInstalacion.map(tipo => (
+                            <option key={tipo.id} value={tipo.id}>
+                              {tipo.nombre} - ${tipo.precio.toLocaleString('es-CL')}
+                            </option>
+                          ))}
+                        </select>
+                        {nuevaInstalacion.nombre.trim() && nuevaInstalacion.precio > 0 && (
+                          <button
+                            type="button"
+                            onClick={guardarTipoInstalacion}
+                            className="px-3 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 text-xs font-medium border border-amber-300 whitespace-nowrap transition-colors"
+                            title="Guardar este tipo para reutilizar"
+                          >
+                            💾 Guardar tipo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="col-span-4">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+                        <input
+                          type="text"
+                          value={nuevaInstalacion.nombre}
+                          onChange={(e) => setNuevaInstalacion(prev => ({ ...prev, nombre: e.target.value }))}
+                          placeholder="Ej: Instalación estándar"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Precio *</label>
+                        <input
+                          type="number"
+                          value={nuevaInstalacion.precio}
+                          onChange={(e) => {
+                            const precio = parseFloat(e.target.value) || 0
+                            setNuevaInstalacion(prev => ({
+                              ...prev,
+                              precio,
+                              descuentoMonto: precio * (prev.descuento / 100)
+                            }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. $</label>
+                        <input
+                          type="number"
+                          value={nuevaInstalacion.descuentoMonto}
+                          onChange={(e) => handleDescuentoMontoChange(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. %</label>
+                        <input
+                          type="number"
+                          value={nuevaInstalacion.descuento}
+                          onChange={(e) => handleDescuentoPctChange(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="col-span-2 flex items-end">
+                        <button
+                          type="button"
+                          onClick={agregarInstalacion}
+                          className="w-full px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center justify-center transition-colors text-sm font-medium"
+                          disabled={!nuevaInstalacion.nombre.trim() || nuevaInstalacion.precio <= 0}
+                        >
+                          <Plus size={16} className="mr-1" /> Agregar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {instalaciones.length > 0 && (
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-amber-600 text-white">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Instalación</th>
+                            <th className="px-4 py-2 text-right">Precio</th>
+                            <th className="px-4 py-2 text-right">Desc. %</th>
+                            <th className="px-4 py-2 text-right">Subtotal</th>
+                            <th className="px-4 py-2 text-center">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                          {instalaciones.map((inst, index) => (
+                            <tr key={index} className="border-t hover:bg-gray-50">
+                              <td className="px-4 py-2">
+                                <span className="font-medium">{inst.nombre}</span>
+                                {inst.descripcion && (
+                                  <span className="text-xs text-gray-500 block">{inst.descripcion}</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-2 text-right">${inst.precio.toLocaleString('es-CL')}</td>
+                              <td className="px-4 py-2 text-right">
+                                {inst.descuento > 0 ? <span className="text-red-600">{inst.descuento}%</span> : '0%'}
+                              </td>
+                              <td className="px-4 py-2 text-right font-bold text-green-600">
+                                ${inst.subtotal.toLocaleString('es-CL')}
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarInstalacion(index)}
+                                  className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                  title="Eliminar instalación"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-amber-50 border-t-2 border-amber-300">
+                          <tr>
+                            <td colSpan="3" className="px-4 py-3 text-right font-bold text-gray-900">
+                              Total Instalación:
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-amber-600 text-lg">
+                              ${calcularTotalInstalaciones().toLocaleString('es-CL')}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {instalaciones.length === 0 && (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <p className="text-sm">No hay costos de instalación agregados</p>
+                      <p className="text-xs mt-1">Agrega costos de instalación usando el formulario de arriba</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Precios y Descuento */}
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.tipo === 'instalacion' && 'Precio Total Equipos'}
+                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
+                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.precioOfertado}
+                    onChange={(e) => setFormData({ ...formData, precioOfertado: e.target.value })}
+                    step="1"
+                    min="0"
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''}`}
+                    required
+                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
+                  />
+                  {formData.tipo === 'instalacion' && equipos.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Se calcula automáticamente con los equipos
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Costo Materiales
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.costoMaterial}
+                    onChange={(e) => setFormData({ ...formData, costoMaterial: e.target.value })}
+                    step="1"
+                    min="0"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100"
+                    readOnly
+                    title="Se calcula automáticamente desde los materiales agregados"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Se calcula automáticamente con los materiales
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descuento Global (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.descuento}
+                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
               {formData.precioOfertado && (
                 <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
                   <div className="space-y-2 text-sm">
@@ -1537,10 +1958,10 @@ function Cotizaciones() {
                       </span>
                       <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
                     </div>
-                    {formData.tipo === 'instalacion' && (
+                    {instalaciones.length > 0 && (
                       <div className="flex justify-between">
-                        <span>Instalación:</span>
-                        <span>${parseFloat(formData.costoInstalacion || 0).toLocaleString('es-CL')}</span>
+                        <span>Instalación ({instalaciones.length}):</span>
+                        <span>${calcularTotalInstalaciones().toLocaleString('es-CL')}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -1549,7 +1970,7 @@ function Cotizaciones() {
                     </div>
                     {formData.descuento > 0 && (
                       <div className="flex justify-between text-red-600">
-                        <span>Descuento ({formData.descuento}%):</span>
+                        <span>Descuento Global ({formData.descuento}%):</span>
                         <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString('es-CL')}</span>
                       </div>
                     )}
@@ -1567,13 +1988,59 @@ function Cotizaciones() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Dirección de Instalación
                   </label>
-                  <input
-                    type="text"
-                    value={formData.direccionInstalacion}
-                    onChange={(e) => setFormData({ ...formData, direccionInstalacion: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    placeholder="Dirección donde se realizará la instalación"
-                  />
+                  
+                  {(() => {
+                    const clienteSel = clientes.find(c => c.id.toString() === formData.clienteId)
+                    const direcciones = clienteSel?.direcciones || []
+                    
+                    if (direcciones.length === 0 || isCustomAddress) {
+                      return (
+                        <div className="flex flex-col gap-2">
+                          <input
+                            type="text"
+                            value={formData.direccionInstalacion}
+                            onChange={(e) => setFormData({ ...formData, direccionInstalacion: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                            placeholder="Ingrese la dirección exacta..."
+                            autoFocus={isCustomAddress}
+                          />
+                          {direcciones.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setIsCustomAddress(false)}
+                              className="text-xs text-blue-600 hover:text-blue-800 self-start mt-1 underline"
+                            >
+                              Seleccionar de las direcciones guardadas
+                            </button>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <select
+                        value={formData.direccionInstalacion}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === 'CUSTOM') {
+                            setIsCustomAddress(true)
+                            setFormData({ ...formData, direccionInstalacion: '' })
+                          } else {
+                            setFormData({ ...formData, direccionInstalacion: val })
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                      >
+                        <option value="">Seleccionar dirección...</option>
+                        {direcciones.map((dir) => (
+                          <option key={dir.id} value={dir.direccion}>
+                            {dir.nombre} - {dir.direccion} {dir.comuna ? `(${dir.comuna})` : ''}
+                          </option>
+                        ))}
+                        <option value="CUSTOM">+ Otra dirección (Manual)</option>
+                      </select>
+                    )
+                  })()}
                 </div>
               )}
 
@@ -1657,6 +2124,26 @@ function Cotizaciones() {
                   </div>
                 </div>
               </div>
+
+              {/* Selector de Fecha de Instalación */}
+              <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha de Instalación / Servicio
+                </label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="date"
+                    value={fechaInstalacion}
+                    onChange={(e) => setFechaInstalacion(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                    min={new Date().toISOString().split('T')[0]} // No permitir fechas pasadas
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Esta fecha se usará para programar automáticamente la Orden de Trabajo.
+                </p>
+              </div>
+
             </div>
 
             <div className="flex gap-3">

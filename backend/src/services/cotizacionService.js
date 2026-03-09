@@ -13,7 +13,7 @@ const prisma = new PrismaClient()
  * APROBAR COTIZACIÓN
  * Flujo automático: Cotización → Cliente → Equipo → Orden de Trabajo → Update Stock
  */
-export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
+export const aprobarCotizacion = async (cotizacionId, usuarioId, payload = {}) => {
   try {
     console.log(`\n🔄 Iniciando aprobación de cotización #${cotizacionId}`)
 
@@ -24,7 +24,7 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
         cliente: true,
         inventario: true,
         equipos: true,      // ⭐ INCLUIR EQUIPOS MÚLTIPLES
-        materiales: true    // ⭐ INCLUIR MATERIALES
+        materiales: true,    // ⭐ INCLUIR MATERIALES\r\n        instalaciones: true  // ⭐ INCLUIR INSTALACIONES
       }
     })
 
@@ -72,20 +72,20 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId) => {
 
     if (cotizacion.tipo === 'instalacion') {
       // FLUJO INSTALACIÓN
-      const resultado = await procesarInstalacion(cotizacion, cliente)
+      const resultado = await procesarInstalacion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
       equiposCreados = resultado.equiposCreados || 1
 
     } else if (cotizacion.tipo === 'mantencion') {
       // FLUJO MANTENCIÓN
-      const resultado = await procesarMantencion(cotizacion, cliente)
+      const resultado = await procesarMantencion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
 
     } else if (cotizacion.tipo === 'reparacion') {
       // FLUJO REPARACIÓN
-      const resultado = await procesarReparacion(cotizacion, cliente)
+      const resultado = await procesarReparacion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
     }
@@ -217,7 +217,7 @@ const validarCotizacionPorTipo = async (cotizacion) => {
  * 3. Reducir stock del inventario
  * 4. Crear orden de trabajo
  */
-const procesarInstalacion = async (cotizacion, cliente) => {
+const procesarInstalacion = async (cotizacion, cliente, payload = {}) => {
   try {
     console.log(`\n🔧 Procesando instalación...`)
 
@@ -353,12 +353,12 @@ const procesarInstalacion = async (cotizacion, cliente) => {
       data: {
         tipo: 'instalacion',
         estado: 'pendiente',
-        fecha: calcularFechaInstalacion(),
+        fecha: payload.fechaInstalacion ? new Date(payload.fechaInstalacion) : calcularFechaInstalacion(),
         clienteId: cliente.id,
         equipoId: equipoPrincipal.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
-        notas: `Instalación de ${descripcionEquipos}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}`
+        notas: `Instalación de ${descripcionEquipos}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
       }
     })
 
@@ -382,7 +382,7 @@ const procesarInstalacion = async (cotizacion, cliente) => {
  * 1. Buscar equipo existente del cliente
  * 2. Crear orden de trabajo de mantención
  */
-const procesarMantencion = async (cotizacion, cliente) => {
+const procesarMantencion = async (cotizacion, cliente, payload = {}) => {
   try {
     console.log(`\n🔧 Procesando mantención...`)
 
@@ -403,12 +403,12 @@ const procesarMantencion = async (cotizacion, cliente) => {
       data: {
         tipo: 'mantencion',
         estado: 'pendiente',
-        fecha: calcularFechaInstalacion(), // Próximo día disponible
+        fecha: payload.fechaInstalacion ? new Date(payload.fechaInstalacion) : calcularFechaInstalacion(), // Próximo día disponible
         clienteId: cliente.id,
         equipoId: equipo.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
-        notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}`
+        notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
       }
     })
 
@@ -434,7 +434,7 @@ const procesarMantencion = async (cotizacion, cliente) => {
  * PROCESAR REPARACIÓN
  * Similar a mantención pero con posibilidad de reemplazo de equipo
  */
-const procesarReparacion = async (cotizacion, cliente) => {
+const procesarReparacion = async (cotizacion, cliente, payload = {}) => {
   try {
     console.log(`\n🔨 Procesando reparación...`)
 
@@ -455,13 +455,13 @@ const procesarReparacion = async (cotizacion, cliente) => {
       data: {
         tipo: 'reparacion',
         estado: 'pendiente',
-        fecha: calcularFechaInstalacion(),
+        fecha: payload.fechaInstalacion ? new Date(payload.fechaInstalacion) : calcularFechaInstalacion(),
         clienteId: cliente.id,
         equipoId: equipo.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         costoMateriales: cotizacion.costoMaterial || 0,
-        notas: `Reparación de ${equipo.marca} ${equipo.modelo}`
+        notas: `Reparación de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
       }
     })
 
