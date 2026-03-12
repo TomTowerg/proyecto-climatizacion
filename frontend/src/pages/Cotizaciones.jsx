@@ -2184,6 +2184,7 @@ function Cotizaciones() {
       {showPDFModal && pdfCotizacionId && (
         <VisorPDF
           cotizacionId={pdfCotizacionId}
+          clienteNombre={cotizaciones.find(c => c.id === pdfCotizacionId)?.cliente?.nombre}
           onClose={() => {
             setShowPDFModal(false)
             setPdfCotizacionId(null)

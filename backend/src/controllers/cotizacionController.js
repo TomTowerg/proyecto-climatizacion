@@ -554,11 +554,13 @@ export const generarPDF = async (req, res) => {
     const { generarPDFCotizacion } = await import('../services/pdfService.js')
 
     const resultado = await generarPDFCotizacion(cotizacion)
-
     if (resultado.success) {
       // Enviar el archivo PDF
+      const clienteNombre = cotizacion.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
+      const nombreArchivo = `cotizacion-${clienteNombre}.pdf`
+
       res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Disposition', `inline; filename=${resultado.fileName}`)
+      res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`)
       res.sendFile(resultado.filePath)
     } else {
       res.status(500).json({ error: 'Error al generar PDF' })

@@ -453,8 +453,7 @@ export const generarPDF = async (req, res) => {
 
     // ⭐ NOMBRE PERSONALIZADO
     const clienteNombre = orden.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-    const fecha = new Date().toISOString().split('T')[0]
-    const nombreArchivo = `OT-${orden.id.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+    const nombreArchivo = `orden-trabajo-${clienteNombre}.pdf`
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`)

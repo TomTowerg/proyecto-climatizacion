@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Download, ExternalLink, Loader, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-function VisorPDF({ cotizacionId, onClose }) {
+function VisorPDF({ cotizacionId, clienteNombre, onClose }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [pdfUrl, setPdfUrl] = useState(null)
@@ -62,7 +62,9 @@ function VisorPDF({ cotizacionId, onClose }) {
       const url = window.URL.createObjectURL(pdfBlob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `cotizacion-${cotizacionId.toString().padStart(6, '0')}.pdf`
+      const safeName = (clienteNombre || 'Cliente').replace(/\s+/g, '-')
+      const nombreArchivo = `cotizacion-${safeName}.pdf`
+      a.download = nombreArchivo
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -85,7 +87,9 @@ function VisorPDF({ cotizacionId, onClose }) {
     const a = document.createElement('a')
     a.href = pdfUrl
     a.target = '_blank'
-    a.download = `cotizacion-${cotizacionId.toString().padStart(6, '0')}.pdf`
+    const safeName = (clienteNombre || 'Cliente').replace(/\s+/g, '-')
+    const nombreArchivo = `cotizacion-${safeName}.pdf`
+    a.download = nombreArchivo
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

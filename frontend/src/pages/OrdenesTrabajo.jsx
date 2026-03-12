@@ -159,8 +159,7 @@ function OrdenesTrabajo() {
 
       const orden = ordenes.find(o => o.id === ordenId)
       const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-      const fecha = new Date().toISOString().split('T')[0]
-      const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-${fecha}.pdf`
+      const nombreArchivo = `orden-trabajo-${clienteNombre}.pdf`
 
       const a = document.createElement('a')
       a.href = url
@@ -260,7 +259,7 @@ function OrdenesTrabajo() {
 
       const orden = ordenes.find(o => o.id === ordenId)
       const clienteNombre = orden?.cliente?.nombre.replace(/\s+/g, '-') || 'Cliente'
-      const nombreArchivo = `OT-${ordenId.toString().padStart(6, '0')}-${clienteNombre}-Firmada.pdf`
+      const nombreArchivo = `orden-trabajo-${clienteNombre}-firmada.pdf`
 
       const a = document.createElement('a')
       a.href = url
