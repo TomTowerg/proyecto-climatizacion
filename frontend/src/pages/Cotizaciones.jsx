@@ -202,11 +202,19 @@ function Cotizaciones() {
         inventarioId: '',
         precioOfertado: '60000'
       }))
+    } else if (formData.tipo === 'visita_tecnica') {
+      setFormData(prev => ({
+        ...prev,
+        costoInstalacion: '0',
+        costoMaterial: '0',
+        inventarioId: '',
+        precioOfertado: '25000'
+      }))
     }
   }, [formData.tipo])
 
   useEffect(() => {
-    if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion')) {
+    if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica')) {
       fetchEquiposCliente(formData.clienteId)
     }
   }, [formData.clienteId, formData.tipo])
@@ -713,7 +721,8 @@ function Cotizaciones() {
       const mensajesTipo = {
         instalacion: 'Equipo registrado',
         mantencion: 'Mantención programada',
-        reparacion: 'Reparación programada'
+        reparacion: 'Reparación programada',
+        visita_tecnica: 'Visita técnica programada'
       }
 
       toast.success(
@@ -856,12 +865,14 @@ function Cotizaciones() {
     const badges = {
       instalacion: 'bg-blue-100 text-blue-800',
       mantencion: 'bg-purple-100 text-purple-800',
-      reparacion: 'bg-orange-100 text-orange-800'
+      reparacion: 'bg-orange-100 text-orange-800',
+      visita_tecnica: 'bg-teal-100 text-teal-800'
     }
     const labels = {
       instalacion: '🔧 Instalación',
       mantencion: '⚙️ Mantención',
-      reparacion: '🔨 Reparación'
+      reparacion: '🔨 Reparación',
+      visita_tecnica: '🔍 Visita Técnica'
     }
     return (
       <span className={`badge-compacto ${badges[tipo]}`}>
@@ -985,6 +996,7 @@ function Cotizaciones() {
                 <option value="instalacion">Instalación</option>
                 <option value="mantencion">Mantención</option>
                 <option value="reparacion">Reparación</option>
+                <option value="visita_tecnica">Visita Técnica</option>
               </select>
 
               {(filters.estado || filters.tipo) && (
@@ -1163,7 +1175,7 @@ function Cotizaciones() {
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
                 <div className="grid grid-cols-3 gap-3">
-                  {['instalacion', 'mantencion', 'reparacion'].map((tipo) => (
+                  {['instalacion', 'mantencion', 'reparacion', 'visita_tecnica'].map((tipo) => (
                     <label
                       key={tipo}
                       className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all ${formData.tipo === tipo
@@ -1183,6 +1195,7 @@ function Cotizaciones() {
                         {tipo === 'instalacion' && '🔧 Instalación'}
                         {tipo === 'mantencion' && '⚙️ Mantención'}
                         {tipo === 'reparacion' && '🔨 Reparación'}
+                        {tipo === 'visita_tecnica' && '🔍 Visita Técnica'}
                       </span>
                     </label>
                   ))}
@@ -1443,8 +1456,8 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* MANTENCIÓN/REPARACIÓN: Mostrar equipos del cliente */}
-              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion') && (
+              {/* MANTENCIÓN/REPARACIÓN/VISITA TÉCNICA: Mostrar equipos del cliente */}
+              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Equipo del Cliente *
@@ -1894,6 +1907,7 @@ function Cotizaciones() {
                     {formData.tipo === 'instalacion' && 'Precio Total Equipos'}
                     {formData.tipo === 'mantencion' && 'Precio Mantención *'}
                     {formData.tipo === 'reparacion' && 'Precio Reparación *'}
+                    {formData.tipo === 'visita_tecnica' && 'Costo Visita Técnica *'}
                   </label>
                   <input
                     type="number"
@@ -1955,6 +1969,7 @@ function Cotizaciones() {
                         {formData.tipo === 'instalacion' && 'Equipos:'}
                         {formData.tipo === 'mantencion' && 'Mantención:'}
                         {formData.tipo === 'reparacion' && 'Reparación:'}
+                        {formData.tipo === 'visita_tecnica' && 'Visita Técnica:'}
                       </span>
                       <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
                     </div>

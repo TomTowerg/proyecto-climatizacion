@@ -174,7 +174,8 @@
     "types": {
       "installation": "Instalación",
       "maintenance": "Mantención",
-      "repair": "Reparación"
+      "repair": "Reparación",
+      "technicalVisit": "Visita Técnica y Diagnóstico"
     },
     "urgencies": {
       "low": "Baja",
@@ -391,7 +392,8 @@
         "title": "¡Cotización aprobada exitosamente!",
         "installation": "✅ Equipo creado",
         "maintenance": "✅ Equipo asignado",
-        "repair": "✅ Equipo asignado"
+        "repair": "✅ Equipo asignado",
+        "visita_tecnica": "✅ Visita técnica programada"
       },
       "approvalError": "Error al aprobar cotización",
       "rejectReason": "Motivo del rechazo (opcional):",

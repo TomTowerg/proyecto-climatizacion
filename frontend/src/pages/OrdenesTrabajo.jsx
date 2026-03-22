@@ -412,13 +412,15 @@ function OrdenesTrabajo() {
       instalacion: 'bg-blue-100 text-blue-800',
       mantencion: 'bg-purple-100 text-purple-800',
       mantenimiento: 'bg-purple-100 text-purple-800',
-      reparacion: 'bg-orange-100 text-orange-800'
+      reparacion: 'bg-orange-100 text-orange-800',
+      visita_tecnica: 'bg-teal-100 text-teal-800'
     }
     const labels = {
       instalacion: `${t('workOrders.types.installation')}`,
       mantencion: `⚙️ ${t('workOrders.types.maintenance')}`,
       mantenimiento: `⚙️ ${t('workOrders.types.maintenance')}`,
-      reparacion: `🔨 ${t('workOrders.types.repair')}`
+      reparacion: `🔨 ${t('workOrders.types.repair')}`,
+      visita_tecnica: `🔍 ${t('workOrders.types.technicalVisit', 'Visita Técnica')}`
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo]}`}>
@@ -519,6 +521,7 @@ function OrdenesTrabajo() {
                 <option value="instalacion">{t('workOrders.types.installation')}</option>
                 <option value="mantencion">{t('workOrders.types.maintenance')}</option>
                 <option value="reparacion">{t('workOrders.types.repair')}</option>
+                <option value="visita_tecnica">{t('workOrders.types.technicalVisit', 'Visita Técnica')}</option>
               </select>
 
               {(filters.estado || filters.tipo) && (
@@ -582,6 +585,7 @@ function OrdenesTrabajo() {
                             {orden.tipo === 'instalacion' && 'Instalación'}
                             {orden.tipo === 'mantencion' && 'Mantención'}
                             {orden.tipo === 'reparacion' && 'Reparación'}
+                            {orden.tipo === 'visita_tecnica' && 'Visita Técnica'}
                           </span>
                           {' • '}
                           {(() => {
@@ -778,6 +782,7 @@ function OrdenesTrabajo() {
                     <option value="instalacion">{t('workOrders.types.installation')}</option>
                     <option value="mantencion">⚙️ {t('workOrders.types.maintenance')}</option>
                     <option value="reparacion">🔨 {t('workOrders.types.repair')}</option>
+                    <option value="visita_tecnica">🔍 {t('workOrders.types.technicalVisit', 'Visita Técnica')}</option>
                   </select>
                 </div>
 
