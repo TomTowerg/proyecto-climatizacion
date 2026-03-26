@@ -20,6 +20,7 @@ import {
 } from '../services/cotizacionService'
 import { getMateriales } from '../services/materialInventarioService'
 import { getTiposInstalacion, createTipoInstalacion } from '../services/tipoInstalacionService'
+import { getCatalogoServicios, createCatalogoServicio } from '../services/catalogoServicioService'
 import { getClientes, createCliente } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
 import { getEquiposByCliente } from '../services/equipoService'
@@ -116,6 +117,8 @@ function Cotizaciones() {
     descuento: 0,
     descuentoMonto: 0
   })
+  const [catalogoServicios, setCatalogoServicios] = useState([])
+  const [guardarEnCatalogo, setGuardarEnCatalogo] = useState(false)
 
   // Estado para la dirección personalizada de instalación
   const [isCustomAddress, setIsCustomAddress] = useState(false)
@@ -123,11 +126,12 @@ function Cotizaciones() {
   const fetchData = useCallback(async (page, search) => {
     try {
       setLoading(true)
-      const [cotizacionesData, clientesData, inventarioData, tiposInstalacionData] = await Promise.all([
+      const [cotizacionesData, clientesData, inventarioData, tiposInstalacionData, catalogoData] = await Promise.all([
         getCotizaciones({ page, limit: ITEMS_PER_PAGE, search: search || undefined }),
         getClientes(),  // Sin paginar: dropdown
         getInventario(),  // Sin paginar: dropdown
-        getTiposInstalacion().catch(() => [])
+        getTiposInstalacion().catch(() => []),
+        getCatalogoServicios().catch(() => [])
       ])
 
       // Manejar respuesta paginada
@@ -147,6 +151,7 @@ function Cotizaciones() {
       )
       setInventarioDisponible(disponible)
       setTiposInstalacion(tiposInstalacionData)
+      setCatalogoServicios(catalogoData)
     } catch (error) {
       console.error('Error al cargar datos:', error)
       toast.error('Error al cargar los datos')
@@ -446,7 +451,7 @@ function Cotizaciones() {
     toast.success('Instalación eliminada')
   }
 
-  const agregarMantencion = () => {
+  const agregarMantencion = async () => {
     if (!nuevaMantencion.nombre.trim()) {
       toast.error('Ingresa un nombre para el costo')
       return
@@ -464,7 +469,25 @@ function Cotizaciones() {
       descuento: descuentoPct,
       subtotal: precio - montoDescuento
     }])
+
+    // Guardar en catálogo si el checkbox está marcado
+    if (guardarEnCatalogo) {
+      try {
+        const nuevoItem = await createCatalogoServicio({
+          categoria: formData.tipo,
+          nombre: nuevaMantencion.nombre.trim(),
+          precio
+        })
+        setCatalogoServicios(prev => [...prev, nuevoItem])
+        toast.success(`"${nuevoItem.nombre}" guardado en el catálogo`)
+      } catch (err) {
+        console.error('Error al guardar en catálogo:', err)
+        toast.error('No se pudo guardar en el catálogo')
+      }
+    }
+
     setNuevaMantencion({ nombre: '', descripcion: '', precio: 0, descuento: 0, descuentoMonto: 0 })
+    setGuardarEnCatalogo(false)
     toast.success('Costo agregado')
   }
 
@@ -1909,6 +1932,32 @@ function Cotizaciones() {
                   </h3>
 
                   <div className="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
+                    {/* Selector del catálogo filtrado por tipo */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Seleccionar del catálogo</label>
+                      <select
+                        onChange={(e) => {
+                          const id = parseInt(e.target.value)
+                          if (!id) return
+                          const item = catalogoServicios.find(s => s.id === id)
+                          if (item) {
+                            setNuevaMantencion(prev => ({ ...prev, nombre: item.nombre, precio: item.precio, descuentoMonto: 0, descuento: 0 }))
+                          }
+                          e.target.value = ''
+                        }}
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 bg-white"
+                      >
+                        <option value="">Seleccionar o escribir manualmente...</option>
+                        {catalogoServicios
+                          .filter(s => s.categoria === formData.tipo)
+                          .map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.nombre} — ${s.precio.toLocaleString('es-CL')}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
                     <div className="grid grid-cols-12 gap-3">
                       <div className="col-span-4">
                         <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
@@ -1979,6 +2028,19 @@ function Cotizaciones() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Checkbox guardar en catálogo */}
+                    {nuevaMantencion.nombre.trim() && nuevaMantencion.precio > 0 && (
+                      <label className="flex items-center gap-2 mt-3 cursor-pointer text-sm text-purple-700 hover:text-purple-900 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={guardarEnCatalogo}
+                          onChange={(e) => setGuardarEnCatalogo(e.target.checked)}
+                          className="w-4 h-4 text-purple-600 rounded"
+                        />
+                        💾 Guardar en catálogo para próximas veces
+                      </label>
+                    )}
                   </div>
 
                   {mantenciones.length > 0 && (

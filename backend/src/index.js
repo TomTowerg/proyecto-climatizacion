@@ -23,6 +23,7 @@ import iaRoutes from './routes/ia.js'
 import indicatorRoutes from './routes/indicators.js'
 import materialInventarioRoutes from './routes/materialInventarioRoutes.js'
 import tipoInstalacionRoutes from './routes/tipoInstalacionRoutes.js'
+import catalogoServicioRoutes from './routes/catalogoServicioRoutes.js'
 
 dotenv.config()
 
@@ -105,6 +106,7 @@ app.use('/api/ia', iaRoutes)
 app.use('/api/indicators', indicatorRoutes)
 app.use('/api/materiales-inventario', materialInventarioRoutes)
 app.use('/api/tipos-instalacion', tipoInstalacionRoutes)
+app.use('/api/catalogo-servicios', catalogoServicioRoutes)
 
 
 // Ruta 404

@@ -303,6 +303,19 @@ model TipoInstalacion {
   @@index([activo])
 }
 
+model CatalogoServicio {
+  id          Int      @id @default(autoincrement())
+  categoria   String   // mantencion | reparacion | visita_tecnica
+  nombre      String
+  precio      Float
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([categoria])
+  @@index([activo])
+}
+
 model MantencionCotizacion {
   id            Int        @id @default(autoincrement())
   cotizacionId  Int
