@@ -151,11 +151,11 @@ model Cotizacion {
 model Equipo {
   id                Int      @id @default(autoincrement())
   tipo              String
-  marca             String
-  modelo            String
-  numeroSerie       String   @unique
+  marca             String?
+  modelo            String?
+  numeroSerie       String?  @unique
   capacidad         String
-  tipoGas           String
+  tipoGas           String?
   ano               Int?
   fechaCompra       DateTime?  // Mantener compatibilidad
   fechaInstalacion  DateTime?  // Mantener compatibilidad

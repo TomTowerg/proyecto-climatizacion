@@ -124,17 +124,22 @@ export const getEquipoById = async (req, res) => {
   }
 }
 
+// Normaliza un campo opcional: convierte string vacío en null
+const toOptional = (val) => (val === '' || val === undefined ? null : val)
+
 // Crear equipo
 export const createEquipo = async (req, res) => {
   try {
     const { tipo, marca, modelo, numeroSerie, capacidad, tipoGas, ano, clienteId } = req.body
 
-    // Validar campos requeridos
-    if (!tipo || !marca || !modelo || !numeroSerie || !capacidad || !tipoGas || !ano || !clienteId) {
+    // Solo tipo, capacidad y clienteId son requeridos
+    if (!tipo || !capacidad || !clienteId) {
       return res.status(400).json({
-        error: 'Todos los campos son requeridos'
+        error: 'Los campos tipo, capacidad y cliente son requeridos'
       })
     }
+
+    const serieNormalizado = toOptional(numeroSerie)
 
     // Verificar que el cliente existe
     const cliente = await prisma.cliente.findUnique({
@@ -145,27 +150,26 @@ export const createEquipo = async (req, res) => {
       return res.status(404).json({ error: 'Cliente no encontrado' })
     }
 
-    // Verificar que el número de serie no exista
-    const existingEquipo = await prisma.equipo.findUnique({
-      where: { numeroSerie }
-    })
-
-    if (existingEquipo) {
-      return res.status(400).json({
-        error: 'El número de serie ya está registrado'
+    // Verificar unicidad del número de serie solo si se proporcionó
+    if (serieNormalizado) {
+      const existingEquipo = await prisma.equipo.findUnique({
+        where: { numeroSerie: serieNormalizado }
       })
+      if (existingEquipo) {
+        return res.status(400).json({ error: 'El número de serie ya está registrado' })
+      }
     }
 
     // Crear equipo
     const equipo = await prisma.equipo.create({
       data: {
         tipo,
-        marca,
-        modelo,
-        numeroSerie,
+        marca: toOptional(marca),
+        modelo: toOptional(modelo),
+        numeroSerie: serieNormalizado,
         capacidad,
-        tipoGas,
-        ano: parseInt(ano),
+        tipoGas: toOptional(tipoGas),
+        ano: ano ? parseInt(ano) : null,
         clienteId: parseInt(clienteId)
       },
       include: {
@@ -198,16 +202,15 @@ export const updateEquipo = async (req, res) => {
       return res.status(404).json({ error: 'Equipo no encontrado' })
     }
 
-    // Si se actualiza el número de serie, verificar que no exista
-    if (numeroSerie && numeroSerie !== existingEquipo.numeroSerie) {
-      const serieExists = await prisma.equipo.findUnique({
-        where: { numeroSerie }
-      })
+    const serieNormalizado = toOptional(numeroSerie)
 
+    // Si se actualiza el número de serie, verificar que no exista en otro equipo
+    if (serieNormalizado && serieNormalizado !== existingEquipo.numeroSerie) {
+      const serieExists = await prisma.equipo.findUnique({
+        where: { numeroSerie: serieNormalizado }
+      })
       if (serieExists) {
-        return res.status(400).json({
-          error: 'El número de serie ya está registrado'
-        })
+        return res.status(400).json({ error: 'El número de serie ya está registrado' })
       }
     }
 
@@ -216,12 +219,12 @@ export const updateEquipo = async (req, res) => {
       where: { id: parseInt(id) },
       data: {
         tipo,
-        marca,
-        modelo,
-        numeroSerie,
+        marca: toOptional(marca),
+        modelo: toOptional(modelo),
+        numeroSerie: serieNormalizado,
         capacidad,
-        tipoGas,
-        ano: parseInt(ano),
+        tipoGas: toOptional(tipoGas),
+        ano: ano ? parseInt(ano) : null,
         clienteId: parseInt(clienteId)
       },
       include: {

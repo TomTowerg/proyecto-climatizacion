@@ -303,9 +303,9 @@ function Equipos() {
                       {/* Marca/Modelo */}
                       <td className="px-3 py-3 col-marca-modelo">
                         <div className="info-2-lineas">
-                          <div className="info-principal">{equipo.marca}</div>
+                          <div className="info-principal">{equipo.marca || '—'}</div>
                           <div className="info-secundaria truncate-text" title={equipo.modelo}>
-                            {equipo.modelo}
+                            {equipo.modelo || '—'}
                           </div>
                         </div>
                       </td>
@@ -313,7 +313,7 @@ function Equipos() {
                       {/* N° Serie */}
                       <td className="px-3 py-3 col-numero-serie">
                         <span className="numero-serie-text font-mono text-xs" title={equipo.numeroSerie}>
-                          {equipo.numeroSerie}
+                          {equipo.numeroSerie || <span className="text-gray-400">S/N</span>}
                         </span>
                       </td>
 
@@ -425,27 +425,25 @@ function Equipos() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('equipment.form.brand')} *
+                    {t('equipment.form.brand')}
                   </label>
                   <input
                     type="text"
                     value={formData.marca}
                     onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('equipment.form.model')} *
+                    {t('equipment.form.model')}
                   </label>
                   <input
                     type="text"
                     value={formData.modelo}
                     onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
               </div>
@@ -453,20 +451,19 @@ function Equipos() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('equipment.form.serialNumber')} *
+                    {t('equipment.form.serialNumber')}
                   </label>
                   <input
                     type="text"
                     value={formData.numeroSerie}
                     onChange={(e) => setFormData({ ...formData, numeroSerie: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('equipment.form.year')} *
+                    {t('equipment.form.year')}
                   </label>
                   <input
                     type="number"
@@ -475,7 +472,6 @@ function Equipos() {
                     min="1990"
                     max={new Date().getFullYear() + 1}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    required
                   />
                 </div>
               </div>
@@ -497,13 +493,12 @@ function Equipos() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('equipment.form.gasType')} *
+                    {t('equipment.form.gasType')}
                   </label>
                   <select
                     value={formData.tipoGas}
                     onChange={(e) => setFormData({ ...formData, tipoGas: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    required
                   >
                     <option value="">{t('common.select')}...</option>
                     <option value="R410A">R410A</option>
