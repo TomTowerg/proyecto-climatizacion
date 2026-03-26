@@ -24,7 +24,10 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId, payload = {}) =
         cliente: true,
         inventario: true,
         equipos: true,      // ⭐ INCLUIR EQUIPOS MÚLTIPLES
-        materiales: true,    // ⭐ INCLUIR MATERIALES\r\n        instalaciones: true  // ⭐ INCLUIR INSTALACIONES
+        materiales: true,
+        equiposCliente: true,  // ⭐ EQUIPOS SELECCIONADOS PARA MANTENCION
+        instalaciones: true,
+        mantenciones: true
       }
     })
 
@@ -86,6 +89,10 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId, payload = {}) =
     } else if (cotizacion.tipo === 'reparacion') {
       // FLUJO REPARACIÓN
       const resultado = await procesarReparacion(cotizacion, cliente, payload)
+      equipo = resultado.equipo
+      ordenTrabajo = resultado.ordenTrabajo
+    } else if (cotizacion.tipo === 'visita_tecnica') {
+      const resultado = await procesarMantencion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
     }
@@ -193,7 +200,7 @@ const validarCotizacionPorTipo = async (cotizacion) => {
       }
     }
 
-  } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion') {
+  } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion' || cotizacion.tipo === 'visita_tecnica') {
     // Validar que el cliente tenga equipos
     const equiposCliente = await prisma.equipo.count({
       where: { clienteId: cotizacion.clienteId, estado: 'activo' }
@@ -386,11 +393,16 @@ const procesarMantencion = async (cotizacion, cliente, payload = {}) => {
   try {
     console.log(`\n🔧 Procesando mantención...`)
 
-    // 1. Buscar equipo del cliente (usar el más antiguo)
-    const equipo = await prisma.equipo.findFirst({
-      where: { clienteId: cliente.id, estado: 'activo' },
-      orderBy: { fechaInstalacion: 'asc' }
-    })
+    // 1. Determinar equipo(s) a mantener
+    let equipo = null
+    if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+      equipo = cotizacion.equiposCliente[0]
+    } else {
+      equipo = await prisma.equipo.findFirst({
+        where: { clienteId: cliente.id, estado: 'activo' },
+        orderBy: { fechaInstalacion: 'asc' }
+      })
+    }
 
     if (!equipo) {
       throw new Error('No se encontró equipo activo para mantención')
@@ -408,7 +420,10 @@ const procesarMantencion = async (cotizacion, cliente, payload = {}) => {
         equipoId: equipo.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
-        notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
+        notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
+          connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
+        } : undefined
       }
     })
 
@@ -439,10 +454,15 @@ const procesarReparacion = async (cotizacion, cliente, payload = {}) => {
     console.log(`\n🔨 Procesando reparación...`)
 
     // 1. Buscar equipo del cliente
-    const equipo = await prisma.equipo.findFirst({
-      where: { clienteId: cliente.id, estado: { in: ['activo', 'en_mantenimiento'] } },
-      orderBy: { fechaInstalacion: 'desc' }
-    })
+    let equipo = null
+    if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+      equipo = cotizacion.equiposCliente[0]
+    } else {
+      equipo = await prisma.equipo.findFirst({
+        where: { clienteId: cliente.id, estado: { in: ['activo', 'en_mantenimiento'] } },
+        orderBy: { fechaInstalacion: 'desc' }
+      })
+    }
 
     if (!equipo) {
       throw new Error('No se encontró equipo para reparación')
@@ -461,7 +481,10 @@ const procesarReparacion = async (cotizacion, cliente, payload = {}) => {
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         costoMateriales: cotizacion.costoMaterial || 0,
-        notas: `Reparación de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
+        notas: `Reparación de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
+          connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
+        } : undefined
       }
     })
 

@@ -143,6 +143,8 @@ model Cotizacion {
   equipos       EquipoCotizacion[]
   materiales      MaterialCotizacion[]
   instalaciones   InstalacionCotizacion[]
+  equiposCliente    Equipo[]              @relation("CotizacionEquiposCliente")
+  mantenciones      MantencionCotizacion[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
@@ -171,6 +173,8 @@ model Equipo {
   updatedAt         DateTime @updatedAt
   ordenesTrabajos   OrdenTrabajo[]
   cotizacionesMantenimiento Cotizacion[]
+  cotizacionesComoCliente  Cotizacion[]   @relation("CotizacionEquiposCliente")
+  ordenesComoMantenimiento OrdenTrabajo[] @relation("OrdenTrabajoEquipos")
 }
 
 model OrdenTrabajo {
@@ -202,6 +206,7 @@ model OrdenTrabajo {
   fechaCompletado DateTime?
   documentoFirmado String?
   fechaFirma       DateTime?
+  equiposMantenimiento Equipo[] @relation("OrdenTrabajoEquipos")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -296,4 +301,19 @@ model TipoInstalacion {
   updatedAt   DateTime @updatedAt
 
   @@index([activo])
+}
+
+model MantencionCotizacion {
+  id            Int        @id @default(autoincrement())
+  cotizacionId  Int
+  cotizacion    Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  nombre        String
+  descripcion   String?
+  precio        Float
+  descuento     Float      @default(0)
+  subtotal      Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([cotizacionId])
 }

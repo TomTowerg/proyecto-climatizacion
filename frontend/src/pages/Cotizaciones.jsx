@@ -32,6 +32,7 @@ function Cotizaciones() {
   const [inventario, setInventario] = useState([])
   const [inventarioDisponible, setInventarioDisponible] = useState([])
   const [equiposCliente, setEquiposCliente] = useState([])
+  const [equiposClienteIds, setEquiposClienteIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -66,10 +67,6 @@ function Cotizaciones() {
     tipo: 'instalacion',
     clienteId: '',
     inventarioId: '',
-    equipoId: '',
-    precioOfertado: '',
-    costoInstalacion: '50000',
-    costoMaterial: '20000',
     descuento: 0,
     notas: '',
     agente: '',
@@ -103,6 +100,16 @@ function Cotizaciones() {
   const [instalaciones, setInstalaciones] = useState([])
   const [tiposInstalacion, setTiposInstalacion] = useState([])
   const [nuevaInstalacion, setNuevaInstalacion] = useState({
+    nombre: '',
+    descripcion: '',
+    precio: 0,
+    descuento: 0,
+    descuentoMonto: 0
+  })
+
+  // Estados para mantenciones (costos de servicio dinámicos)
+  const [mantenciones, setMantenciones] = useState([])
+  const [nuevaMantencion, setNuevaMantencion] = useState({
     nombre: '',
     descripcion: '',
     precio: 0,
@@ -179,54 +186,10 @@ function Cotizaciones() {
   }
 
   useEffect(() => {
-    if (formData.tipo === 'instalacion') {
-      setFormData(prev => ({
-        ...prev,
-        costoInstalacion: prev.costoInstalacion || '50000',
-        costoMaterial: prev.costoMaterial || '20000',
-        equipoId: ''
-      }))
-    } else if (formData.tipo === 'mantencion') {
-      setFormData(prev => ({
-        ...prev,
-        costoInstalacion: '0',
-        costoMaterial: '10000',
-        inventarioId: '',
-        precioOfertado: '50000'
-      }))
-    } else if (formData.tipo === 'reparacion') {
-      setFormData(prev => ({
-        ...prev,
-        costoInstalacion: '0',
-        costoMaterial: prev.costoMaterial || '15000',
-        inventarioId: '',
-        precioOfertado: '60000'
-      }))
-    } else if (formData.tipo === 'visita_tecnica') {
-      setFormData(prev => ({
-        ...prev,
-        costoInstalacion: '0',
-        costoMaterial: '0',
-        inventarioId: '',
-        precioOfertado: '25000'
-      }))
-    }
-  }, [formData.tipo])
-
-  useEffect(() => {
     if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica')) {
       fetchEquiposCliente(formData.clienteId)
     }
   }, [formData.clienteId, formData.tipo])
-
-  // Calcular costoMaterial automáticamente desde materiales
-  useEffect(() => {
-    const totalMateriales = calcularTotalMateriales()
-    setFormData(prev => ({
-      ...prev,
-      costoMaterial: totalMateriales.toString()
-    }))
-  }, [materiales])
 
   useEffect(() => {
     const fetchMaterialesInventario = async () => {
@@ -242,19 +205,6 @@ function Cotizaciones() {
     fetchMaterialesInventario()
   }, [])
 
-  // Calcular precio total de equipos
-  useEffect(() => {
-    if (formData.tipo === 'instalacion' && equipos.length > 0) {
-      const totalEquipos = calcularTotalEquipos()
-      setFormData(prev => ({
-        ...prev,
-        precioOfertado: totalEquipos.toString()
-      }))
-    }
-  }, [equipos, formData.tipo])
-
-
-
   const fetchEquiposCliente = async (clienteId) => {
     try {
       const equipos = await getEquiposByCliente(clienteId)
@@ -269,13 +219,17 @@ function Cotizaciones() {
     }
   }
 
+  const calcularTotalMantenciones = () => {
+    return mantenciones.reduce((acc, m) => acc + m.subtotal, 0)
+  }
+
   const calcularTotal = () => {
-    const precio = parseFloat(formData.precioOfertado) || 0
-    const material = parseFloat(formData.costoMaterial) || 0
+    const totalEquipos = formData.tipo === 'instalacion' ? calcularTotalEquipos() : 0
+    const totalMantenciones = formData.tipo !== 'instalacion' ? calcularTotalMantenciones() : 0
+    const totalMateriales = calcularTotalMateriales()
     const totalInstalaciones = calcularTotalInstalaciones()
     const descuento = parseFloat(formData.descuento) || 0
-
-    const subtotal = precio + material + totalInstalaciones
+    const subtotal = totalEquipos + totalMantenciones + totalMateriales + totalInstalaciones
     const montoDescuento = subtotal * (descuento / 100)
     return subtotal - montoDescuento
   }
@@ -492,6 +446,32 @@ function Cotizaciones() {
     toast.success('Instalación eliminada')
   }
 
+  const agregarMantencion = () => {
+    if (!nuevaMantencion.nombre.trim()) {
+      toast.error('Ingresa un nombre para el costo')
+      return
+    }
+    if (!nuevaMantencion.precio || nuevaMantencion.precio <= 0) {
+      toast.error('El precio debe ser mayor a 0')
+      return
+    }
+    const descuentoPct = parseFloat(nuevaMantencion.descuento) || 0
+    const precio = parseFloat(nuevaMantencion.precio)
+    const montoDescuento = precio * (descuentoPct / 100)
+    setMantenciones([...mantenciones, {
+      ...nuevaMantencion,
+      precio,
+      descuento: descuentoPct,
+      subtotal: precio - montoDescuento
+    }])
+    setNuevaMantencion({ nombre: '', descripcion: '', precio: 0, descuento: 0, descuentoMonto: 0 })
+    toast.success('Costo agregado')
+  }
+
+  const eliminarMantencion = (index) => {
+    setMantenciones(mantenciones.filter((_, i) => i !== index))
+  }
+
   // Seleccionar tipo de instalación del catálogo
   const handleTipoInstalacionSelect = (tipoId) => {
     if (!tipoId) {
@@ -558,17 +538,14 @@ function Cotizaciones() {
     e.preventDefault()
 
     try {
-      // ⭐ USAR TUS FUNCIONES DE CÁLCULO
-      const totalEquipos = formData.tipo === 'instalacion' && equipos.length > 0
-        ? calcularTotalEquipos()
-        : parseFloat(formData.precioOfertado) || 0
-
+      // Calcular totales desde arrays dinámicos
+      const totalEquipos = formData.tipo === 'instalacion' ? calcularTotalEquipos() : 0
+      const totalMantenciones = formData.tipo !== 'instalacion' ? calcularTotalMantenciones() : 0
+      const precioOfertadoCalc = totalEquipos + totalMantenciones
       const totalMateriales = calcularTotalMateriales()
       const totalInstalacionesCalc = calcularTotalInstalaciones()
       const descuento = parseFloat(formData.descuento) || 0
-
-      // Calcular subtotal y precio final
-      const subtotal = totalEquipos + totalMateriales + totalInstalacionesCalc
+      const subtotal = precioOfertadoCalc + totalMateriales + totalInstalacionesCalc
       const montoDescuento = subtotal * (descuento / 100)
       const precioFinal = subtotal - montoDescuento
 
@@ -576,7 +553,7 @@ function Cotizaciones() {
       const dataToSend = {
         tipo: formData.tipo,
         clienteId: parseInt(formData.clienteId),
-        precioOfertado: totalEquipos,
+        precioOfertado: precioOfertadoCalc,
         costoInstalacion: totalInstalacionesCalc,
         costoMaterial: totalMateriales,
         subtotal: subtotal,
@@ -600,6 +577,13 @@ function Cotizaciones() {
           precio: parseFloat(inst.precio),
           descuento: parseFloat(inst.descuento || 0),
           subtotal: parseFloat(inst.subtotal)
+        })),
+        mantenciones: mantenciones.map(m => ({
+          nombre: m.nombre,
+          descripcion: m.descripcion || '',
+          precio: parseFloat(m.precio),
+          descuento: parseFloat(m.descuento || 0),
+          subtotal: parseFloat(m.subtotal)
         }))
       }
 
@@ -619,8 +603,8 @@ function Cotizaciones() {
         }
       } else {
         // Mantención/Reparación - usa equipo existente del cliente
-        if (formData.equipoId) {
-          dataToSend.equipoId = parseInt(formData.equipoId)
+        if (equiposClienteIds.length > 0) {
+          dataToSend.equiposClienteIds = equiposClienteIds
         }
       }
 
@@ -656,10 +640,6 @@ function Cotizaciones() {
       tipo: cotizacion.tipo || 'instalacion',
       clienteId: cotizacion.clienteId,
       inventarioId: cotizacion.inventarioId || '',
-      equipoId: cotizacion.equipoId || '',
-      precioOfertado: cotizacion.precioOfertado,
-      costoInstalacion: cotizacion.costoInstalacion || 0,
-      costoMaterial: cotizacion.costoMaterial || 0,
       descuento: cotizacion.descuento,
       notas: cotizacion.notas || '',
       agente: cotizacion.agente || '',
@@ -677,6 +657,13 @@ function Cotizaciones() {
 
     if (cotizacion.instalaciones && cotizacion.instalaciones.length > 0) {
       setInstalaciones(cotizacion.instalaciones)
+    }
+
+    if (cotizacion.mantenciones && cotizacion.mantenciones.length > 0) {
+      setMantenciones(cotizacion.mantenciones)
+    }
+    if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+      setEquiposClienteIds(cotizacion.equiposCliente.map(e => e.id))
     }
 
     setShowModal(true)
@@ -804,10 +791,6 @@ function Cotizaciones() {
       tipo: 'instalacion',
       clienteId: '',
       inventarioId: '',
-      equipoId: '',
-      precioOfertado: '',
-      costoInstalacion: '50000',
-      costoMaterial: '20000',
       descuento: 0,
       notas: '',
       agente: '',
@@ -837,6 +820,9 @@ function Cotizaciones() {
       descuento: 0,
       descuentoMonto: 0
     })
+    setEquiposClienteIds([])
+    setMantenciones([])
+    setNuevaMantencion({ nombre: '', descripcion: '', precio: 0, descuento: 0, descuentoMonto: 0 })
   }
 
   const clearFilters = () => {
@@ -1456,32 +1442,44 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* MANTENCIÓN/REPARACIÓN/VISITA TÉCNICA: Mostrar equipos del cliente */}
+              {/* MANTENCIÓN/REPARACIÓN/VISITA TÉCNICA: Selección múltiple de equipos del cliente */}
               {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Equipo del Cliente *
-                  </label>
-                  <select
-                    value={formData.equipoId}
-                    onChange={(e) => setFormData({ ...formData, equipoId: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={editingCotizacion || !formData.clienteId}
-                  >
-                    <option value="">
-                      {!formData.clienteId
-                        ? 'Primero selecciona un cliente'
-                        : equiposCliente.length === 0
-                          ? 'Este cliente no tiene equipos'
-                          : 'Seleccionar...'}
-                    </option>
-                    {equiposCliente.map(equipo => (
-                      <option key={equipo.id} value={equipo.id}>
-                        {equipo.marca} {equipo.modelo} - {equipo.capacidad}
-                      </option>
-                    ))}
-                  </select>
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    🖥️ Equipos del Cliente
+                    {equiposClienteIds.length > 0 && (
+                      <span className="text-sm font-normal text-purple-600">({equiposClienteIds.length} seleccionado{equiposClienteIds.length > 1 ? 's' : ''})</span>
+                    )}
+                  </h3>
+                  {!formData.clienteId ? (
+                    <p className="text-sm text-gray-500">Primero selecciona un cliente</p>
+                  ) : equiposCliente.length === 0 ? (
+                    <p className="text-sm text-amber-600">⚠️ Este cliente no tiene equipos registrados</p>
+                  ) : (
+                    <div className="space-y-2 border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto">
+                      {equiposCliente.map(equipo => (
+                        <label key={equipo.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-purple-50 cursor-pointer transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={equiposClienteIds.includes(equipo.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setEquiposClienteIds(prev => [...prev, equipo.id])
+                              } else {
+                                setEquiposClienteIds(prev => prev.filter(id => id !== equipo.id))
+                              }
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded"
+                            disabled={editingCotizacion}
+                          />
+                          <span className="text-sm">
+                            <span className="font-medium">{equipo.marca || '—'} {equipo.modelo || '—'}</span>
+                            <span className="text-gray-500 ml-2">{equipo.capacidad}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1900,51 +1898,144 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* Precios y Descuento */}
-              <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.tipo === 'instalacion' && 'Precio Total Equipos'}
-                    {formData.tipo === 'mantencion' && 'Precio Mantención *'}
-                    {formData.tipo === 'reparacion' && 'Precio Reparación *'}
-                    {formData.tipo === 'visita_tecnica' && 'Costo Visita Técnica *'}
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.precioOfertado}
-                    onChange={(e) => setFormData({ ...formData, precioOfertado: e.target.value })}
-                    step="1"
-                    min="0"
-                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${formData.tipo === 'instalacion' && equipos.length > 0 ? 'bg-gray-100' : ''}`}
-                    required
-                    readOnly={formData.tipo === 'instalacion' && equipos.length > 0}
-                  />
-                  {formData.tipo === 'instalacion' && equipos.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      💡 Se calcula automáticamente con los equipos
-                    </p>
+              {/* SECCIÓN COSTOS DE SERVICIO (mantencion/reparacion/visita_tecnica) */}
+              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica') && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    ⚙️ Costos del Servicio
+                    <span className="text-sm font-normal text-gray-600">
+                      ({mantenciones.length} {mantenciones.length === 1 ? 'costo' : 'costos'})
+                    </span>
+                  </h3>
+
+                  <div className="bg-purple-50 p-4 rounded-lg mb-4 border border-purple-200">
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="col-span-4">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Nombre *</label>
+                        <input
+                          type="text"
+                          value={nuevaMantencion.nombre}
+                          onChange={(e) => setNuevaMantencion(prev => ({ ...prev, nombre: e.target.value }))}
+                          placeholder="Ej: Mano de obra, Revisión gas..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Precio *</label>
+                        <input
+                          type="number"
+                          value={nuevaMantencion.precio}
+                          onChange={(e) => {
+                            const precio = parseFloat(e.target.value) || 0
+                            setNuevaMantencion(prev => ({
+                              ...prev,
+                              precio,
+                              descuentoMonto: precio * (prev.descuento / 100)
+                            }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. $</label>
+                        <input
+                          type="number"
+                          value={nuevaMantencion.descuentoMonto}
+                          onChange={(e) => {
+                            const monto = parseFloat(e.target.value) || 0
+                            const precio = parseFloat(nuevaMantencion.precio) || 0
+                            const pct = precio > 0 ? (monto / precio) * 100 : 0
+                            setNuevaMantencion(prev => ({ ...prev, descuentoMonto: monto, descuento: Math.round(pct * 100) / 100 }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0"
+                          step="1"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Desc. %</label>
+                        <input
+                          type="number"
+                          value={nuevaMantencion.descuento}
+                          onChange={(e) => {
+                            const pct = parseFloat(e.target.value) || 0
+                            const precio = parseFloat(nuevaMantencion.precio) || 0
+                            setNuevaMantencion(prev => ({ ...prev, descuento: pct, descuentoMonto: Math.round(precio * (pct / 100)) }))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          min="0" max="100" step="0.01"
+                        />
+                      </div>
+                      <div className="col-span-2 flex items-end">
+                        <button
+                          type="button"
+                          onClick={agregarMantencion}
+                          className="w-full px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center justify-center transition-colors text-sm font-medium"
+                          disabled={!nuevaMantencion.nombre.trim() || nuevaMantencion.precio <= 0}
+                        >
+                          <Plus size={16} className="mr-1" /> Agregar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {mantenciones.length > 0 && (
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-purple-600 text-white">
+                          <tr>
+                            <th className="px-4 py-2 text-left">Costo</th>
+                            <th className="px-4 py-2 text-right">Precio</th>
+                            <th className="px-4 py-2 text-right">Desc. %</th>
+                            <th className="px-4 py-2 text-right">Subtotal</th>
+                            <th className="px-4 py-2 text-center">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white">
+                          {mantenciones.map((m, index) => (
+                            <tr key={index} className="border-t hover:bg-gray-50">
+                              <td className="px-4 py-2 font-medium">{m.nombre}</td>
+                              <td className="px-4 py-2 text-right">${m.precio.toLocaleString('es-CL')}</td>
+                              <td className="px-4 py-2 text-right">
+                                {m.descuento > 0 ? <span className="text-red-600">{m.descuento}%</span> : '0%'}
+                              </td>
+                              <td className="px-4 py-2 text-right font-bold text-green-600">
+                                ${m.subtotal.toLocaleString('es-CL')}
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                <button type="button" onClick={() => eliminarMantencion(index)}
+                                  className="text-red-600 hover:bg-red-50 p-1 rounded transition-colors">
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-purple-50 border-t-2 border-purple-300">
+                          <tr>
+                            <td colSpan="3" className="px-4 py-3 text-right font-bold text-gray-900">Total Servicio:</td>
+                            <td className="px-4 py-3 text-right font-bold text-purple-600 text-lg">
+                              ${calcularTotalMantenciones().toLocaleString('es-CL')}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  )}
+
+                  {mantenciones.length === 0 && (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <p className="text-sm">No hay costos de servicio agregados</p>
+                    </div>
                   )}
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Costo Materiales
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.costoMaterial}
-                    onChange={(e) => setFormData({ ...formData, costoMaterial: e.target.value })}
-                    step="1"
-                    min="0"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100"
-                    readOnly
-                    title="Se calcula automáticamente desde los materiales agregados"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    💡 Se calcula automáticamente con los materiales
-                  </p>
-                </div>
-
+              {/* Resumen de totales */}
+              <div className="border-t pt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Descuento Global (%)
@@ -1961,41 +2052,45 @@ function Cotizaciones() {
                 </div>
               </div>
 
-              {formData.precioOfertado && (
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
-                  <div className="space-y-2 text-sm">
+              {/* Panel de resumen dinámico */}
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
+                <div className="space-y-2 text-sm">
+                  {formData.tipo === 'instalacion' && equipos.length > 0 && (
                     <div className="flex justify-between">
-                      <span>
-                        {formData.tipo === 'instalacion' && 'Equipos:'}
-                        {formData.tipo === 'mantencion' && 'Mantención:'}
-                        {formData.tipo === 'reparacion' && 'Reparación:'}
-                        {formData.tipo === 'visita_tecnica' && 'Visita Técnica:'}
-                      </span>
-                      <span>${parseFloat(formData.precioOfertado || 0).toLocaleString('es-CL')}</span>
+                      <span>Equipos ({equipos.length}):</span>
+                      <span>${calcularTotalEquipos().toLocaleString('es-CL')}</span>
                     </div>
-                    {instalaciones.length > 0 && (
-                      <div className="flex justify-between">
-                        <span>Instalación ({instalaciones.length}):</span>
-                        <span>${calcularTotalInstalaciones().toLocaleString('es-CL')}</span>
-                      </div>
-                    )}
+                  )}
+                  {formData.tipo !== 'instalacion' && mantenciones.length > 0 && (
                     <div className="flex justify-between">
-                      <span>Materiales:</span>
-                      <span>${parseFloat(formData.costoMaterial || 0).toLocaleString('es-CL')}</span>
+                      <span>Costos del servicio ({mantenciones.length}):</span>
+                      <span>${calcularTotalMantenciones().toLocaleString('es-CL')}</span>
                     </div>
-                    {formData.descuento > 0 && (
-                      <div className="flex justify-between text-red-600">
-                        <span>Descuento Global ({formData.descuento}%):</span>
-                        <span>-${((calcularTotal() / (1 - formData.descuento / 100)) - calcularTotal()).toLocaleString('es-CL')}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-lg font-bold text-green-600 pt-2 border-t">
-                      <span>TOTAL:</span>
-                      <span>${calcularTotal().toLocaleString('es-CL')}</span>
+                  )}
+                  {instalaciones.length > 0 && (
+                    <div className="flex justify-between">
+                      <span>Instalación ({instalaciones.length}):</span>
+                      <span>${calcularTotalInstalaciones().toLocaleString('es-CL')}</span>
                     </div>
+                  )}
+                  {materiales.length > 0 && (
+                    <div className="flex justify-between">
+                      <span>Materiales ({materiales.length}):</span>
+                      <span>${calcularTotalMateriales().toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
+                  {parseFloat(formData.descuento) > 0 && calcularTotal() > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>Descuento Global ({formData.descuento}%):</span>
+                      <span>-${((calcularTotal() / (1 - formData.descuento / 100)) * (formData.descuento / 100)).toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-bold text-green-600 pt-2 border-t">
+                    <span>TOTAL:</span>
+                    <span>${calcularTotal().toLocaleString('es-CL')}</span>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Información Adicional */}
               {formData.tipo === 'instalacion' && (

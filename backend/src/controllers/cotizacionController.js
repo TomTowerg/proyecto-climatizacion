@@ -70,7 +70,9 @@ export const getCotizaciones = async (req, res) => {
           }
         },
         materiales: true,
-        instalaciones: true
+        instalaciones: true,
+        mantenciones: true,
+        equiposCliente: { select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true } }
       },
       orderBy: {
         createdAt: 'desc'
@@ -143,7 +145,9 @@ export const getCotizacionById = async (req, res) => {
           }
         },
         materiales: true,
-        instalaciones: true
+        instalaciones: true,
+        mantenciones: true,
+        equiposCliente: { select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true } }
       }
     })
 
@@ -183,7 +187,9 @@ export const createCotizacion = async (req, res) => {
       direccionInstalacion,
       equipos,
       materiales,
-      instalaciones
+      instalaciones,
+      equiposClienteIds,
+      mantenciones
     } = req.body
 
     console.log('📝 Creando cotización:', {
@@ -248,6 +254,18 @@ export const createCotizacion = async (req, res) => {
             descuento: parseFloat(inst.descuento || 0),
             subtotal: parseFloat(inst.subtotal)
           }))
+        } : undefined,
+        mantenciones: mantenciones && mantenciones.length > 0 ? {
+          create: mantenciones.map(m => ({
+            nombre: m.nombre,
+            descripcion: m.descripcion || null,
+            precio: parseFloat(m.precio),
+            descuento: parseFloat(m.descuento || 0),
+            subtotal: parseFloat(m.subtotal)
+          }))
+        } : undefined,
+        equiposCliente: equiposClienteIds && equiposClienteIds.length > 0 ? {
+          connect: equiposClienteIds.map(id => ({ id: parseInt(id) }))
         } : undefined
       },
       include: {
@@ -259,7 +277,9 @@ export const createCotizacion = async (req, res) => {
           }
         },
         materiales: true,
-        instalaciones: true
+        instalaciones: true,
+        mantenciones: true,
+        equiposCliente: true
       }
     })
 
@@ -302,7 +322,9 @@ export const updateCotizacion = async (req, res) => {
       direccionInstalacion,
       equipos,
       materiales,
-      instalaciones
+      instalaciones,
+      equiposClienteIds,
+      mantenciones
     } = req.body
 
     console.log(`📝 Actualizando cotización #${id}`)
@@ -320,6 +342,7 @@ export const updateCotizacion = async (req, res) => {
       await prisma.equipoCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
       await prisma.materialCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
       await prisma.instalacionCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
+      await prisma.mantencionCotizacion.deleteMany({ where: { cotizacionId: parseInt(id) } })
 
       // Actualizar cotización con nuevas relaciones
       const cotizacion = await prisma.cotizacion.update({
@@ -370,6 +393,18 @@ export const updateCotizacion = async (req, res) => {
               descuento: parseFloat(inst.descuento || 0),
               subtotal: parseFloat(inst.subtotal)
             }))
+          } : undefined,
+          mantenciones: mantenciones && mantenciones.length > 0 ? {
+            create: mantenciones.map(m => ({
+              nombre: m.nombre,
+              descripcion: m.descripcion || null,
+              precio: parseFloat(m.precio),
+              descuento: parseFloat(m.descuento || 0),
+              subtotal: parseFloat(m.subtotal)
+            }))
+          } : undefined,
+          equiposCliente: equiposClienteIds ? {
+            set: equiposClienteIds.map(id => ({ id: parseInt(id) }))
           } : undefined
         },
         include: {
@@ -381,7 +416,9 @@ export const updateCotizacion = async (req, res) => {
             }
           },
           materiales: true,
-          instalaciones: true
+          instalaciones: true,
+          mantenciones: true,
+          equiposCliente: true
         }
       })
 
@@ -526,7 +563,9 @@ export const generarPDF = async (req, res) => {
           }
         },
         materiales: true,
-        instalaciones: true
+        instalaciones: true,
+        mantenciones: true,
+        equiposCliente: true
       }
     })
 
