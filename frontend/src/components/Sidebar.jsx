@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next'
 import {
   Home, Users, Wind, ClipboardList, Package, FileText,
   Calendar, TrendingUp, Boxes, LogOut, ChevronDown,
-  ChevronRight, Globe, Settings, Bell, User
+  ChevronLeft, Globe, Bell, X
 } from 'lucide-react'
 import { logout } from '../services/authService'
 
-function Sidebar() {
+function Sidebar({ isOpen, onClose }) {
   const { t, i18n } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
@@ -97,10 +97,37 @@ function Sidebar() {
   }
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-br from-[#1e3a5f] via-[#2c5282] to-[#3b82a0] text-white flex flex-col shadow-2xl z-50">
+    <>
+      {/* Overlay oscuro — solo en móvil cuando el sidebar está abierto */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 z-50 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <div className={`
+        fixed left-0 top-0 h-screen w-64
+        bg-gradient-to-br from-[#1e3a5f] via-[#2c5282] to-[#3b82a0]
+        text-white flex flex-col shadow-2xl
+        transition-transform duration-300
+        z-[60]
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
+      {/* Botón cerrar — solo en móvil */}
+      <button
+        onClick={onClose}
+        className="md:hidden absolute top-3 right-3 p-1.5 rounded-lg hover:bg-white/10 transition-colors text-cyan-300"
+        aria-label="Cerrar menú"
+      >
+        <X size={20} />
+      </button>
+
       {/* Logo / Header con efecto hover */}
       <div className="p-6 border-b border-cyan-700/20">
-        <Link to="/dashboard" className="flex items-center gap-3 group">
+        <Link to="/dashboard" onClick={onClose} className="flex items-center gap-3 group">
           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300">
             <img
               src="/logo-kmts.png"
@@ -159,6 +186,7 @@ function Sidebar() {
                   <Link
                     key={item.path}
                     to={item.path}
+                    onClick={onClose}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
                       ${active
@@ -281,7 +309,8 @@ function Sidebar() {
           background: rgba(6, 182, 212, 0.5);
         }
       `}</style>
-    </div>
+      </div>
+    </>
   )
 }
 
