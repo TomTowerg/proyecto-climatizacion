@@ -575,7 +575,7 @@ function OrdenesTrabajo() {
                     <tr key={orden.id} className="hover:bg-indigo-50/30 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-gray-900">
-                          {new Date(orden.fecha).toLocaleDateString(t('common.dateFormat'))}
+                          {new Date(orden.fecha).toLocaleDateString('es-CL', { timeZone: 'UTC' })}
                         </div>
                       </td>
                       <td className="px-6 py-4">
