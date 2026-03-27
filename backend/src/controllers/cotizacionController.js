@@ -218,7 +218,7 @@ export const createCotizacion = async (req, res) => {
         modelo,
         capacidad,
         precioOfertado: parseFloat(precioOfertado),
-        costoInstalacion: costoInstalacion ? parseFloat(costoInstalacion) : 100000,
+        costoInstalacion: costoInstalacion ? parseFloat(costoInstalacion) : 0,
         costoMaterial: costoMaterial ? parseFloat(costoMaterial) : 0,
         subtotal: parseFloat(subtotal),
         descuento: descuento ? parseFloat(descuento) : 0,
