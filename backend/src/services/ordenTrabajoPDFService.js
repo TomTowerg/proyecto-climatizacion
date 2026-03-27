@@ -2,7 +2,7 @@ import PDFDocument from 'pdfkit'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { decryptSensitiveFields } from '../utils/encryption.js'
+import { decryptSensitiveFields, decryptAddress } from '../utils/encryption.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -178,6 +178,11 @@ export const generarPDFOrdenTrabajo = async (orden) => {
         }
       } else if (clienteDescifrado.direccion && clienteDescifrado.direccion.trim() !== '') {
         direccion = clienteDescifrado.direccion.trim()
+      } else if (orden.cliente?.direcciones?.[0]?.direccion_encrypted) {
+        try {
+          const d = decryptAddress(orden.cliente.direcciones[0].direccion_encrypted)
+          if (d && d.trim() !== '') direccion = d.trim()
+        } catch (_) { /* mantener 'No especificada' */ }
       }
 
       doc.fontSize(10)

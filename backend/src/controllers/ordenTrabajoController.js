@@ -48,9 +48,18 @@ export const getOrdenesTrabajo = async (req, res) => {
             }
           }
         },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+        },
         cotizacion: {
           include: {
-            equipos: true
+            equipos: true,
+            materiales: true,
+            instalaciones: true,
+            mantenciones: true,
+            equiposCliente: {
+              select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+            }
           }
         }
       },
@@ -124,8 +133,20 @@ export const getOrdenTrabajoById = async (req, res) => {
       include: {
         cliente: true,
         equipo: {
+          include: { inventario: true }
+        },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+        },
+        cotizacion: {
           include: {
-            inventario: true
+            equipos: true,
+            materiales: true,
+            instalaciones: true,
+            mantenciones: true,
+            equiposCliente: {
+              select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+            }
           }
         }
       }
@@ -181,9 +202,15 @@ export const createOrdenTrabajo = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: {
+        equipo: { include: { inventario: true } },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+        },
+        cotizacion: {
           include: {
-            inventario: true
+            equipos: true, materiales: true, instalaciones: true,
+            mantenciones: true,
+            equiposCliente: { select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true } }
           }
         }
       }
@@ -248,9 +275,15 @@ export const updateOrdenTrabajo = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: {
+        equipo: { include: { inventario: true } },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+        },
+        cotizacion: {
           include: {
-            inventario: true
+            equipos: true, materiales: true, instalaciones: true,
+            mantenciones: true,
+            equiposCliente: { select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true } }
           }
         }
       }
@@ -315,9 +348,15 @@ export const completarOrden = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: {
+        equipo: { include: { inventario: true } },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+        },
+        cotizacion: {
           include: {
-            inventario: true
+            equipos: true, materiales: true, instalaciones: true,
+            mantenciones: true,
+            equiposCliente: { select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true } }
           }
         }
       }
@@ -400,9 +439,14 @@ export const generarPDF = async (req, res) => {
     const orden = await prisma.ordenTrabajo.findUnique({
       where: { id: parseInt(id) },
       include: {
-        cliente: true,
+        cliente: {
+          include: { direcciones: true }
+        },
         equipo: {
           include: { inventario: true }
+        },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
         },
         cotizacion: {
           include: {
@@ -421,7 +465,11 @@ export const generarPDF = async (req, res) => {
               }
             },
             materiales: true,
-            instalaciones: true
+            instalaciones: true,
+            mantenciones: true,
+            equiposCliente: {
+              select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
+            }
           }
         }
       }
@@ -538,10 +586,9 @@ export const subirDocumentoFirmado = async (req, res) => {
       },
       include: {
         cliente: true,
-        equipo: {
-          include: {
-            inventario: true
-          }
+        equipo: { include: { inventario: true } },
+        equiposMantenimiento: {
+          select: { id: true, tipo: true, marca: true, modelo: true, capacidad: true }
         }
       }
     })
