@@ -91,7 +91,7 @@ export const generarPDFOrdenTrabajo = async (orden) => {
          .font('Helvetica')
          .fillColor('#374151')
          .text(
-           `N° ${orden.id.toString().padStart(6, '0')}  |  Fecha: ${new Date(orden.createdAt || Date.now()).toLocaleDateString('es-CL')}`,
+           `N° ${orden.id.toString().padStart(6, '0')}  |  Fecha Programada: ${new Date(orden.fecha || orden.createdAt || Date.now()).toLocaleDateString('es-CL')}`,
            140,
            doc.y,
            { align: 'center', width: 332 }
