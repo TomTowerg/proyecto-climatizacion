@@ -301,6 +301,68 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
         equipoY = currentY + 35
 
+      } else if (orden.equiposMantenimiento && orden.equiposMantenimiento.length > 0) {
+        // Equipos del cliente seleccionados para mantención/reparación/visita
+
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('EQUIPOS DEL CLIENTE', 50, equipoY)
+
+        equipoY += 18
+
+        const mantEqTableTop = equipoY
+
+        doc.rect(50, mantEqTableTop, 512, 20)
+           .fillAndStroke('#1e3a8a', '#1e3a8a')
+
+        doc.fontSize(8)
+           .font('Helvetica-Bold')
+           .fillColor('#ffffff')
+           .text('Equipo (Marca / Modelo)', 60, mantEqTableTop + 6)
+           .text('Tipo', 310, mantEqTableTop + 6)
+           .text('Capacidad', 430, mantEqTableTop + 6)
+
+        let currentY = mantEqTableTop + 25
+
+        orden.equiposMantenimiento.forEach((eq, index) => {
+          if (currentY > 680) {
+            doc.addPage()
+            currentY = 60
+
+            doc.rect(50, currentY, 512, 20)
+               .fillAndStroke('#1e3a8a', '#1e3a8a')
+               .fontSize(8)
+               .font('Helvetica-Bold')
+               .fillColor('#ffffff')
+               .text('Equipo (Marca / Modelo)', 60, currentY + 6)
+               .text('Tipo', 310, currentY + 6)
+               .text('Capacidad', 430, currentY + 6)
+
+            currentY += 25
+          }
+
+          if (index % 2 === 0) {
+            doc.rect(50, currentY - 3, 512, 20)
+               .fillAndStroke('#f9fafb', '#f9fafb')
+          }
+
+          const nombreEquipo = `${eq.marca || 'Genérico'} ${eq.modelo || ''}`.trim()
+
+          doc.fontSize(8)
+             .font('Helvetica-Bold')
+             .fillColor('#1f2937')
+             .text(nombreEquipo, 60, currentY, { width: 235 })
+             .font('Helvetica')
+             .fillColor('#374151')
+             .text(eq.tipo || '-', 310, currentY, { width: 110 })
+             .text(eq.capacidad || '-', 430, currentY, { width: 120 })
+
+          currentY += 20
+        })
+
+        equipoY = currentY + 15
+
       } else if (orden.equipo) {
         // Sistema antiguo - un solo equipo
         
