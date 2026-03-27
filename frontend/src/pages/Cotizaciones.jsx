@@ -1066,8 +1066,13 @@ function Cotizaciones() {
                       // Sistema antiguo - un equipo
                       producto = `${cotizacion.inventario.marca} ${cotizacion.inventario.modelo}`
                     } else if (cotizacion.equipo) {
-                      // Mantención/Reparación
+                      // Mantención/Reparación - equipo singular antiguo
                       producto = `${cotizacion.equipo.marca} ${cotizacion.equipo.modelo}`
+                    } else if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+                      // Mantención/Reparación/Visita - equipos del cliente (nuevo flujo multi-equipo)
+                      producto = cotizacion.equiposCliente
+                        .map(e => [e.marca, e.modelo].filter(Boolean).join(' '))
+                        .join(', ')
                     }
 
                     return (

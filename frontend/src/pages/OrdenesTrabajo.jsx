@@ -594,6 +594,12 @@ function OrdenesTrabajo() {
                               // Orden nueva con cotización
                               const totalEquipos = orden.cotizacion.equipos.reduce((sum, eq) => sum + (eq.cantidad || 1), 0)
                               return <span>{totalEquipos} {totalEquipos === 1 ? 'equipo' : 'equipos'}</span>
+                            } else if (orden.cotizacion?.equiposCliente && orden.cotizacion.equiposCliente.length > 0) {
+                              // Mantención/Reparación/Visita con equipos del cliente
+                              const names = orden.cotizacion.equiposCliente
+                                .map(e => [e.marca, e.modelo].filter(Boolean).join(' '))
+                                .join(', ')
+                              return <span title={names}>{orden.cotizacion.equiposCliente.length} equipo{orden.cotizacion.equiposCliente.length > 1 ? 's' : ''} cliente</span>
                             } else if (orden.equipo) {
                               // Orden antigua con un solo equipo
                               return <span>1 equipo</span>

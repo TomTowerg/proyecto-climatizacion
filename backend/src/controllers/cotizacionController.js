@@ -546,7 +546,9 @@ export const generarPDF = async (req, res) => {
     const cotizacion = await prisma.cotizacion.findUnique({
       where: { id: parseInt(id) },
       include: {
-        cliente: true,
+        cliente: {
+          include: { direcciones: true }
+        },
         inventario: true,
         equipos: {
           include: {

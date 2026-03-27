@@ -482,35 +482,119 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       }
 
       // ============================================
+      // COSTOS DEL SERVICIO (MANTENCIONES)
+      // ============================================
+      const cotizacion = orden.cotizacion || {}
+
+      if (cotizacion.mantenciones && cotizacion.mantenciones.length > 0) {
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('COSTOS DEL SERVICIO', 50, equipoY)
+
+        equipoY += 18
+
+        const mantTableTop = equipoY
+
+        doc.rect(50, mantTableTop, 512, 20)
+           .fillAndStroke('#1e3a8a', '#1e3a8a')
+
+        doc.fontSize(8)
+           .font('Helvetica-Bold')
+           .fillColor('#ffffff')
+           .text('Servicio', 60, mantTableTop + 6)
+           .text('Precio', 320, mantTableTop + 6)
+           .text('Desc. %', 400, mantTableTop + 6)
+           .text('Subtotal', 480, mantTableTop + 6)
+
+        let currentY = mantTableTop + 25
+
+        cotizacion.mantenciones.forEach((mant, index) => {
+          if (currentY > 680) {
+            doc.addPage()
+            currentY = 60
+
+            doc.rect(50, currentY, 512, 20)
+               .fillAndStroke('#1e3a8a', '#1e3a8a')
+               .fontSize(8)
+               .font('Helvetica-Bold')
+               .fillColor('#ffffff')
+               .text('Servicio', 60, currentY + 6)
+               .text('Precio', 320, currentY + 6)
+               .text('Desc. %', 400, currentY + 6)
+               .text('Subtotal', 480, currentY + 6)
+
+            currentY += 25
+          }
+
+          if (index % 2 === 0) {
+            doc.rect(50, currentY - 3, 512, 18)
+               .fillAndStroke('#f9fafb', '#f9fafb')
+          }
+
+          doc.fontSize(8)
+             .font('Helvetica')
+             .fillColor('#1f2937')
+             .text(mant.nombre, 60, currentY, { width: 240 })
+             .text(`$${mant.precio.toLocaleString('es-CL')}`, 320, currentY)
+             .text(mant.descuento > 0 ? `${mant.descuento}%` : '-', 400, currentY)
+             .text(`$${mant.subtotal.toLocaleString('es-CL')}`, 480, currentY)
+
+          currentY += 18
+        })
+
+        const totalMantenciones = cotizacion.mantenciones.reduce((sum, m) => sum + m.subtotal, 0)
+
+        doc.rect(380, currentY + 5, 182, 18)
+           .fillAndStroke('#dbeafe', '#2563eb')
+           .fontSize(9)
+           .font('Helvetica-Bold')
+           .fillColor('#1e3a8a')
+           .text('Total Servicio:', 390, currentY + 10)
+           .text(`$${totalMantenciones.toLocaleString('es-CL')}`, 480, currentY + 10)
+
+        equipoY = currentY + 35
+      }
+
+      // ============================================
       // ✅ MEJORA CRÍTICA: CONDICIONES Y DESGLOSE
       // ============================================
-      
+
       const condicionesHeight = 70
-      
-      const cotizacion = orden.cotizacion || {}
-      
-      // CALCULAR VALORES BRUTOS (SIN DESCUENTOS APLICADOS)
+
+      // CALCULAR VALORES BRUTOS CORRECTAMENTE (sin doble-conteo de mantenciones)
       const originalEquipos = cotizacion.equipos && cotizacion.equipos.length > 0
         ? cotizacion.equipos.reduce((sum, e) => sum + (e.precioUnitario * e.cantidad), 0)
-        : (cotizacion.precioOfertado || orden.costoManoObra || 0)
+        : 0
+
+      const originalMantenciones = cotizacion.mantenciones && cotizacion.mantenciones.length > 0
+        ? cotizacion.mantenciones.reduce((sum, m) => sum + m.subtotal, 0)
+        : 0
+
+      // Fallback legacy: si ningún array tiene datos, usar precioOfertado o costoManoObra
+      const servicioFallback = (originalEquipos === 0 && originalMantenciones === 0)
+        ? (cotizacion.precioOfertado || orden.costoManoObra || 0)
+        : 0
 
       const originalMateriales = cotizacion.materiales && cotizacion.materiales.length > 0
         ? cotizacion.materiales.reduce((sum, m) => sum + (m.precioUnitario * m.cantidad), 0)
         : (cotizacion.costoMaterial || orden.costoMateriales || 0)
-        
+
       const originalInstalaciones = cotizacion.instalaciones && cotizacion.instalaciones.length > 0
         ? cotizacion.instalaciones.reduce((sum, i) => sum + i.precio, 0)
-        : (cotizacion.costoInstalacion || 100000)
+        : (cotizacion.costoInstalacion || 0)
 
-      const subtotalBruto = originalEquipos + originalMateriales + originalInstalaciones
+      const subtotalBruto = originalEquipos + originalMantenciones + servicioFallback + originalMateriales + originalInstalaciones
       const precioFinal = cotizacion.precioFinal || (subtotalBruto - (cotizacion.descuento || 0))
       const totalDescuentoAbsoluto = subtotalBruto - precioFinal
 
-      const desgloseHeight = 
-        25 + 
+      const desgloseHeight =
+        25 +
+        (originalEquipos > 0 ? 15 : 0) +
+        (originalMantenciones > 0 || servicioFallback > 0 ? 15 : 0) +
         (originalInstalaciones > 0 ? 15 : 0) +
         (originalMateriales > 0 ? 15 : 0) +
-        15 + 
+        15 +
         (totalDescuentoAbsoluto > 0 ? 15 : 0) +
         45
 
@@ -618,13 +702,22 @@ export const generarPDFOrdenTrabajo = async (orden) => {
       doc.fontSize(8)
          .font('Helvetica')
          .fillColor('#374151')
-         .text('Equipo:', 330, lineY)
-         .text(`$${originalEquipos.toLocaleString('es-CL')}`, 480, lineY, {
-           align: 'right',
-           width: 70
-         })
 
-      lineY += 15
+      if (originalEquipos > 0) {
+        doc.text('Equipo:', 330, lineY)
+           .text(`$${originalEquipos.toLocaleString('es-CL')}`, 480, lineY, { align: 'right', width: 70 })
+        lineY += 15
+      }
+
+      if (originalMantenciones > 0) {
+        doc.text('Servicio:', 330, lineY)
+           .text(`$${originalMantenciones.toLocaleString('es-CL')}`, 480, lineY, { align: 'right', width: 70 })
+        lineY += 15
+      } else if (servicioFallback > 0) {
+        doc.text('Equipo/Serv.:', 330, lineY)
+           .text(`$${servicioFallback.toLocaleString('es-CL')}`, 480, lineY, { align: 'right', width: 70 })
+        lineY += 15
+      }
 
       if (originalInstalaciones > 0) {
         doc.text('Instalación:', 330, lineY)
