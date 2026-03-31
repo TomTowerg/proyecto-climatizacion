@@ -95,6 +95,11 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId, payload = {}) =
       const resultado = await procesarMantencion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
+    } else if (cotizacion.tipo === 'desinstalacion') {
+      // FLUJO DESINSTALACIÓN
+      const resultado = await procesarDesinstalacion(cotizacion, cliente, payload)
+      equipo = resultado.equipo
+      ordenTrabajo = resultado.ordenTrabajo
     }
 
   // ⭐ REDUCIR STOCK DE MATERIALES
@@ -200,7 +205,7 @@ const validarCotizacionPorTipo = async (cotizacion) => {
       }
     }
 
-  } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion' || cotizacion.tipo === 'visita_tecnica') {
+  } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion' || cotizacion.tipo === 'visita_tecnica' || cotizacion.tipo === 'desinstalacion') {
     // Validar que el cliente tenga equipos
     const equiposCliente = await prisma.equipo.count({
       where: { clienteId: cotizacion.clienteId, estado: 'activo' }
@@ -441,6 +446,64 @@ const procesarMantencion = async (cotizacion, cliente, payload = {}) => {
 
   } catch (error) {
     console.error('Error en procesarMantencion:', error)
+    throw error
+  }
+}
+
+/**
+ * PROCESAR DESINSTALACIÓN
+ * Registra la orden de retiro del equipo; al completarse quedará inactivo
+ */
+const procesarDesinstalacion = async (cotizacion, cliente, payload = {}) => {
+  try {
+    console.log(`\n📤 Procesando desinstalación...`)
+
+    // 1. Determinar equipo(s) a desinstalar
+    let equipo = null
+    if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+      equipo = cotizacion.equiposCliente[0]
+    } else {
+      equipo = await prisma.equipo.findFirst({
+        where: { clienteId: cliente.id, estado: { in: ['activo', 'en_mantenimiento'] } },
+        orderBy: { fechaInstalacion: 'desc' }
+      })
+    }
+
+    if (!equipo) {
+      throw new Error('No se encontró equipo para desinstalar')
+    }
+
+    console.log(`✅ Equipo para desinstalación: ${equipo.marca} ${equipo.modelo}`)
+
+    // 2. Crear orden de trabajo de desinstalación
+    const ordenTrabajo = await prisma.ordenTrabajo.create({
+      data: {
+        tipo: 'desinstalacion',
+        estado: 'pendiente',
+        fecha: payload.fechaInstalacion ? new Date(payload.fechaInstalacion) : calcularFechaInstalacion(),
+        clienteId: cliente.id,
+        equipoId: equipo.id,
+        cotizacionId: cotizacion.id,
+        tecnico: 'Por asignar',
+        notas: `Desinstalación / retiro de ${equipo.marca || 'equipo'} ${equipo.modelo || ''} (${equipo.capacidad || ''})${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
+          connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
+        } : undefined
+      }
+    })
+
+    // 3. Marcar equipo como en proceso preventivamente
+    await prisma.equipo.update({
+      where: { id: equipo.id },
+      data: { estado: 'en_mantenimiento' }
+    })
+
+    console.log(`✅ Orden de desinstalación creada: #${ordenTrabajo.id}`)
+
+    return { equipo, ordenTrabajo }
+
+  } catch (error) {
+    console.error('Error en procesarDesinstalacion:', error)
     throw error
   }
 }

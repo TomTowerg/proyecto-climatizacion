@@ -362,6 +362,35 @@ export const completarOrden = async (req, res) => {
       }
     })
 
+    // ⭐ CICLO DE VIDA DEL EQUIPO AL COMPLETAR LA ORDEN
+    if (existingOrden.tipo === 'desinstalacion') {
+      // Al desinstalar, el equipo pasa a inactivo permanentemente
+      const equiposIds = []
+      if (orden.equipoId) equiposIds.push(orden.equipoId)
+      orden.equiposMantenimiento?.forEach(e => equiposIds.push(e.id))
+
+      if (equiposIds.length > 0) {
+        await prisma.equipo.updateMany({
+          where: { id: { in: equiposIds } },
+          data: { estado: 'inactivo' }
+        })
+        console.log(`📤 Equipos marcados como inactivos por desinstalación: ${equiposIds.join(', ')}`)
+      }
+    } else if (['mantencion', 'reparacion', 'visita_tecnica'].includes(existingOrden.tipo)) {
+      // Al completar mantenimiento/reparación/visita, el equipo vuelve a activo
+      const equiposIds = []
+      if (orden.equipoId) equiposIds.push(orden.equipoId)
+      orden.equiposMantenimiento?.forEach(e => equiposIds.push(e.id))
+
+      if (equiposIds.length > 0) {
+        await prisma.equipo.updateMany({
+          where: { id: { in: equiposIds } },
+          data: { estado: 'activo' }
+        })
+        console.log(`✅ Equipos restaurados a activo: ${equiposIds.join(', ')}`)
+      }
+    }
+
     console.log(`✅ Orden completada: #${ordenId}`)
 
     res.json({

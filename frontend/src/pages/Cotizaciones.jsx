@@ -191,7 +191,7 @@ function Cotizaciones() {
   }
 
   useEffect(() => {
-    if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica')) {
+    if (formData.clienteId && (formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica' || formData.tipo === 'desinstalacion')) {
       fetchEquiposCliente(formData.clienteId)
     }
   }, [formData.clienteId, formData.tipo])
@@ -732,7 +732,8 @@ function Cotizaciones() {
         instalacion: 'Equipo registrado',
         mantencion: 'Mantención programada',
         reparacion: 'Reparación programada',
-        visita_tecnica: 'Visita técnica programada'
+        visita_tecnica: 'Visita técnica programada',
+        desinstalacion: 'Desinstalación programada'
       }
 
       toast.success(
@@ -875,17 +876,19 @@ function Cotizaciones() {
       instalacion: 'bg-blue-100 text-blue-800',
       mantencion: 'bg-purple-100 text-purple-800',
       reparacion: 'bg-orange-100 text-orange-800',
-      visita_tecnica: 'bg-teal-100 text-teal-800'
+      visita_tecnica: 'bg-teal-100 text-teal-800',
+      desinstalacion: 'bg-slate-100 text-slate-800'
     }
     const labels = {
       instalacion: '🔧 Instalación',
       mantencion: '⚙️ Mantención',
       reparacion: '🔨 Reparación',
-      visita_tecnica: '🔍 Visita Técnica'
+      visita_tecnica: '🔍 Visita Técnica',
+      desinstalacion: '📤 Desinstalación'
     }
     return (
-      <span className={`badge-compacto ${badges[tipo]}`}>
-        {labels[tipo]}
+      <span className={`badge-compacto ${badges[tipo] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[tipo] || tipo}
       </span>
     )
   }
@@ -1006,6 +1009,7 @@ function Cotizaciones() {
                 <option value="mantencion">Mantención</option>
                 <option value="reparacion">Reparación</option>
                 <option value="visita_tecnica">Visita Técnica</option>
+                <option value="desinstalacion">Desinstalación</option>
               </select>
 
               {(filters.estado || filters.tipo) && (
@@ -1189,7 +1193,7 @@ function Cotizaciones() {
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold mb-3">Tipo de Servicio</h3>
                 <div className="grid grid-cols-3 gap-3">
-                  {['instalacion', 'mantencion', 'reparacion', 'visita_tecnica'].map((tipo) => (
+                  {['instalacion', 'mantencion', 'reparacion', 'visita_tecnica', 'desinstalacion'].map((tipo) => (
                     <label
                       key={tipo}
                       className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all ${formData.tipo === tipo
@@ -1210,6 +1214,7 @@ function Cotizaciones() {
                         {tipo === 'mantencion' && '⚙️ Mantención'}
                         {tipo === 'reparacion' && '🔨 Reparación'}
                         {tipo === 'visita_tecnica' && '🔍 Visita Técnica'}
+                        {tipo === 'desinstalacion' && '📤 Desinstalación'}
                       </span>
                     </label>
                   ))}
@@ -1470,8 +1475,8 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* MANTENCIÓN/REPARACIÓN/VISITA TÉCNICA: Selección múltiple de equipos del cliente */}
-              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica') && (
+              {/* MANTENCIÓN/REPARACIÓN/VISITA TÉCNICA/DESINSTALACIÓN: Selección múltiple de equipos del cliente */}
+              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica' || formData.tipo === 'desinstalacion') && (
                 <div className="border-t pt-4">
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     🖥️ Equipos del Cliente
@@ -1926,8 +1931,8 @@ function Cotizaciones() {
                 </div>
               )}
 
-              {/* SECCIÓN COSTOS DE SERVICIO (mantencion/reparacion/visita_tecnica) */}
-              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica') && (
+              {/* SECCIÓN COSTOS DE SERVICIO (mantencion/reparacion/visita_tecnica/desinstalacion) */}
+              {(formData.tipo === 'mantencion' || formData.tipo === 'reparacion' || formData.tipo === 'visita_tecnica' || formData.tipo === 'desinstalacion') && (
                 <div className="border-t pt-4">
                   <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     ⚙️ Costos del Servicio

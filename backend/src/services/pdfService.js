@@ -192,7 +192,9 @@ export const generarPDFCotizacion = async (cotizacion) => {
       const tipoTexto = {
         instalacion: 'INSTALACIÓN',
         mantencion: 'MANTENCIÓN',
-        reparacion: 'REPARACIÓN'
+        reparacion: 'REPARACIÓN',
+        visita_tecnica: 'VISITA TÉCNICA',
+        desinstalacion: 'DESINSTALACIÓN'
       }
 
       doc
