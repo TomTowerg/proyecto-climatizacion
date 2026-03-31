@@ -875,11 +875,10 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       seccionY += 35
 
-      // Obtener observaciones de la cotización o de la orden
-      const observaciones = orden.cotizacion?.observaciones || 
-                           orden.cotizacion?.notas || 
-                           orden.notas || 
-                           orden.descripcion || 
+      // Obtener observaciones: solo lo que el usuario escribió en la cotización
+      // orden.notas es texto técnico interno generado automáticamente — no mostrarlo aquí
+      const observaciones = orden.cotizacion?.observaciones ||
+                           orden.cotizacion?.notas ||
                            ''
 
       // ✅ SUBSECCIÓN: OBSERVACIONES (siempre se muestra con altura fija)
