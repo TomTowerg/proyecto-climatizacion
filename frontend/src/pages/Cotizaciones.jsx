@@ -23,7 +23,7 @@ import { getTiposInstalacion, createTipoInstalacion } from '../services/tipoInst
 import { getCatalogoServicios, createCatalogoServicio } from '../services/catalogoServicioService'
 import { getClientes, createCliente } from '../services/clienteService'
 import { getInventario } from '../services/inventarioService'
-import { getEquiposByCliente } from '../services/equipoService'
+import { getEquiposByCliente, createEquipo } from '../services/equipoService'
 import '../styles/tablas-compactas.css'
 
 function Cotizaciones() {
@@ -47,6 +47,16 @@ function Cotizaciones() {
   const [fechaInstalacion, setFechaInstalacion] = useState(new Date().toISOString().split('T')[0])
   const [showClientModal, setShowClientModal] = useState(false)
   const [creatingClient, setCreatingClient] = useState(false)
+  const [showEquipoModal, setShowEquipoModal] = useState(false)
+  const [creatingEquipo, setCreatingEquipo] = useState(false)
+  const [newEquipoData, setNewEquipoData] = useState({
+    tipo: 'Split',
+    marca: '',
+    modelo: '',
+    capacidad: '',
+    tipoGas: '',
+    numeroSerie: ''
+  })
   const [materialesInventario, setMaterialesInventario] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [paginationInfo, setPaginationInfo] = useState(null)
@@ -807,6 +817,40 @@ function Cotizaciones() {
     }
   }
 
+  const handleCreateQuickEquipo = async () => {
+    if (!newEquipoData.tipo.trim() || !newEquipoData.capacidad.trim()) {
+      toast.error('El tipo y la capacidad del equipo son requeridos')
+      return
+    }
+    if (!formData.clienteId) {
+      toast.error('Primero selecciona un cliente')
+      return
+    }
+
+    setCreatingEquipo(true)
+    try {
+      const nuevoEquipo = await createEquipo({
+        ...newEquipoData,
+        clienteId: parseInt(formData.clienteId),
+        estado: 'activo'
+      })
+
+      // Agregar a la lista local y preseleccionar
+      setEquiposCliente(prev => [...prev, nuevoEquipo])
+      setEquiposClienteIds(prev => [...prev, nuevoEquipo.id])
+
+      setShowEquipoModal(false)
+      setNewEquipoData({ tipo: 'Split', marca: '', modelo: '', capacidad: '', tipoGas: '', numeroSerie: '' })
+
+      toast.success(`Equipo "${nuevoEquipo.marca || nuevoEquipo.tipo} ${nuevoEquipo.modelo || ''}" creado y seleccionado`)
+    } catch (error) {
+      console.error('Error al crear equipo:', error)
+      toast.error(error.response?.data?.error || 'Error al crear equipo')
+    } finally {
+      setCreatingEquipo(false)
+    }
+  }
+
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingCotizacion(null)
@@ -1483,11 +1527,31 @@ function Cotizaciones() {
                     {equiposClienteIds.length > 0 && (
                       <span className="text-sm font-normal text-purple-600">({equiposClienteIds.length} seleccionado{equiposClienteIds.length > 1 ? 's' : ''})</span>
                     )}
+                    {formData.clienteId && !editingCotizacion && (
+                      <button
+                        type="button"
+                        onClick={() => setShowEquipoModal(true)}
+                        className="ml-auto flex items-center gap-1 text-xs px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors font-medium"
+                      >
+                        <Plus size={14} />
+                        Crear Equipo Rápido
+                      </button>
+                    )}
                   </h3>
                   {!formData.clienteId ? (
                     <p className="text-sm text-gray-500">Primero selecciona un cliente</p>
                   ) : equiposCliente.length === 0 ? (
-                    <p className="text-sm text-amber-600">⚠️ Este cliente no tiene equipos registrados</p>
+                    <div className="text-center py-6 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm text-amber-700 font-medium">⚠️ Este cliente no tiene equipos registrados</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowEquipoModal(true)}
+                        className="mt-3 flex items-center gap-2 mx-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        <Plus size={16} />
+                        Crear Equipo Rápido
+                      </button>
+                    </div>
                   ) : (
                     <div className="space-y-2 border border-gray-200 rounded-xl p-3 max-h-48 overflow-y-auto">
                       {equiposCliente.map(equipo => (
@@ -2484,6 +2548,135 @@ function Cotizaciones() {
                     <UserPlus size={18} />
                     Crear Cliente
                   </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===== MODAL CREAR EQUIPO RÁPIDO ===== */}
+      {showEquipoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🖥️</span>
+                <h2 className="text-xl font-bold text-gray-800">Crear Equipo Rápido</h2>
+              </div>
+              <button
+                onClick={() => setShowEquipoModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-gray-500 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                💡 Solo los campos marcados con * son obligatorios. Puedes completar el resto desde la ficha del equipo.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                  <select
+                    value={newEquipoData.tipo}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, tipo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="Split">Split</option>
+                    <option value="Cassette">Cassette</option>
+                    <option value="Piso Techo">Piso Techo</option>
+                    <option value="Ducto">Ducto</option>
+                    <option value="Portatil">Portátil</option>
+                    <option value="Central">Central</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Capacidad *</label>
+                  <input
+                    type="text"
+                    value={newEquipoData.capacidad}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, capacidad: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="ej: 12000 BTU"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Marca</label>
+                  <input
+                    type="text"
+                    value={newEquipoData.marca}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, marca: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Midea, Samsung..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Modelo</label>
+                  <input
+                    type="text"
+                    value={newEquipoData.modelo}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, modelo: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="MSR12CRN..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Gas</label>
+                  <select
+                    value={newEquipoData.tipoGas}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, tipoGas: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">No especificado</option>
+                    <option value="R32">R32</option>
+                    <option value="R410A">R410A</option>
+                    <option value="R22">R22</option>
+                    <option value="R134A">R134A</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nº Serie</label>
+                  <input
+                    type="text"
+                    value={newEquipoData.numeroSerie}
+                    onChange={(e) => setNewEquipoData({ ...newEquipoData, numeroSerie: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Opcional"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-4 border-t bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setShowEquipoModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                disabled={creatingEquipo}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateQuickEquipo}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={creatingEquipo || !newEquipoData.tipo.trim() || !newEquipoData.capacidad.trim()}
+              >
+                {creatingEquipo ? (
+                  <><span className="animate-spin">⏳</span> Creando...</>
+                ) : (
+                  <><Plus size={18} /> Crear Equipo</>
                 )}
               </button>
             </div>
