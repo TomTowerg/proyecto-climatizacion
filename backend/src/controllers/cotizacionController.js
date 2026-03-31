@@ -200,8 +200,8 @@ export const createCotizacion = async (req, res) => {
       instalacionesCount: instalaciones?.length || 0
     })
 
-    // Validaciones básicas
-    if (!clienteId || !precioOfertado || !subtotal || !precioFinal) {
+    // Validaciones básicas - usar null/undefined en lugar de truthy para permitir valores $0
+    if (!clienteId || precioOfertado == null || subtotal == null || precioFinal == null) {
       return res.status(400).json({
         error: 'Faltan campos requeridos: clienteId, precioOfertado, subtotal, precioFinal'
       })
@@ -355,12 +355,12 @@ export const updateCotizacion = async (req, res) => {
           marca,
           modelo,
           capacidad,
-          precioOfertado: precioOfertado ? parseFloat(precioOfertado) : undefined,
+          precioOfertado: precioOfertado != null ? parseFloat(precioOfertado) : undefined,
           costoInstalacion: costoInstalacion !== undefined ? parseFloat(costoInstalacion) : undefined,
           costoMaterial: costoMaterial !== undefined ? parseFloat(costoMaterial) : undefined,
-          subtotal: subtotal ? parseFloat(subtotal) : undefined,
+          subtotal: subtotal != null ? parseFloat(subtotal) : undefined,
           descuento: descuento !== undefined ? parseFloat(descuento) : undefined,
-          precioFinal: precioFinal ? parseFloat(precioFinal) : undefined,
+          precioFinal: precioFinal != null ? parseFloat(precioFinal) : undefined,
           estado,
           notas,
           agente,
