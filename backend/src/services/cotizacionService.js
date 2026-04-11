@@ -100,6 +100,12 @@ export const aprobarCotizacion = async (cotizacionId, usuarioId, payload = {}) =
       const resultado = await procesarDesinstalacion(cotizacion, cliente, payload)
       equipo = resultado.equipo
       ordenTrabajo = resultado.ordenTrabajo
+    } else if (cotizacion.tipo === 'otros') {
+      // FLUJO MIXTO
+      const resultado = await procesarOtros(cotizacion, cliente, payload)
+      equipo = resultado.equipo
+      ordenTrabajo = resultado.ordenTrabajo
+      equiposCreados = resultado.equiposCreados || 0
     }
 
   // ⭐ REDUCIR STOCK DE MATERIALES
@@ -181,8 +187,10 @@ const validarCotizacionPorTipo = async (cotizacion) => {
         error: 'La cotización de instalación debe tener al menos un equipo asociado'
       }
     }
+  }
 
-    // Validar stock de equipos múltiples
+  // Validar stock para instalación y otros si hay equipos nuevos
+  if (cotizacion.tipo === 'instalacion' || cotizacion.tipo === 'otros') {
     if (cotizacion.equipos && cotizacion.equipos.length > 0) {
       for (const equipoCot of cotizacion.equipos) {
         const producto = await prisma.inventario.findUnique({
@@ -204,7 +212,6 @@ const validarCotizacionPorTipo = async (cotizacion) => {
         }
       }
     }
-
   } else if (cotizacion.tipo === 'mantencion' || cotizacion.tipo === 'reparacion' || cotizacion.tipo === 'visita_tecnica' || cotizacion.tipo === 'desinstalacion') {
     // Validar que el cliente tenga equipos
     const equiposCliente = await prisma.equipo.count({
@@ -565,6 +572,119 @@ const procesarReparacion = async (cotizacion, cliente, payload = {}) => {
 
   } catch (error) {
     console.error('Error en procesarReparacion:', error)
+    throw error
+  }
+}
+
+/**
+ * PROCESAR OTROS / MIXTO
+ * Puede contener instalaciones de equipos nuevos y/o mantención de equipos existentes.
+ */
+const procesarOtros = async (cotizacion, cliente, payload = {}) => {
+  try {
+    console.log(`\n🧩 Procesando servicio mixto (otros)...`)
+
+    const equiposCreados = []
+    let totalEquipos = 0
+    let notasAdicionales = []
+
+    // 1. Procesar Equipos Nuevos (Instalación) si existen
+    if (cotizacion.equipos && cotizacion.equipos.length > 0) {
+      console.log(`🛒 Procesando ${cotizacion.equipos.length} equipos nuevos...`)
+      
+      const equiposCotizacion = await Promise.all(
+        cotizacion.equipos.map(async (eq) => {
+          const inventario = await prisma.inventario.findUnique({
+            where: { id: eq.inventarioId }
+          })
+          return { ...eq, inventario }
+        })
+      )
+
+      for (const equipoCot of equiposCotizacion) {
+        const producto = equipoCot.inventario
+        const cantidad = equipoCot.cantidad
+
+        if (producto.stock < cantidad) {
+          throw new Error(
+            `Stock insuficiente para ${producto.marca} ${producto.modelo}. ` +
+            `Disponible: ${producto.stock}, Solicitado: ${cantidad}`
+          )
+        }
+
+        for (let i = 0; i < cantidad; i++) {
+          const numeroEquipo = totalEquipos + i + 1
+          const equipo = await prisma.equipo.create({
+            data: {
+              tipo: producto.tipo,
+              marca: producto.marca,
+              modelo: producto.modelo,
+              numeroSerie: `${producto.marca}-${producto.modelo}-${producto.capacidadBTU}BTU-${Date.now()}-${numeroEquipo}`,
+              capacidad: `${producto.capacidadBTU} BTU`,
+              tipoGas: producto.tipoGas,
+              estado: 'activo',
+              fechaInstalacion: new Date(),
+              fechaCompra: new Date(),
+              clienteId: cliente.id,
+              inventarioId: producto.id,
+              cotizacionId: cotizacion.id
+            }
+          })
+          equiposCreados.push(equipo)
+        }
+
+        await prisma.inventario.update({
+          where: { id: producto.id },
+          data: { stock: { decrement: cantidad } }
+        })
+
+        totalEquipos += cantidad
+      }
+      notasAdicionales.push(`Instalación de ${equiposCreados.length} equipo(s) nuevo(s).`)
+    }
+
+    // 2. Procesar Equipos de Cliente (Mantención/Reparacion) si existen
+    let equiposMantenimientoDb = []
+    if (cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0) {
+      console.log(`🔧 Procesando ${cotizacion.equiposCliente.length} equipos existentes...`)
+      
+      for (const eq of cotizacion.equiposCliente) {
+        await prisma.equipo.update({
+          where: { id: eq.id },
+          data: { estado: 'en_mantenimiento' }
+        })
+        equiposMantenimientoDb.push({ id: eq.id })
+      }
+      notasAdicionales.push(`Servicio a ${equiposMantenimientoDb.length} equipo(s) existente(s).`)
+    }
+
+    // 3. Crear Orden de Trabajo unificada
+    const ordenTrabajo = await prisma.ordenTrabajo.create({
+      data: {
+        tipo: 'otros',
+        estado: 'pendiente',
+        fecha: payload.fechaInstalacion ? new Date(payload.fechaInstalacion) : calcularFechaInstalacion(),
+        clienteId: cliente.id,
+        equipoId: equiposCreados.length > 0 ? equiposCreados[0].id : (equiposMantenimientoDb.length > 0 ? equiposMantenimientoDb[0].id : null),
+        cotizacionId: cotizacion.id,
+        tecnico: 'Por asignar',
+        notas: `Servicio Mixto programado. ${notasAdicionales.join(' ')}\nDirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}${payload.fechaInstalacion ? `\n> Fecha programada: ${payload.fechaInstalacion}` : ''}`,
+        equiposMantenimiento: equiposMantenimientoDb.length > 0 ? {
+          connect: equiposMantenimientoDb
+        } : undefined
+      }
+    })
+
+    console.log(`✅ Orden de trabajo mixta creada: #${ordenTrabajo.id}`)
+
+    return { 
+      equipo: equiposCreados.length > 0 ? equiposCreados[0] : null, 
+      ordenTrabajo,
+      equiposCreados: equiposCreados.length
+    }
+
+  } catch (error) {
+    console.error('Error en procesarOtros:', error)
     throw error
   }
 }

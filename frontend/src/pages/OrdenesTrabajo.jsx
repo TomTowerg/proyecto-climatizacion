@@ -414,7 +414,8 @@ function OrdenesTrabajo() {
       mantenimiento: 'bg-purple-100 text-purple-800',
       reparacion: 'bg-orange-100 text-orange-800',
       visita_tecnica: 'bg-teal-100 text-teal-800',
-      desinstalacion: 'bg-slate-100 text-slate-800'
+      desinstalacion: 'bg-slate-100 text-slate-800',
+      otros: 'bg-emerald-100 text-emerald-800'
     }
     const labels = {
       instalacion: `${t('workOrders.types.installation')}`,
@@ -422,7 +423,8 @@ function OrdenesTrabajo() {
       mantenimiento: `⚙️ ${t('workOrders.types.maintenance')}`,
       reparacion: `🔨 ${t('workOrders.types.repair')}`,
       visita_tecnica: `🔍 ${t('workOrders.types.technicalVisit', 'Visita Técnica')}`,
-      desinstalacion: `📤 Desinstalación`
+      desinstalacion: `📤 Desinstalación`,
+      otros: '🧩 Otros / Mixto'
     }
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[tipo] || 'bg-gray-100 text-gray-800'}`}>
@@ -525,6 +527,7 @@ function OrdenesTrabajo() {
                 <option value="reparacion">{t('workOrders.types.repair')}</option>
                 <option value="visita_tecnica">{t('workOrders.types.technicalVisit', 'Visita Técnica')}</option>
                 <option value="desinstalacion">Desinstalación</option>
+                <option value="otros">Otros / Mixto</option>
               </select>
 
               {(filters.estado || filters.tipo) && (
@@ -590,6 +593,7 @@ function OrdenesTrabajo() {
                             {orden.tipo === 'reparacion' && 'Reparación'}
                             {orden.tipo === 'visita_tecnica' && 'Visita Técnica'}
                             {orden.tipo === 'desinstalacion' && 'Desinstalación'}
+                            {orden.tipo === 'otros' && 'Otros / Mixto'}
                           </span>
                           {' • '}
                           {(() => {
@@ -794,6 +798,7 @@ function OrdenesTrabajo() {
                     <option value="reparacion">🔨 {t('workOrders.types.repair')}</option>
                     <option value="visita_tecnica">🔍 {t('workOrders.types.technicalVisit', 'Visita Técnica')}</option>
                     <option value="desinstalacion">📤 Desinstalación</option>
+                    <option value="otros">🧩 Otros / Mixto</option>
                   </select>
                 </div>
 
