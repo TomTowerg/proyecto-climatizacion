@@ -89,12 +89,8 @@ function Clientes() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Usar el validador matemático del dígito verificador en lugar de restricción de largo
-    // Esto soporta RUTs de 6, 7, 8 y 9 dígitos (personas y empresas)
-    if (formData.rut && !validarRut(formData.rut)) {
-      toast.error(t('clients.messages.invalidRut'))
-      return
-    }
+    // El RUT con dígito verificador incorrecto muestra advertencia visual (⚠️ naranja)
+    // pero se permite guardar igual para casos donde el cliente proporcionó un RUT con error
 
     try {
       if (editingCliente) {

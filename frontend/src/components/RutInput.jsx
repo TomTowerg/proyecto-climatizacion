@@ -100,9 +100,9 @@ function RutInput({ value = '', onChange, className = '', required = false, show
   // Determinar clases de validación
   const getValidationClasses = () => {
     if (!showValidation || isValid === null || rut.length === 0) return ''
-    return isValid 
-      ? 'border-green-500 focus:ring-green-500' 
-      : 'border-red-500 focus:ring-red-500'
+    return isValid
+      ? 'border-green-500 focus:ring-green-500'
+      : 'border-amber-400 focus:ring-amber-400'
   }
 
   return (
@@ -123,14 +123,14 @@ function RutInput({ value = '', onChange, className = '', required = false, show
           {isValid ? (
             <span className="text-green-500 text-xl">✓</span>
           ) : (
-            <span className="text-red-500 text-xl">✗</span>
+            <span className="text-amber-500 text-lg">⚠️</span>
           )}
         </div>
       )}
 
-      {/* Mensaje de error */}
+      {/* Mensaje de advertencia (no bloquea el guardado) */}
       {showValidation && rut.length > 0 && isValid === false && (
-        <p className="text-xs text-red-600 mt-1">RUT inválido</p>
+        <p className="text-xs text-amber-600 mt-1">⚠️ RUT no verificado — podría ser incorrecto</p>
       )}
     </div>
   )
