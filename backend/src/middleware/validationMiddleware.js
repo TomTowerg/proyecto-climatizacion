@@ -115,8 +115,14 @@ export const validateCliente = [
     .optional()
     .trim()
     .custom((value) => {
-      if (value && !validateRUT(value)) {
-        throw new Error('RUT inválido. Formato: 12345678-9 o 12.345.678-9')
+      if (!value) return true
+      // Solo validar formato: dígitos con guión y dígito verificador (0-9 o K)
+      // No validamos el dígito verificador matemáticamente para permitir RUTs
+      // con posibles errores tipográficos del cliente (ej: 9.582.228-0)
+      const rutLimpio = value.replace(/\./g, '')
+      const formatoValido = /^[0-9]{6,9}-[0-9Kk]$/.test(rutLimpio)
+      if (!formatoValido) {
+        throw new Error('Formato de RUT inválido. Use: 12345678-9 o 12.345.678-9')
       }
       return true
     }),
