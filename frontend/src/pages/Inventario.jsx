@@ -358,6 +358,7 @@ function Inventario() {
                 <option value="Cassette">Cassette</option>
                 <option value="Piso-Cielo">Piso-Cielo</option>
                 <option value="VRF">VRF</option>
+                <option value="Ventana">Ventana</option>
               </select>
 
               <select
@@ -514,6 +515,7 @@ function Inventario() {
                     <option value="Cassette">Cassette</option>
                     <option value="Piso-Cielo">Piso-Cielo</option>
                     <option value="VRF">VRF</option>
+                    <option value="Ventana">Ventana</option>
                   </select>
                 </div>
 

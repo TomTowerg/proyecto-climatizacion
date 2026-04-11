@@ -2590,6 +2590,7 @@ function Cotizaciones() {
                     <option value="Ducto">Ducto</option>
                     <option value="Portatil">Portátil</option>
                     <option value="Central">Central</option>
+                    <option value="Ventana">Ventana</option>
                     <option value="Otro">Otro</option>
                   </select>
                 </div>
