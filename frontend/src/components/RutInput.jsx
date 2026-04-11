@@ -79,8 +79,8 @@ function RutInput({ value = '', onChange, className = '', required = false, show
     const inputValue = e.target.value
     const cleaned = cleanRut(inputValue)
 
-    // Limitar a 9 caracteres (8 dígitos + 1 DV)
-    if (cleaned.length > 9) return
+    // Limitar a 10 caracteres limpios: 9 dígitos + 1 DV (cubre RUTs de empresa hasta 76.XXX.XXX-Y)
+    if (cleaned.length > 10) return
 
     const formatted = formatRut(cleaned)
     setRut(formatted)
