@@ -842,6 +842,43 @@ export const generarPDFCotizacion = async (cotizacion) => {
         })
 
       // ============================================
+      // ⭐ SECCIÓN: OBSERVACIONES
+      // ============================================
+      let obsY = Math.max(doc.y + 20, lineY + 35)
+      const obsHeight = 70
+
+      if (cotizacion.notas && cotizacion.notas.trim() !== '') {
+        // Verificar espacio (si no cabe, nueva página)
+        if (obsY + obsHeight > 700) {
+          doc.addPage()
+          obsY = 60
+        }
+
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .fillColor('#1e3a8a')
+          .text('OBSERVACIONES', 50, obsY)
+
+        obsY += 18
+
+        doc
+          .rect(50, obsY, 512, obsHeight)
+          .fillAndStroke('#f9fafb', '#e5e7eb')
+
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#374151')
+          .text(cotizacion.notas, 60, obsY + 10, {
+            width: 492,
+            align: 'justify',
+            lineGap: 2,
+            height: obsHeight - 20
+          })
+      }
+
+      // ============================================
       // PIE DE PÁGINA
       // ============================================
       const footerY = 720
