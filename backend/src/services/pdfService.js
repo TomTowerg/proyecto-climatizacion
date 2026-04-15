@@ -848,8 +848,19 @@ export const generarPDFCotizacion = async (cotizacion) => {
       const obsHeight = 70
 
       if (cotizacion.notas && cotizacion.notas.trim() !== '') {
-        // Verificar espacio (si no cabe, nueva página)
-        if (obsY + obsHeight > 700) {
+        const textOptions = {
+          width: 492,
+          align: 'justify',
+          lineGap: 2
+        }
+
+        doc.fontSize(8).font('Helvetica')
+        const calculatedHeight = doc.heightOfString(cotizacion.notas, textOptions)
+        const padding = 20
+        const obsHeightTotal = calculatedHeight + padding
+
+        // Verificar espacio (si no cabe y no estamos al inicio, nueva página)
+        if (obsY + obsHeightTotal > 710 && obsY > 100) {
           doc.addPage()
           obsY = 60
         }
@@ -862,20 +873,16 @@ export const generarPDFCotizacion = async (cotizacion) => {
 
         obsY += 18
 
+        // Recuadro dinámico
         doc
-          .rect(50, obsY, 512, obsHeight)
+          .rect(50, obsY, 512, Math.min(obsHeightTotal, 650 - obsY)) // Limitar al final de página
           .fillAndStroke('#f9fafb', '#e5e7eb')
 
         doc
           .fontSize(8)
           .font('Helvetica')
           .fillColor('#374151')
-          .text(cotizacion.notas, 60, obsY + 10, {
-            width: 492,
-            align: 'justify',
-            lineGap: 2,
-            height: obsHeight - 20
-          })
+          .text(cotizacion.notas, 60, obsY + 10, textOptions)
       }
 
       // ============================================
