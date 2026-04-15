@@ -377,7 +377,7 @@ const procesarInstalacion = async (cotizacion, cliente, payload = {}) => {
         equipoId: equipoPrincipal.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
-        notas: `Instalación de ${descripcionEquipos}. Dirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`
+        notas: cotizacion.notas || ''
       }
     })
 
@@ -432,7 +432,7 @@ const procesarMantencion = async (cotizacion, cliente, payload = {}) => {
         equipoId: equipo.id,
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
-        notas: `Mantención preventiva de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        notas: cotizacion.notas || '',
         equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
           connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
         } : undefined
@@ -492,7 +492,7 @@ const procesarDesinstalacion = async (cotizacion, cliente, payload = {}) => {
         equipoId: equipo.id,
         cotizacionId: cotizacion.id,
         tecnico: 'Por asignar',
-        notas: `Desinstalación / retiro de ${equipo.marca || 'equipo'} ${equipo.modelo || ''} (${equipo.capacidad || ''})${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        notas: cotizacion.notas || '',
         equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
           connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
         } : undefined
@@ -551,7 +551,7 @@ const procesarReparacion = async (cotizacion, cliente, payload = {}) => {
         cotizacionId: cotizacion.id,  // ⭐ SEGURO - Ya verificamos que no existe
         tecnico: 'Por asignar',
         costoMateriales: cotizacion.costoMaterial || 0,
-        notas: `Reparación de ${equipo.marca} ${equipo.modelo}${payload.fechaInstalacion ? `\n> Fecha programada inicialmente: ${payload.fechaInstalacion}` : ''}`,
+        notas: cotizacion.notas || '',
         equiposMantenimiento: cotizacion.equiposCliente && cotizacion.equiposCliente.length > 0 ? {
           connect: cotizacion.equiposCliente.map(e => ({ id: e.id }))
         } : undefined
@@ -668,7 +668,7 @@ const procesarOtros = async (cotizacion, cliente, payload = {}) => {
         equipoId: equiposCreados.length > 0 ? equiposCreados[0].id : (equiposMantenimientoDb.length > 0 ? equiposMantenimientoDb[0].id : null),
         cotizacionId: cotizacion.id,
         tecnico: 'Por asignar',
-        notas: `Servicio Mixto programado. ${notasAdicionales.join(' ')}\nDirección: ${cotizacion.direccionInstalacion || cliente.direccion || 'No especificada'}${payload.fechaInstalacion ? `\n> Fecha programada: ${payload.fechaInstalacion}` : ''}`,
+        notas: cotizacion.notas || '',
         equiposMantenimiento: equiposMantenimientoDb.length > 0 ? {
           connect: equiposMantenimientoDb
         } : undefined

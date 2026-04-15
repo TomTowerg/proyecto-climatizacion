@@ -342,12 +342,24 @@ function OrdenesTrabajo() {
 
   const handleEdit = (orden) => {
     setEditingOrden(orden)
+
+    // ⭐ MEJORA: Si la nota es el texto automático antiguo, preferir la nota de la cotización
+    let notasMostrar = orden.notas || ''
+    if (notasMostrar.startsWith('Instalación de') || 
+        notasMostrar.startsWith('Mantención preventiva') ||
+        notasMostrar.startsWith('Reparación de') ||
+        notasMostrar.startsWith('Servicio Mixto')) {
+      if (orden.cotizacion?.notas) {
+        notasMostrar = orden.cotizacion.notas
+      }
+    }
+
     setFormData({
       clienteId: orden.clienteId,
       equipoId: orden.equipoId || '',
       tipo: orden.tipo,
       fecha: new Date(orden.fecha).toISOString().split('T')[0],
-      notas: orden.notas || '',
+      notas: notasMostrar,
       tecnico: orden.tecnico,
       estado: orden.estado,
 

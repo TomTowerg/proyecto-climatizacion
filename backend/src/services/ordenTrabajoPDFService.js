@@ -877,11 +877,31 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       // Obtener observaciones: solo lo que el usuario escribió en la cotización
       // orden.notas es texto técnico interno generado automáticamente — no mostrarlo aquí
-      const observaciones = orden.cotizacion?.observaciones ||
-                           orden.cotizacion?.notas ||
+      const observaciones = orden.notas || 
+                           orden.cotizacion?.notas || 
+                           orden.cotizacion?.observaciones || 
                            ''
 
-      // ✅ SUBSECCIÓN: OBSERVACIONES (siempre se muestra con altura fija)
+      // ✅ SUBSECCIÓN: OBSERVACIONES (Dinámica)
+      const textOptions = {
+        width: 492,
+        align: 'justify',
+        lineGap: 2
+      }
+
+      doc.fontSize(8).font('Helvetica')
+      const calculatedHeight = observaciones.trim() !== '' 
+        ? doc.heightOfString(observaciones, textOptions) 
+        : 20
+
+      const padding = 20
+      const obsHeightTotal = Math.max(60, calculatedHeight + padding)
+
+      if (seccionY + obsHeightTotal > 710) {
+        doc.addPage()
+        seccionY = 60
+      }
+
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -890,29 +910,19 @@ export const generarPDFOrdenTrabajo = async (orden) => {
 
       seccionY += 18
 
-      // ✅ Altura fija de 80pt para poder escribir a mano
-      const observacionesHeight = 80
-
-      // Recuadro con altura fija
       doc
-        .rect(50, seccionY, 512, observacionesHeight)
+        .rect(50, seccionY, 512, obsHeightTotal)
         .fillAndStroke('#f9fafb', '#e5e7eb')
 
-      // Si hay observaciones digitales, mostrarlas dentro del recuadro
       if (observaciones && observaciones.trim() !== '') {
         doc
           .fontSize(8)
           .font('Helvetica')
           .fillColor('#374151')
-          .text(observaciones, 60, seccionY + 10, { 
-            width: 492, 
-            align: 'justify',
-            lineGap: 2,
-            height: observacionesHeight - 20  // Limitar a la altura del recuadro
-          })
+          .text(observaciones, 60, seccionY + 10, textOptions)
       }
 
-      seccionY += observacionesHeight + 25
+      seccionY += obsHeightTotal + 25
 
       // ✅ FIRMAS (después de observaciones o directamente después del título)
       let firmasY = seccionY
